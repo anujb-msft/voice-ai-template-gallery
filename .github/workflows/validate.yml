@@ -48,3 +48,30 @@ jobs:
 
       - name: Check server syntax
         run: npm run check
+
+  call-routing-demo:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: docs/templates/intent-based-call-routing/code
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # The routing state machine, the route policy and the Teams handoff import
+      # nothing outside the standard library, so the tests that cover them run
+      # before any dependency is installed. If this step ever needs npm ci, a
+      # transport concern has leaked into the policy layer.
+      - name: Test the routing policy without dependencies
+        run: npm test
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check server syntax
+        run: npm run check
