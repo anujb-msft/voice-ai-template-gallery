@@ -11,6 +11,8 @@
  * for the real thing.
  */
 
+import { STATES } from "./flow.mjs";
+
 const SIGNALS = {
   sales: [
     "buy", "purchase", "pricing", "price", "quote", "renew", "renewal", "upgrade",
@@ -73,25 +75,38 @@ export function classifyOffline(text, allowedIds = null) {
 }
 
 /**
- * Feed one caller utterance through the flow exactly as the model would:
- * transcript, then either a human request or a route proposal.
+ * Feed one caller utterance through the flow exactly as the model would.
+ * The presenter types; everything downstream is the real state machine.
  */
 export function handleUtterance(flow, callId, text) {
-  flow.pushTranscript(callId, "caller", text);
+  const said = String(text ?? "").trim();
+  if (!said) return flow.noInput(callId);
 
-  if (wantsHuman(text)) return flow.requestHuman(callId, "explicit_request");
+  flow.pushTranscript(callId, "caller", said);
+  const call = flow.get(callId);
 
-  const digit = String(text).trim();
-  if (/^[0-9]$/.test(digit)) return flow.dtmf(callId, digit);
+  if (/^[0-9]$/.test(said)) return flow.dtmf(callId, said);
+  if (wantsHuman(said)) return flow.requestHuman(callId, "explicit_request");
 
-  const { routeId, confidence } = classifyOffline(text, flow.routes.ids);
+  // After hours the caller is dictating a message, not stating an intent.
+  if (call?.state === STATES.MESSAGING) {
+    return flow.takeMessage(callId, { callTopic: summarise(said), callSummary: said });
+  }
+
+  // A yes accepts the destination just offered. Anything else falls through to
+  // classification again, which is how a caller changes their mind.
+  if (call?.state === STATES.CONFIRMING && call.proposed && isAffirmative(said)) {
+    return flow.confirmRoute(callId, call.proposed.routeId);
+  }
+
+  const { routeId, confidence } = classifyOffline(said, flow.routes.ids);
   if (!routeId) return flow.noInput(callId);
 
   return flow.proposeRoute(callId, {
     routeId,
     confidence,
-    callTopic: summarise(text),
-    callSummary: `Caller said: ${String(text).trim()}`,
+    callTopic: summarise(said),
+    callSummary: `Caller said: ${said}`,
   });
 }
 

@@ -21,6 +21,8 @@ export const config = {
 
   acs: {
     connectionString: process.env.ACS_CONNECTION_STRING ?? "",
+    /** "public", "dod" or "gcch" — only change this for a sovereign Teams tenant. */
+    teamsCloud: process.env.TEAMS_CLOUD ?? "public",
   },
 
   voiceLive: {

@@ -90,6 +90,7 @@ export class RoutingFlow {
       caller,
       sessionId,
       incomingCallContext,
+      callConnectionId: null,
       state: STATES.RINGING,
       proposed: null,
       confirmedRouteId: null,
@@ -133,6 +134,22 @@ export class RoutingFlow {
 
   unregisterAgent(callId) {
     this.agents.delete(callId);
+  }
+
+  /** ACS hands back the connection id once the call is answered. */
+  setCallConnection(callId, callConnectionId) {
+    const call = this.get(callId);
+    if (call) call.callConnectionId = callConnectionId;
+  }
+
+  /**
+   * Log every tool the model reached for, accepted or not. A rejected proposal
+   * is the most interesting line in the audit trail, so it is never dropped.
+   */
+  recordAgentAction(callId, { tool, ok = true, detail = null }) {
+    const call = this.get(callId);
+    if (!call) return;
+    this.#event(call, "agent", ok ? "tool" : "tool_rejected", detail ? `${tool}: ${detail}` : tool);
   }
 
   /**
@@ -390,7 +407,12 @@ Open by saying you are ${this.routes.organization}'s automated assistant, then a
     call.confirmedRouteId = routeId;
     call.proposed = null;
     this.#event(call, "system", "route_confirmed", `${routeId} (${why})`);
-    this.audit.updateCall(call.id, { confirmedRouteId: routeId });
+    this.audit.updateCall(call.id, {
+      confirmedRouteId: routeId,
+      topic: call.topic,
+      summary: call.summary,
+      sentiment: call.sentiment,
+    });
 
     if (resolution.action === "message") {
       this.#setState(call, STATES.MESSAGING);
