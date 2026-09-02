@@ -410,7 +410,8 @@
   var VISUAL_SCENES = {
     "intent-routing": {
       dataScene: "routing",
-      ariaLabel: "A caller describes a need, an intent hub identifies it, and the call branches to sales, support, or billing.",
+      ariaLabel:
+        "A caller describes a need, an intent hub checks how confident it is before choosing, and the call branches to sales, support, or billing with the reason attached.",
       outcomes: ["Sales", "Support", "Billing"],
       summary: "Identify the reason and choose a team.",
       thumbnailContent:
@@ -422,14 +423,14 @@
         '<span class="visual-badge">3 teams</span>' +
         "</span>",
       content:
-        '<span class="visual-node" data-step="caller">Caller<br><small>“I need an order update.”</small></span>' +
+        '<span class="visual-node" data-step="caller">Caller<br><small>“I was charged twice.”</small></span>' +
         '<span class="visual-node visual-node--focal" data-step="intent">' +
         SCENE_ICONS.routing +
-        "Intent hub<br><small>Detect need</small></span>" +
+        "Intent hub<br><small>Sure enough to route?</small></span>" +
         '<span class="visual-outcomes" data-step="route-options">' +
         '<span class="visual-badge" data-route="sales">Sales · new order</span>' +
         '<span class="visual-badge" data-route="support">Support · delivery</span>' +
-        '<span class="visual-badge" data-route="billing">Billing · invoice</span>' +
+        '<span class="visual-badge" data-response="confirmed" data-route="billing">Billing · reason attached</span>' +
         "</span>" +
         '<i class="visual-route visual-route--inbound" aria-hidden="true" style="left:28%;top:50%;width:12%"></i>' +
         '<i class="visual-route visual-route--branch" aria-hidden="true" style="left:65%;top:27%;width:9%;height:46%;border-left:0"></i>'
