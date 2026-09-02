@@ -6,9 +6,18 @@
 (function () {
   "use strict";
 
+  var FEATURED_TEMPLATE_ID = "intent-based-call-routing";
+
+  function compareTemplates(left, right, descending) {
+    var leftIsFeatured = left.id === FEATURED_TEMPLATE_ID;
+    var rightIsFeatured = right.id === FEATURED_TEMPLATE_ID;
+    if (leftIsFeatured !== rightIsFeatured) return leftIsFeatured ? -1 : 1;
+    return descending ? right.name.localeCompare(left.name) : left.name.localeCompare(right.name);
+  }
+
   var CATALOG = Array.isArray(window.VOICE_AI_TEMPLATES)
     ? window.VOICE_AI_TEMPLATES.slice().sort(function (left, right) {
-        return left.name.localeCompare(right.name);
+        return compareTemplates(left, right, false);
       })
     : [];
 
@@ -795,16 +804,9 @@
     var list = CATALOG.filter(function (template) {
       return matchesQuery(template);
     });
-    if (state.sort === "name") {
-      list = list.slice().sort(function (a, b) {
-        return a.name.localeCompare(b.name);
-      });
-    } else if (state.sort === "name-desc") {
-      list = list.slice().sort(function (a, b) {
-        return b.name.localeCompare(a.name);
-      });
-    }
-    return list;
+    return list.slice().sort(function (left, right) {
+      return compareTemplates(left, right, state.sort === "name-desc");
+    });
   }
 
   function plateMarkup(template, position) {
