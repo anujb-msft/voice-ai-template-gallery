@@ -43,6 +43,23 @@ defects in the existing password-reset sample, which have been fixed in the same
 current WebSocket transport api-version is `2026-04-10`. The password-reset sample pinned
 both incorrectly and has been corrected.
 
+## Experience decisions
+
+A third round covering conversation edges and demo ergonomics.
+
+| # | Decision | Choice |
+|---|---|---|
+| 1 | Fictional org | Contoso, matching the password-reset sample |
+| 2 | AI disclosure | The agent says it is an automated assistant in its opening line |
+| 3 | Confidence threshold | `0.75`, flat across routes, configurable |
+| 4 | Out-of-scope questions | One polite deflection, then back to routing — this is not an FAQ bot |
+| 5 | Changing their mind | Re-classification allowed until the transfer actually begins |
+| 6 | Time budget | 90 seconds to a confirmed route, then automatic reception fallback |
+| 7 | Realtime transport | Local WebSocket only; no SignalR dependency |
+| 8 | Default port | `8091`, so it runs alongside the password-reset sample on `8090` |
+| 9 | Gallery card | Visual scene updated to depict the routing flow when the sample lands |
+| 10 | Transfer audio | A spoken “connecting you now”, no hold tone |
+
 ## Goal
 
 Build a runnable inbound voice agent that answers a Teams Phone service number, asks the
@@ -77,22 +94,31 @@ log before ending the call.
 2. Event Grid delivers the `IncomingCall` event. The Node.js service answers through ACS
    Call Automation and starts bidirectional media streaming. Before greeting, the server
    looks the calling number up in a seeded demo directory.
-3. Azure AI Voice Live greets the caller: **“Tell me briefly what you’re calling about.”**
-   A matched caller is greeted by name; an unmatched caller gets the neutral greeting.
+3. Azure AI Voice Live greets the caller, disclosing that it is an automated assistant in
+   the same breath as the question: **“You’ve reached Contoso — I’m an automated
+   assistant. Tell me briefly what you’re calling about.”** A matched caller is greeted
+   by name; an unmatched caller gets the neutral greeting.
 4. The agent maps the caller’s words to one allowlisted route, reporting its own
-   confidence. Below the configured threshold, or on silence or an unusable answer, it
-   asks one short clarifying question — at most twice, offering the keypad on the second
-   attempt — and then falls back to reception. Keys 1–4 are always accepted. It confirms
-   the destination: **“It sounds like technical support. Is that right?”**
-5. After explicit confirmation, the server transfers the call to the configured Teams
-   target. An explicit request for a person skips classification and confirmation
-   entirely: asking someone to confirm that they want a human is the exact frustration
-   this template exists to remove.
+   confidence. Below `0.75`, or on silence or an unusable answer, it asks one short
+   clarifying question — at most twice, offering the keypad on the second attempt — and
+   then falls back to reception. Keys 1–4 are always accepted. A question no route covers
+   gets one polite deflection back to routing rather than an answer; this is a router,
+   not an FAQ bot. It confirms the destination: **“It sounds like technical support. Is
+   that right?”**
+5. After explicit confirmation, the agent says **“Connecting you now”** and the server
+   transfers the call to the configured Teams target. Until the transfer actually begins,
+   the caller may still change their mind and the agent re-classifies. An explicit
+   request for a person skips classification and confirmation entirely: asking someone to
+   confirm that they want a human is the exact frustration this template exists to
+   remove.
 6. If the confirmed route is outside its configured hours, the server applies that
    route’s after-hours behavior instead, and the agent says so before transferring.
 7. The receiving Teams user sees the call topic, conversation context, and any caller
    details resolved by lookup. If a transfer fails, the agent stays with the caller,
    retries once, then uses the fallback queue or explains that no transfer is available.
+8. A server-side budget of 90 seconds from answer to confirmed route is enforced
+   throughout. If it expires in any state before transfer, the call goes to reception
+   with whatever context exists, so a confused conversation can never trap the caller.
 
 ## Architecture and implementation shape
 
@@ -104,7 +130,7 @@ PSTN caller
        ↔ Azure AI Voice Live API over WebSocket
        ↔ allowlisted route policy + business hours + seeded caller directory
        ↔ SQLite audit log + stats endpoint
-       ↔ presenter console and mock Teams agent view over local WebSocket
+       ↔ presenter console and mock Teams agent view over a local WebSocket
    → ACS transfer to Teams Call Queue or Teams user
        + Teams custom call context
 ```
@@ -119,7 +145,8 @@ inbound, idempotent state machine:
 
 `ringing → greeting → classifying → confirming → transferring → transferred | fallback | ended`
 
-An after-hours route short-circuits the transfer leg as `confirming → messaging → ended`.
+An after-hours route short-circuits the transfer leg as `confirming → messaging → ended`,
+and `confirming → classifying` re-opens when a caller changes their mind in time.
 
 The model changes state only through server-owned tools:
 
@@ -127,7 +154,10 @@ The model changes state only through server-owned tools:
   candidate route; the server rejects unknown IDs, normalizes context limits, and forces
   a clarifying question when confidence is below the configured threshold.
 - `confirm_route(routeId)` is accepted only after the caller explicitly confirms the
-  currently proposed route; the server resolves the real Teams target and starts transfer.
+  currently proposed route; the server resolves the real Teams target and starts
+  transfer. A fresh `propose_route` is still accepted between confirmation and the
+  moment the ACS transfer is dispatched, which is what lets a caller change their mind;
+  after dispatch the route is frozen.
 - `request_human(reason)` selects `reception` without further classification.
 - `take_message(callTopic, callSummary)` is enabled only when the server has already
   decided the call is after hours for the confirmed route.
@@ -169,16 +199,20 @@ see it, so the payoff of the handoff is visible without a second tenant. Both pa
 clearly marked as demo surfaces, show no secrets, and never claim a transfer completed
 while in simulation mode.
 
-Configuration covers `PUBLIC_BASE_URL`, `ACS_CONNECTION_STRING`, an Event Grid
-incoming-call endpoint, and a single `LOCALE`/`VOICE` pair so the English demo can be
-repointed without touching prompts or code. Voice Live uses `VOICE_LIVE_ENDPOINT`,
+Configuration covers `PORT` (`8091`, so the sample runs alongside the password-reset
+demo on `8090`), `PUBLIC_BASE_URL`, `ACS_CONNECTION_STRING`, an Event Grid incoming-call
+endpoint, `CONFIDENCE_THRESHOLD` (`0.75`), `ROUTE_TIME_BUDGET_MS` (`90000`), and a single
+`LOCALE`/`VOICE` pair so the English demo can be repointed without touching prompts or
+code. The presenter console and mock Teams view are served over a plain local WebSocket;
+unlike the password-reset sample there is no SignalR option, because a single-presenter
+demo does not need one. Voice Live uses `VOICE_LIVE_ENDPOINT`,
 `VOICE_LIVE_MODEL` (`gpt-realtime`), and `VOICE_LIVE_API_VERSION` (`2026-04-10`), and
 authenticates with `DefaultAzureCredential` when no key is present — Microsoft recommends
 Entra ID, which needs the **Cognitive Services User** and **Foundry User** roles and the
 `https://ai.azure.com/.default` token scope. An API key remains supported for quick
 starts. Two non-secret data files carry the rest: `config/routes.json` with placeholder
 Teams application IDs, business hours, and after-hours behavior per route, and
-`config/callers.json` with a handful of fictional directory entries.
+`config/callers.json` with a handful of fictional Contoso directory entries.
 
 With no Azure subscription at all, the sample still runs end to end: a typed transcript
 is fed to the same state machine, so route selection, confirmation, business hours,
@@ -188,7 +222,8 @@ transfer are stubbed.
 
 Shipped alongside `src/`: a README, a `DEMO-SCRIPT.md` walkthrough, a PowerShell snippet
 for `Set-CsOnlineApplicationInstance` and the Teams Phone extensibility assignment, and
-the checked-in call fixtures.
+the checked-in call fixtures. When the sample lands, this template’s gallery card gets a
+visual scene depicting the routing flow, replacing the current placeholder artwork.
 
 ## Acceptance criteria
 
@@ -200,10 +235,16 @@ the checked-in call fixtures.
   deliveries without creating duplicate sessions.
 - `node:test` runs the checked-in fixtures with no cloud credentials, covering every
   route, an ambiguous request, a low-confidence proposal, an immediate human request, a
-  DTMF selection, two consecutive no-inputs, a known and an unknown caller number, an
-  after-hours call, a rejected route ID, and a failed transfer.
+  DTMF selection, two consecutive no-inputs, an out-of-scope question, a caller who
+  changes their mind after confirming, an expired time budget, a known and an unknown
+  caller number, an after-hours call, a rejected route ID, and a failed transfer.
 - No call transfers before caller confirmation, except an explicit human request; after
-  two unresolved clarification attempts the call falls back to reception.
+  two unresolved clarification attempts the call falls back to reception, and the
+  90-second budget forces the same fallback from any pre-transfer state.
+- The opening line discloses that the caller is talking to an automated assistant, a
+  question no route covers gets exactly one deflection, and a caller who changes their
+  mind before the transfer starts is re-classified rather than transferred to the stale
+  destination.
 - A successful transfer reaches the configured Teams target and includes the normalized
   topic, summary, available session context, and unverified caller details; sentiment is
   present only when the caller stated it.
