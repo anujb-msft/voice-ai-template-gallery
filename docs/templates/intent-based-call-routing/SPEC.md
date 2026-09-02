@@ -54,7 +54,7 @@ A third round covering conversation edges and demo ergonomics.
 | 3 | Confidence threshold | `0.75`, flat across routes, configurable |
 | 4 | Out-of-scope questions | One polite deflection, then back to routing — this is not an FAQ bot |
 | 5 | Changing their mind | Re-classification allowed until the transfer actually begins |
-| 6 | Time budget | 90 seconds to a confirmed route, then automatic reception fallback |
+| 6 | Time budget | 90 seconds to a confirmed route, configurable, then automatic reception fallback |
 | 7 | Realtime transport | Local WebSocket only; no SignalR dependency |
 | 8 | Default port | `8091`, so it runs alongside the password-reset sample on `8090` |
 | 9 | Gallery card | Visual scene updated to depict the routing flow when the sample lands |
@@ -116,9 +116,10 @@ log before ending the call.
 7. The receiving Teams user sees the call topic, conversation context, and any caller
    details resolved by lookup. If a transfer fails, the agent stays with the caller,
    retries once, then uses the fallback queue or explains that no transfer is available.
-8. A server-side budget of 90 seconds from answer to confirmed route is enforced
-   throughout. If it expires in any state before transfer, the call goes to reception
-   with whatever context exists, so a confused conversation can never trap the caller.
+8. A server-side budget of 90 seconds from answer to confirmed route, configurable via
+   `ROUTE_TIME_BUDGET_MS`, is enforced throughout. If it expires in any state before
+   transfer, the call goes to reception with whatever context exists, so a confused
+   conversation can never trap the caller.
 
 ## Architecture and implementation shape
 
