@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import { RoutingFlow, STATES } from "../src/flow.mjs";
 import { RoutePolicy, CallerDirectory, maskPhone } from "../src/routes.mjs";
 import { MemoryAudit } from "../src/audit.mjs";
-import { classifyOffline, handleUtterance, wantsHuman } from "../src/offline.mjs";
+import { classifyOffline, handleUtterance, wantsHuman, registerSimulatedAgent } from "../src/offline.mjs";
 
 /**
  * The whole routing flow is exercised here with no Azure, no database and no
@@ -253,6 +253,48 @@ test("once the transfer has dispatched the route is frozen", async () => {
   await flow.settled(id);
 
   assert.equal(flow.proposeRoute(id, confident("billing")).reason, "call_finished");
+  assert.equal(flow.get(id).destination.routeId, "sales");
+});
+
+test("a keypress inside the mind-change window replaces the pending transfer", async () => {
+  const { flow } = makeFlow({ options: { transferDelayMs: 5_000 } });
+  const id = answer(flow);
+  flow.proposeRoute(id, confident("billing"));
+  flow.confirmRoute(id, "billing");
+  const armed = flow.get(id).pendingDispatch;
+  assert.ok(armed, "a transfer is pending");
+
+  // Pressing 2 replaces the pending billing transfer. If the old timer were left
+  // armed it would win the race and the caller would land in the wrong queue.
+  assert.equal(flow.dtmf(id, "2").routeId, "support");
+  assert.notEqual(flow.get(id).pendingDispatch, armed);
+  assert.equal(flow.get(id).destination.routeId, "support");
+
+  await flow.dispatchTransfer(id);
+  assert.equal(flow.get(id).destination.routeId, "support");
+  assert.equal(flow.get(id).transferAttempts, 1, "only one transfer was attempted");
+});
+
+test("changing your mind clears the destination so nothing stale is handed off", () => {
+  const { flow } = makeFlow({ options: { transferDelayMs: 5_000 } });
+  const id = answer(flow);
+  flow.proposeRoute(id, confident("sales"));
+  flow.confirmRoute(id, "sales");
+  assert.equal(flow.get(id).destination.routeId, "sales");
+
+  flow.proposeRoute(id, confident("billing"));
+  assert.equal(flow.get(id).destination, null);
+});
+
+test("a keypress after the transfer has dispatched is refused", async () => {
+  const { flow } = makeFlow();
+  const id = answer(flow);
+  flow.proposeRoute(id, confident("sales"));
+  flow.confirmRoute(id, "sales");
+  await flow.settled(id);
+
+  assert.equal(flow.dtmf(id, "2").reason, "call_finished");
+  assert.equal(flow.requestHuman(id).reason, "call_finished");
   assert.equal(flow.get(id).destination.routeId, "sales");
 });
 
@@ -505,4 +547,35 @@ test("a typed transcript drives the same state machine end to end", async () => 
   assert.equal(snap.state, STATES.TRANSFERRED);
   assert.equal(snap.destination.routeId, "billing");
   assert.ok(snap.transcript.length >= 2);
+});
+
+test("the simulated agent speaks on the same code path the real one is steered by", async () => {
+  const { flow } = makeFlow();
+  const call = flow.create({ fromPhone: "+14255550101" });
+  registerSimulatedAgent(flow, call.id);
+  flow.answered(call.id);
+
+  const spoken = () => flow.get(call.id).transcript.filter((t) => t.role === "agent").map((t) => t.text);
+
+  // The greeting uses the directory match, and says it is automated.
+  assert.match(spoken()[0], /Dana/);
+  assert.match(spoken()[0], /automated assistant/);
+
+  handleUtterance(flow, call.id, "my invoice has a duplicate charge on it");
+  assert.match(spoken().at(-1), /Billing/);
+
+  handleUtterance(flow, call.id, "yes please");
+  await flow.settled(call.id);
+  assert.match(spoken().at(-1), /Connecting you now/);
+});
+
+test("an unknown caller is greeted without a name", () => {
+  const { flow } = makeFlow();
+  const call = flow.create({ fromPhone: "+14255559999" });
+  registerSimulatedAgent(flow, call.id);
+  flow.answered(call.id);
+
+  const greeting = flow.get(call.id).transcript[0].text;
+  assert.match(greeting, /automated assistant/);
+  assert.doesNotMatch(greeting, /Dana/);
 });

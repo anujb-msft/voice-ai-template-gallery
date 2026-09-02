@@ -39,6 +39,24 @@ export function wantsHuman(text) {
   return SIGNALS.reception.some((k) => t.includes(k));
 }
 
+/**
+ * Stands in for the Voice Live agent. It implements the same handle the real
+ * bridge registers — `{ instruct, nudge }` — but instead of steering a model it
+ * speaks the example line the flow supplies alongside each instruction. The
+ * flow cannot tell the difference, which is the point: state transitions,
+ * confirmations and wording all happen on the same code path a real call takes.
+ */
+export function registerSimulatedAgent(flow, callId) {
+  flow.registerAgent(callId, {
+    instruct: (_prompt, spoken) => {
+      if (spoken) flow.pushTranscript(callId, "agent", spoken);
+    },
+    nudge: (_prompt, opts) => {
+      if (opts?.spoken) flow.pushTranscript(callId, "agent", opts.spoken);
+    },
+  });
+}
+
 function normalise(text) {
   return ` ${String(text ?? "").toLowerCase().replace(/[^a-z0-9' ]+/g, " ").replace(/\s+/g, " ")} `;
 }

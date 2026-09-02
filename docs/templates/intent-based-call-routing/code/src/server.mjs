@@ -9,7 +9,7 @@ import { RoutePolicy, CallerDirectory, normalisePhone } from "./routes.mjs";
 import { MemoryAudit } from "./audit.mjs";
 import { RoutingFlow } from "./flow.mjs";
 import { createHub } from "./realtime.mjs";
-import { handleUtterance } from "./offline.mjs";
+import { handleUtterance, registerSimulatedAgent } from "./offline.mjs";
 import { attachMediaBridge, activeBridges } from "./voice/call-bridge.mjs";
 import { answerInboundCall, transferToTeams, startDtmfRecognition, hangUp } from "./voice/acs.mjs";
 
@@ -192,6 +192,7 @@ app.post(
   asyncRoute(async (req, res) => {
     const fromPhone = req.body?.fromPhone ? normalisePhone(req.body.fromPhone) : null;
     const call = flow.create({ fromPhone });
+    registerSimulatedAgent(flow, call.id);
     flow.answered(call.id);
     res.json({ ok: true, callId: call.id, snapshot: flow.snapshot(call.id) });
   }),
@@ -259,18 +260,22 @@ app.get("/api/stats", (_req, res) => res.json(audit.stats()));
 
 app.post("/api/negotiate", (req, res) => res.json(hub.negotiate(req.body?.callId ?? "*")));
 
-app.get("/health", (_req, res) =>
+app.get("/health", (_req, res) => {
+  const missing = assertCallConfig();
   res.json({
     ok: true,
+    mode: missing.length === 0 ? "live" : "simulation",
     realtime: hub.transport,
     audit: audit.name,
     voiceModel: config.voiceLive.model,
     apiVersion: config.voiceLive.apiVersion,
     routes: routes.ids,
     confidenceThreshold: config.routing.confidenceThreshold,
-    callReady: assertCallConfig().length === 0,
-  }),
-);
+    transferDelayMs: config.routing.transferDelayMs,
+    callReady: missing.length === 0,
+    missingConfig: missing,
+  });
+});
 
 // ----------------------------------------------------------------------- start
 

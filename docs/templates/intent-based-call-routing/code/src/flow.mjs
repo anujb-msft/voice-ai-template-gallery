@@ -169,6 +169,9 @@ export class RoutingFlow {
       call,
       `The call is connected. ${greeting}
 Open by saying you are ${this.routes.organization}'s automated assistant, then ask what they are calling about. One sentence, warm, no list of options.`,
+      call.caller
+        ? `Hi ${call.caller.displayName.split(" ")[0]}, you've reached ${this.routes.organization} — I'm the automated assistant. What can I help you with today?`
+        : `Thanks for calling ${this.routes.organization} — I'm the automated assistant. What can I help you with today?`,
     );
 
     this.#setState(call, STATES.CLASSIFYING);
@@ -203,6 +206,7 @@ Open by saying you are ${this.routes.organization}'s automated assistant, then a
       this.#cancelPendingDispatch(call);
       this.#event(call, "caller", "route_changed", `${call.confirmedRouteId} → ${routeId}`);
       call.confirmedRouteId = null;
+      call.destination = null;
     }
 
     const score = Number(confidence);
@@ -223,7 +227,13 @@ Open by saying you are ${this.routes.organization}'s automated assistant, then a
     this.#event(call, "agent", "route_proposed", `${routeId} @ ${score}`);
 
     const route = this.routes.get(routeId);
-    return { ok: true, routeId, label: route.label ?? routeId, confirmRequired: true };
+    const label = route.label ?? routeId;
+    this.#instruct(
+      call,
+      `You are confident this is ${label}. Say so in one short sentence and ask the caller to confirm before you connect them. Wait for their answer, then call \`confirm_route\`.`,
+      `It sounds like ${label} is the right team for that — shall I put you through?`,
+    );
+    return { ok: true, routeId, label, confirmRequired: true };
   }
 
   /** Caller said yes. Only ever accepted for the route currently on the table. */
@@ -245,6 +255,7 @@ Open by saying you are ${this.routes.organization}'s automated assistant, then a
   requestHuman(callId, reason = "caller_requested") {
     const call = this.#require(callId);
     if (TERMINAL.has(call.state)) return { ok: false, reason: "call_finished" };
+    if (call.dispatched) return { ok: false, reason: "already_transferring" };
     this.#cancelPendingDispatch(call);
     this.#event(call, "caller", "human_requested", reason);
     call.topic = call.topic ?? "Asked for a person";
@@ -254,6 +265,8 @@ Open by saying you are ${this.routes.organization}'s automated assistant, then a
   /** Keypad shortcut. Always available, announced only when the caller struggles. */
   dtmf(callId, digit) {
     const call = this.#require(callId);
+    if (TERMINAL.has(call.state)) return { ok: false, reason: "call_finished" };
+    if (call.dispatched) return { ok: false, reason: "already_transferring" };
     const routeId = this.routes.routeForDigit(digit);
     if (!routeId) {
       this.#event(call, "caller", "dtmf_ignored", String(digit));
@@ -289,6 +302,7 @@ Open by saying you are ${this.routes.organization}'s automated assistant, then a
     this.#instruct(
       call,
       `The caller asked something no route covers. Say once, politely, that you only connect people to the right team and cannot answer that yourself, then ask again what they need help with. Do not attempt an answer.`,
+      "I'm not able to answer that one myself — I'm here to get you to the right team. What do you need help with?",
     );
     return { ok: true, deflected: true, remaining: this.options.maxDeflections - call.deflections };
   }
@@ -360,18 +374,20 @@ Open by saying you are ${this.routes.organization}'s automated assistant, then a
     }
 
     const offerKeypad = call.clarifications >= this.options.maxClarifications;
+    const keypadMenu = this.routes
+      .menu()
+      .filter((r) => r.dtmf)
+      .map((r) => `${r.dtmf} for ${r.label}`)
+      .join(", ");
     this.#setState(call, STATES.CLASSIFYING);
     this.#instruct(
       call,
       `You still do not have a confident destination. Ask one short question to narrow it down.${
-        offerKeypad
-          ? ` This is the last attempt, so also offer the keypad: ${this.routes
-              .menu()
-              .filter((r) => r.dtmf)
-              .map((r) => `${r.dtmf} for ${r.label}`)
-              .join(", ")}.`
-          : ""
+        offerKeypad ? ` This is the last attempt, so also offer the keypad: ${keypadMenu}.` : ""
       }`,
+      offerKeypad
+        ? `Sorry — I want to get this right. Could you tell me a bit more? Or use the keypad: ${keypadMenu}.`
+        : "Sorry, I want to make sure I get you to the right place. Could you tell me a bit more about what you need?",
     );
 
     return {
@@ -419,6 +435,7 @@ Open by saying you are ${this.routes.organization}'s automated assistant, then a
       this.#instruct(
         call,
         `${this.routes.get(routeId).label} is closed right now. Tell the caller that, offer to take a short message, and once they have given it call \`take_message\` with a topic and a one-sentence summary. Do not promise a specific callback time.`,
+        `${this.routes.get(routeId).label} is closed at the moment. I can take a short message and make sure it reaches them — what would you like me to pass on?`,
       );
       return { ok: true, routeId, action: "message", afterHours: true };
     }
@@ -437,6 +454,9 @@ Open by saying you are ${this.routes.organization}'s automated assistant, then a
       resolution.afterHours
         ? `${this.routes.get(routeId).label} is closed, so say briefly that you are connecting them to ${label} instead, then stop talking.`
         : `Say "Connecting you now" and briefly name ${label}. Then stop talking — do not ask anything else.`,
+      resolution.afterHours
+        ? `${this.routes.get(routeId).label} is closed right now, so I'll put you through to ${label} instead.`
+        : `Connecting you now to ${label}.`,
     );
 
     this.#scheduleDispatch(call);
@@ -444,6 +464,9 @@ Open by saying you are ${this.routes.organization}'s automated assistant, then a
   }
 
   #scheduleDispatch(call) {
+    // Idempotent: a second commit (a keypress inside the mind-change window, say)
+    // must replace the pending transfer, not race it.
+    this.#cancelPendingDispatch(call);
     const delay = this.options.transferDelayMs;
     if (delay <= 0) {
       // Tests and the offline console dispatch immediately.
@@ -529,6 +552,7 @@ Open by saying you are ${this.routes.organization}'s automated assistant, then a
     this.#instruct(
       call,
       "The transfer did not go through. Apologise once, tell the caller plainly that you cannot connect them right now, and suggest they call back shortly. Then call `end_call`.",
+      "I'm sorry — I can't connect you right now. Please try us again shortly.",
     );
     return { ok: false, reason: "transfer_unavailable", error: error.message };
   }
@@ -581,8 +605,8 @@ Open by saying you are ${this.routes.organization}'s automated assistant, then a
     this.#publish(call, "state", this.snapshot(call.id));
   }
 
-  #instruct(call, text) {
-    this.agents.get(call.id)?.instruct?.(text);
+  #instruct(call, text, spoken = null) {
+    this.agents.get(call.id)?.instruct?.(text, spoken);
   }
 
   #event(call, source, kind, detail) {
