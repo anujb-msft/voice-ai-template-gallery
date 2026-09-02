@@ -14,7 +14,7 @@ npm start                      # http://localhost:8090
 curl -s localhost:8090/health  # expect "callReady": true
 ```
 
-- [ ] `/health` shows `callReady: true` and `voiceModel: gpt-realtime-2`
+- [ ] `/health` shows `callReady: true` and `voiceModel: gpt-realtime`
 - [ ] Dev tunnel is up and reachable
 - [ ] Browser open at `http://localhost:8090`, sign-in page showing
 - [ ] **Phone in hand, off silent, speaker on** — the audience needs to hear both sides

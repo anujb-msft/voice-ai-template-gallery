@@ -1,8 +1,8 @@
 import WebSocket from "ws";
 import { config } from "../src/config.mjs";
-const { endpoint, apiKey, model, voice } = config.voiceLive;
+const { endpoint, apiKey, model, voice, apiVersion } = config.voiceLive;
 const t0=Date.now(); const ts=()=>`+${((Date.now()-t0)/1000).toFixed(1)}s`;
-const url = `${endpoint.replace(/^https:/,"wss:")}/voice-live/realtime?api-version=2025-10-01&model=${model}`;
+const url = `${endpoint.replace(/^https:/,"wss:")}/voice-live/realtime?api-version=${apiVersion}&model=${model}`;
 const ws = new WebSocket(url, { headers: { "api-key": apiKey } });
 let audioBytes = 0;
 ws.on("open", () => {

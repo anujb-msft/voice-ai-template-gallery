@@ -12,7 +12,7 @@ const log = (...a) => console.log(new Date().toISOString(), "[bridge]", ...a);
  *      ⇅  ACS bidirectional media streaming (WebSocket, PCM16 24 kHz mono)
  *   this process
  *      ⇅  Voice Live (WebSocket, PCM16 24 kHz mono — forwarded verbatim)
- *   gpt-realtime-2
+ *   gpt-realtime
  */
 class CallBridge {
   constructor({ sessionId, acsSocket, flow }) {

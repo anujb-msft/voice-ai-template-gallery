@@ -50,7 +50,7 @@ over SignalR.
         │  │ WebSocket, PCM16 24 kHz mono       │  │ WebSocket
         ▼  │ (ACS bidirectional streaming)      ▼  │
    Azure Communication Services          Azure AI Voice Live
-      Call Automation                      (gpt-realtime-2)
+      Call Automation                       (gpt-realtime)
 ```
 
 **The agent can only change state by calling tools.** All security-sensitive logic
@@ -105,7 +105,7 @@ and metrics work, no call is placed. That is enough to demo the UX.
 | `ACS_CONNECTION_STRING` | Azure Communication Services resource. |
 | `ACS_CALLER_ID` | **Must be a geographic number.** Toll-free ACS numbers cannot place outbound calls. |
 | `VOICE_LIVE_ENDPOINT` | `https://<resource>.services.ai.azure.com` — an Azure AI Services resource (`kind=AIServices`) with a custom domain. |
-| `VOICE_LIVE_MODEL` | `gpt-realtime-2`. Available in **eastus2, swedencentral, francecentral** — *not* westus2. |
+| `VOICE_LIVE_MODEL` | `gpt-realtime`. Pick a region that serves the model — see [supported models and regions](https://learn.microsoft.com/azure/ai-services/speech-service/voice-live#supported-models-and-regions). |
 | `AZURE_SIGNALR_CONNECTION_STRING` | Optional. Must be **Serverless** service mode. Leave empty to use the built-in WebSocket hub. |
 | `DEMO_PHONE_NUMBER` | The number the demo always calls, regardless of the directory record. |
 | `HELPDESK_TICKET_COST_USD` | Loaded cost per human-handled reset. Used by the deflection stats at `GET /api/stats`. |
@@ -113,7 +113,7 @@ and metrics work, no call is placed. That is enough to demo the UX.
 Check your wiring at `GET /health`:
 
 ```json
-{ "realtime": "azure-signalr", "voiceModel": "gpt-realtime-2", "callReady": true }
+{ "realtime": "azure-signalr", "voiceModel": "gpt-realtime", "callReady": true }
 ```
 
 ---

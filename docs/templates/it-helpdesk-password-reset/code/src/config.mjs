@@ -27,9 +27,9 @@ export const config = {
     /** e.g. https://<resource>.services.ai.azure.com */
     endpoint: (process.env.VOICE_LIVE_ENDPOINT ?? "").replace(/\/$/, ""),
     apiKey: process.env.VOICE_LIVE_API_KEY ?? "",
-    model: process.env.VOICE_LIVE_MODEL ?? "gpt-realtime-2",
+    model: process.env.VOICE_LIVE_MODEL ?? "gpt-realtime",
     /** WebSocket transport api-version. */
-    apiVersion: process.env.VOICE_LIVE_API_VERSION ?? "2025-10-01",
+    apiVersion: process.env.VOICE_LIVE_API_VERSION ?? "2026-04-10",
     voice: process.env.VOICE_LIVE_VOICE ?? "en-US-Ava:DragonHDLatestNeural",
   },
 
