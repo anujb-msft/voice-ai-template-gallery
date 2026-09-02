@@ -31,7 +31,7 @@ async function boot() {
     fetch("/api/routes").then((r) => r.json()),
   ]);
 
-  state.threshold = health.confidenceThreshold;
+  state.threshold = health.routing.confidenceThreshold;
   state.routes = routeDoc.routes;
   state.organization = routeDoc.organization;
 
@@ -40,8 +40,15 @@ async function boot() {
   $("confGate").style.left = `${state.threshold * 100}%`;
 
   const mode = $("mode");
-  mode.textContent = health.callReady ? `live · ${health.voiceModel}` : "simulation — no Azure configured";
+  mode.textContent = health.callReady
+    ? `live · ${health.voiceLive.model}`
+    : "simulation — no Azure configured";
   mode.dataset.live = String(health.callReady);
+  mode.title = health.callReady
+    ? `Voice Live ${health.voiceLive.model} (${health.voiceLive.auth}) · Teams ${health.teams.cloud}${
+        health.teams.ready ? "" : ` · unprovisioned routes: ${health.teams.unprovisionedRoutes.join(", ")}`
+      }`
+    : `Set ${health.missingConfig.join(", ")} to answer real calls.`;
 
   $("callerSelect").innerHTML = CALLERS.map((c) => `<option value="${c.phone}">${c.label}</option>`).join("");
   renderRoutes(null);

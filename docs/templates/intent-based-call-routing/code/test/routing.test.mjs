@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import { RoutingFlow, STATES } from "../src/flow.mjs";
 import { RoutePolicy, CallerDirectory, maskPhone } from "../src/routes.mjs";
 import { MemoryAudit } from "../src/audit.mjs";
+import { readiness } from "../src/config.mjs";
 import { classifyOffline, handleUtterance, wantsHuman, registerSimulatedAgent } from "../src/offline.mjs";
 
 /**
@@ -578,4 +579,25 @@ test("an unknown caller is greeted without a name", () => {
   const greeting = flow.get(call.id).transcript[0].text;
   assert.match(greeting, /automated assistant/);
   assert.doesNotMatch(greeting, /Dana/);
+});
+
+// ------------------------------------------------------------------- readiness
+
+test("readiness separates Voice Live, telephony and Teams provisioning", () => {
+  const routes = RoutePolicy.load();
+  const health = readiness(routes);
+
+  // Nothing is configured in the test environment, so every subsystem is honest
+  // about being unready — and says which one for a different reason.
+  assert.equal(health.voiceLive.ready, false);
+  assert.equal(health.voiceLive.auth, "entra", "keyless is the default");
+  assert.equal(health.telephony.ready, false);
+  assert.deepEqual(health.telephony.missing, ["ACS_CONNECTION_STRING", "PUBLIC_BASE_URL"]);
+  assert.ok(!health.telephony.missing.includes("VOICE_LIVE_ENDPOINT"), "Voice Live is reported separately");
+
+  // The shipped routes.json holds placeholder GUIDs. Saying so is the difference
+  // between a five-minute fix and an afternoon reading transfer logs.
+  assert.equal(health.teams.ready, false);
+  assert.deepEqual(health.teams.unprovisionedRoutes, ["sales", "support", "billing", "reception"]);
+  assert.equal(health.teams.cloud, "public");
 });

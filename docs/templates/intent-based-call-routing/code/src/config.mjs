@@ -83,5 +83,38 @@ export function assertCallConfig() {
   return missing;
 }
 
+/**
+ * Readiness broken out per subsystem, because "not ready" is rarely uniform.
+ * Voice Live can be configured while ACS is not, and both can be configured
+ * while the Teams routing targets are still placeholder GUIDs.
+ */
+export function readiness(routes) {
+  const placeholder = /^0{8}-0{4}-0{4}-0{4}-0{11}\d$/;
+  const unprovisioned = (routes?.menu?.() ?? [])
+    .map((r) => routes.get(r.id))
+    .filter((r) => !r?.target?.objectId || placeholder.test(r.target.objectId))
+    .map((r) => r.id);
+
+  return {
+    voiceLive: {
+      ready: Boolean(config.voiceLive.endpoint),
+      auth: config.voiceLive.apiKey ? "api-key" : "entra",
+      model: config.voiceLive.model,
+      apiVersion: config.voiceLive.apiVersion,
+    },
+    telephony: {
+      ready: Boolean(config.acs.connectionString) && Boolean(config.publicBaseUrl),
+      missing: assertCallConfig().filter((k) => k !== "VOICE_LIVE_ENDPOINT"),
+    },
+    teams: {
+      // Placeholder object ids answer the question "why did my transfer fail?"
+      // before anyone has to read a log.
+      ready: unprovisioned.length === 0,
+      unprovisionedRoutes: unprovisioned,
+      cloud: config.acs.teamsCloud,
+    },
+  };
+}
+
 /** True when the sample is running without any Azure configuration. */
 export const isSimulated = () => assertCallConfig().length > 0;

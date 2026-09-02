@@ -35,7 +35,7 @@ npm start          # http://127.0.0.1:8091
 ```
 
 ```bash
-npm test           # 57 cases, no Azure and no network required
+npm test           # 58 cases, no Azure and no network required
 ```
 
 For real calls, follow the setup and Teams Phone provisioning guidance in

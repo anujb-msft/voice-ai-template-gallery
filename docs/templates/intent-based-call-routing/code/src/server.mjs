@@ -4,7 +4,7 @@ import { randomUUID } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
-import { config, assertCallConfig, isSimulated } from "./config.mjs";
+import { config, assertCallConfig, isSimulated, readiness } from "./config.mjs";
 import { RoutePolicy, CallerDirectory, normalisePhone } from "./routes.mjs";
 import { MemoryAudit } from "./audit.mjs";
 import { RoutingFlow } from "./flow.mjs";
@@ -262,18 +262,22 @@ app.post("/api/negotiate", (req, res) => res.json(hub.negotiate(req.body?.callId
 
 app.get("/health", (_req, res) => {
   const missing = assertCallConfig();
+  const ready = readiness(routes);
   res.json({
     ok: true,
     mode: missing.length === 0 ? "live" : "simulation",
-    realtime: hub.transport,
-    audit: audit.name,
-    voiceModel: config.voiceLive.model,
-    apiVersion: config.voiceLive.apiVersion,
-    routes: routes.ids,
-    confidenceThreshold: config.routing.confidenceThreshold,
-    transferDelayMs: config.routing.transferDelayMs,
     callReady: missing.length === 0,
     missingConfig: missing,
+    ...ready,
+    audit: { store: audit.name, persistTranscripts: config.persistTranscripts },
+    realtime: hub.transport,
+    routing: {
+      routes: routes.ids,
+      confidenceThreshold: config.routing.confidenceThreshold,
+      timeBudgetMs: config.routing.timeBudgetMs,
+      maxClarifications: config.routing.maxClarifications,
+      transferDelayMs: config.routing.transferDelayMs,
+    },
   });
 });
 

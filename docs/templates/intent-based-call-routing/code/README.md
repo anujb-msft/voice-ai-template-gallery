@@ -62,7 +62,7 @@ Try these:
 Run the tests — they need no Azure and no network:
 
 ```bash
-npm test     # 52 cases across the state machine and the Teams handoff
+npm test     # 58 cases across the state machine and the Teams handoff
 npm run check
 ```
 
@@ -154,7 +154,20 @@ values that make real calls possible.
 | `PERSIST_TRANSCRIPTS` | `false` | Decisions are always stored; utterances are not |
 
 With all three call variables unset the server logs `SIMULATION MODE` and runs the
-offline console. `GET /health` reports which mode you are in.
+offline console. `GET /health` breaks readiness out per subsystem, because "not ready"
+is rarely uniform — Voice Live can be configured while ACS is not, and both can be
+configured while `routes.json` still holds the placeholder object IDs:
+
+```jsonc
+{
+  "mode": "simulation",
+  "voiceLive": { "ready": false, "auth": "entra", "model": "gpt-realtime" },
+  "telephony": { "ready": false, "missing": ["ACS_CONNECTION_STRING", "PUBLIC_BASE_URL"] },
+  "teams":     { "ready": false, "unprovisionedRoutes": ["sales", "support", "billing", "reception"] }
+}
+```
+
+That last line answers "why did my transfer fail?" before anyone has to read a log.
 
 ### Keyless auth
 
@@ -228,7 +241,7 @@ config/
   routes.json     the routing policy
   callers.json    fictional caller directory
 public/           the presenter console
-test/             52 cases, no Azure required
+test/             58 cases, no Azure required
 ```
 
 `flow.mjs`, `routes.mjs`, `handoff.mjs`, `agent.mjs`, `offline.mjs` and `audit.mjs`
