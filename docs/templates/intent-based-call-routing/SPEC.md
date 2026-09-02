@@ -21,6 +21,28 @@ assumptions. Changing any row changes the sections below.
 | 9 | Presenter surface | Console plus a mock Teams agent view showing the received context |
 | 10 | Audit and metrics | SQLite audit of calls, tool calls, and transfers, plus a stats endpoint |
 
+## Implementation decisions
+
+A second round of refinements, also proposed for review. Two of these corrected real
+defects in the existing password-reset sample, which have been fixed in the same pass.
+
+| # | Decision | Choice |
+|---|---|---|
+| 1 | Voice Live model | `gpt-realtime`, configurable; `gpt-realtime-1.5` newer, `gpt-realtime-mini` cheaper |
+| 2 | Session mode | Direct model mode, with a documented path to Foundry agent mode |
+| 3 | Credentials | `DefaultAzureCredential` preferred, API key documented as a quick-start fallback |
+| 4 | Offline runnability | Full local mode — a typed transcript drives the real state machine |
+| 5 | Verification | Automated fixtures and `node:test`, plus a manual live-call checklist |
+| 6 | Classification | Tool call plus model-reported confidence; below threshold forces a clarifier |
+| 7 | DTMF | Keys 1–4 accepted as an always-on backup, announced only if the caller struggles |
+| 8 | No-input policy | Two reprompts, then reception |
+| 9 | Transcript retention | Events and summaries at rest; full transcript in memory unless opted in |
+| 10 | Sentiment | Sent only when the caller states frustration explicitly |
+
+`gpt-realtime-2` is **not** in the Voice Live natively supported model table, and the
+current WebSocket transport api-version is `2026-04-10`. The password-reset sample pinned
+both incorrectly and has been corrected.
+
 ## Goal
 
 Build a runnable inbound voice agent that answers a Teams Phone service number, asks the
@@ -57,9 +79,11 @@ log before ending the call.
    looks the calling number up in a seeded demo directory.
 3. Azure AI Voice Live greets the caller: **“Tell me briefly what you’re calling about.”**
    A matched caller is greeted by name; an unmatched caller gets the neutral greeting.
-4. The agent maps the caller’s words to one allowlisted route. If the request is
-   ambiguous, it asks one short clarifying question. It then confirms the destination:
-   **“It sounds like technical support. Is that right?”**
+4. The agent maps the caller’s words to one allowlisted route, reporting its own
+   confidence. Below the configured threshold, or on silence or an unusable answer, it
+   asks one short clarifying question — at most twice, offering the keypad on the second
+   attempt — and then falls back to reception. Keys 1–4 are always accepted. It confirms
+   the destination: **“It sounds like technical support. Is that right?”**
 5. After explicit confirmation, the server transfers the call to the configured Teams
    target. An explicit request for a person skips classification and confirmation
    entirely: asking someone to confirm that they want a human is the exact frustration
@@ -87,8 +111,11 @@ PSTN caller
 
 Reuse the password-reset sample’s Express server, configuration pattern, ACS-to-Voice
 Live media bridge, PCM16 24-kHz path, barge-in handling, SQLite event log, health
-endpoint, local realtime fallback, and simulation-mode conventions. Replace its outbound
-callback and reset workflow with an inbound, idempotent state machine:
+endpoint, local realtime fallback, and simulation-mode conventions. The Voice Live
+session runs in direct model mode, so the prompt, tools, and turn detection stay in this
+repository and are reviewable; the README documents what changes to move to Foundry agent
+mode, which requires Entra ID. Replace the outbound callback and reset workflow with an
+inbound, idempotent state machine:
 
 `ringing → greeting → classifying → confirming → transferring → transferred | fallback | ended`
 
@@ -96,8 +123,9 @@ An after-hours route short-circuits the transfer leg as `confirming → messagin
 
 The model changes state only through server-owned tools:
 
-- `propose_route(routeId, callTopic, callSummary, sentiment)` records a candidate route;
-  the server rejects unknown IDs and normalizes context limits.
+- `propose_route(routeId, confidence, callTopic, callSummary, sentiment)` records a
+  candidate route; the server rejects unknown IDs, normalizes context limits, and forces
+  a clarifying question when confidence is below the configured threshold.
 - `confirm_route(routeId)` is accepted only after the caller explicitly confirms the
   currently proposed route; the server resolves the real Teams target and starts transfer.
 - `request_human(reason)` selects `reception` without further classification.
@@ -123,7 +151,8 @@ extensibility custom context schema through VoIP headers:
   Attendant when present; otherwise retain the ACS correlation ID in the audit record.
 - `CustomContext.CallDetails.CallTopic` — confirmed intent, no more than 48 characters.
 - `CustomContext.CallDetails.CallContext` — one- or two-sentence conversation summary.
-- `CustomContext.CallDetails.CallSentiment` — only when supported by observed dialog.
+- `CustomContext.CallDetails.CallSentiment` — sent only when the caller states
+  frustration explicitly, never inferred, so the receiving agent is not primed by a guess.
 - `CustomContext.CallerDetails` — populated from the seeded caller directory when the
   calling number matches. Caller ID is not authentication, so the handoff must mark these
   details as unverified and the agent must never treat a match as proof of identity.
@@ -140,31 +169,49 @@ see it, so the payoff of the handoff is visible without a second tenant. Both pa
 clearly marked as demo surfaces, show no secrets, and never claim a transfer completed
 while in simulation mode.
 
-Configuration covers `PUBLIC_BASE_URL`, `ACS_CONNECTION_STRING`, Voice Live
-endpoint/auth/model settings, an Event Grid incoming-call endpoint, and a single
-`LOCALE`/`VOICE` pair so the English demo can be repointed without touching prompts or
-code. Two non-secret data files carry the rest: `config/routes.json` with placeholder
+Configuration covers `PUBLIC_BASE_URL`, `ACS_CONNECTION_STRING`, an Event Grid
+incoming-call endpoint, and a single `LOCALE`/`VOICE` pair so the English demo can be
+repointed without touching prompts or code. Voice Live uses `VOICE_LIVE_ENDPOINT`,
+`VOICE_LIVE_MODEL` (`gpt-realtime`), and `VOICE_LIVE_API_VERSION` (`2026-04-10`), and
+authenticates with `DefaultAzureCredential` when no key is present — Microsoft recommends
+Entra ID, which needs the **Cognitive Services User** and **Foundry User** roles and the
+`https://ai.azure.com/.default` token scope. An API key remains supported for quick
+starts. Two non-secret data files carry the rest: `config/routes.json` with placeholder
 Teams application IDs, business hours, and after-hours behavior per route, and
-`config/callers.json` with a handful of fictional directory entries. Without cloud
-configuration, checked-in call fixtures drive the same state machine and render a visibly
-simulated transfer.
+`config/callers.json` with a handful of fictional directory entries.
+
+With no Azure subscription at all, the sample still runs end to end: a typed transcript
+is fed to the same state machine, so route selection, confirmation, business hours,
+context assembly, the console, and the mock Teams view all behave normally and the
+transfer is rendered as visibly simulated. Only the audio path and the real Teams
+transfer are stubbed.
+
+Shipped alongside `src/`: a README, a `DEMO-SCRIPT.md` walkthrough, a PowerShell snippet
+for `Set-CsOnlineApplicationInstance` and the Teams Phone extensibility assignment, and
+the checked-in call fixtures.
 
 ## Acceptance criteria
 
 - A real inbound call to the provisioned Teams Phone service number is answered through
   Teams Phone extensibility and connected to Voice Live; the documented ACS-number
-  fallback reaches the same state machine.
+  fallback reaches the same state machine. This is verified by a manual live-call
+  checklist, not by automation.
 - Voice input and output support interruption, and the app handles duplicate Event Grid
   deliveries without creating duplicate sessions.
-- Checked-in fixtures cover every route, an ambiguous request, an immediate human
-  request, a known and an unknown caller number, an after-hours call, a rejected route
-  ID, and a failed transfer.
+- `node:test` runs the checked-in fixtures with no cloud credentials, covering every
+  route, an ambiguous request, a low-confidence proposal, an immediate human request, a
+  DTMF selection, two consecutive no-inputs, a known and an unknown caller number, an
+  after-hours call, a rejected route ID, and a failed transfer.
 - No call transfers before caller confirmation, except an explicit human request; after
-  one unresolved clarification the call falls back to reception.
+  two unresolved clarification attempts the call falls back to reception.
 - A successful transfer reaches the configured Teams target and includes the normalized
-  topic, summary, sentiment, available session context, and unverified caller details.
+  topic, summary, available session context, and unverified caller details; sentiment is
+  present only when the caller stated it.
 - The presenter console, mock Teams view, and audit log show every proposed, accepted,
-  rejected, retried, and completed action.
+  rejected, retried, and completed action, including the confidence that drove each
+  decision.
+- Utterance text is absent from the database unless transcript persistence is explicitly
+  enabled.
 - `GET /health` distinguishes application readiness, Voice Live readiness, Teams Phone
   provisioning, and simulation mode; `GET /api/stats` reports call, route, clarification,
   fallback, and transfer counts from the SQLite audit log.
@@ -173,7 +220,9 @@ simulated transfer.
 
 The sample does not implement caller authentication, a real CRM integration,
 multilingual routing, call recording, emergency calling, workforce management, or
-production-scale queue selection; its caller directory is a static fixture. Before real
+production-scale queue selection; its caller directory is a static fixture. Transcripts
+stay in memory by default and only summaries and route decisions reach disk, so enabling
+transcript persistence is a deliberate, reviewable choice. Before real
 use: validate Event Grid subscription requests, keep the answer path on warm compute,
 deduplicate events, rate-limit public endpoints, use managed identity or Key Vault,
 minimize transcript retention and handoff PII, enforce tenant and target allowlists, test
@@ -190,3 +239,4 @@ completeness.
 - [Answer Teams Phone calls with Call Automation](https://learn.microsoft.com/azure/communication-services/quickstarts/tpe/teams-phone-extensibility-answer-teams-calls)
 - [Teams Phone extensibility IVR and transfer](https://learn.microsoft.com/azure/communication-services/quickstarts/tpe/teams-phone-extensibility-interactive-voice-response)
 - [Voice Live API overview](https://learn.microsoft.com/azure/ai-services/speech-service/voice-live)
+- [Voice Live API how-to — endpoint, api-version, and Entra auth](https://learn.microsoft.com/azure/ai-services/speech-service/voice-live-how-to)
