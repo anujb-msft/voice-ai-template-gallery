@@ -2307,6 +2307,8 @@ body {
 .visual-node > .visual-glyph,
 .visual-card > .visual-glyph,
 .visual-record > .visual-glyph {
+  width: 34px;
+  height: 34px;
   background: var(--visual-accent-softer);
   padding: 8px;
   border-radius: 50%;
@@ -2403,6 +2405,11 @@ body {
    is suppressed here. */
 .visual-map-tiles::before {
   display: none;
+}
+
+.visual-map-tiles {
+  width: 100%;
+  margin-top: 6px;
 }
 
 .visual-badge {
