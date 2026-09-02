@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Contoso — Switchboard</title>
+<link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+
+<header class="top">
+  <div class="brand"><span class="logo"></span> <strong id="org">Contoso</strong> <span class="pill">Switchboard</span></div>
+  <div class="top-right">
+    <span class="mode" id="mode">checking…</span>
+    <button class="ghost" id="statsBtn" type="button">Refresh metrics</button>
+  </div>
+</header>
+
+<main class="grid">
+
+  <!-- ------------------------------------------------------------ the call -->
+  <section class="card call">
+    <div class="card-head">
+      <h2>The call</h2>
+      <span class="state-chip" id="stateChip" data-state="idle">no call</span>
+    </div>
+
+    <div class="caller-row">
+      <label for="callerSelect">Calling number</label>
+      <select id="callerSelect"></select>
+      <button class="primary" id="newCall" type="button">Answer a call</button>
+    </div>
+
+    <div class="budget" id="budgetWrap" hidden>
+      <div class="budget-bar"><span id="budgetFill"></span></div>
+      <span class="budget-label" id="budgetLabel"></span>
+    </div>
+
+    <ol class="transcript" id="transcript">
+      <li class="empty">Start a call, then type what the caller says. The words go through the same
+      state machine a real call would.</li>
+    </ol>
+
+    <form class="say" id="sayForm" autocomplete="off">
+      <input id="sayInput" type="text" placeholder="What does the caller say?" disabled />
+      <button class="primary" type="submit" disabled id="sayBtn">Say</button>
+    </form>
+
+    <div class="controls">
+      <span class="controls-label">Keypad</span>
+      <div class="keys" id="keys"></div>
+      <button class="ghost" id="silence" type="button" disabled>Silence</button>
+      <button class="ghost danger" id="hangup" type="button" disabled>Hang up</button>
+    </div>
+  </section>
+
+  <!-- --------------------------------------------------------- the decision -->
+  <section class="card decision">
+    <div class="card-head"><h2>Routing decision</h2></div>
+
+    <div class="proposed" id="proposed">
+      <p class="empty">Nothing proposed yet.</p>
+    </div>
+
+    <div class="threshold">
+      <div class="conf-bar">
+        <span class="conf-fill" id="confFill"></span>
+        <span class="conf-gate" id="confGate" title="confidence gate"></span>
+      </div>
+      <div class="conf-legend">
+        <span id="confValue">—</span>
+        <span class="muted">gate <b id="gateValue">0.75</b></span>
+      </div>
+    </div>
+
+    <dl class="facts">
+      <div><dt>Confirmed</dt><dd id="factConfirmed">—</dd></div>
+      <div><dt>Destination</dt><dd id="factDestination">—</dd></div>
+      <div><dt>Business hours</dt><dd id="factHours">—</dd></div>
+      <div><dt>Clarifications</dt><dd id="factClarify">0</dd></div>
+      <div><dt>Caller</dt><dd id="factCaller">—</dd></div>
+    </dl>
+
+    <h3 class="sub-head">Where calls can go</h3>
+    <ul class="routes" id="routes"></ul>
+  </section>
+
+  <!-- ------------------------------------------------------- the Teams side -->
+  <section class="card teams">
+    <div class="card-head">
+      <h2>What the Teams agent sees</h2>
+      <span class="tag">mock</span>
+    </div>
+
+    <div class="toast" id="toast" hidden>
+      <div class="toast-head">
+        <span class="avatar" id="toastAvatar">?</span>
+        <div>
+          <strong id="toastQueue">—</strong>
+          <span class="muted" id="toastFrom">—</span>
+        </div>
+        <span class="ringing">Incoming</span>
+      </div>
+      <p class="topic" id="toastTopic">—</p>
+      <p class="context" id="toastContext"></p>
+      <p class="sentiment" id="toastSentiment" hidden></p>
+      <div class="caller-card" id="toastCaller" hidden></div>
+      <div class="toast-actions"><button class="accept" type="button" disabled>Accept</button></div>
+    </div>
+
+    <p class="empty" id="toastEmpty">No call has been handed over yet.</p>
+
+    <h3 class="sub-head">VoIP headers on the wire</h3>
+    <pre class="headers" id="headers">—</pre>
+  </section>
+
+  <!-- ------------------------------------------------------------- the trail -->
+  <section class="card trail">
+    <div class="card-head"><h2>Decision trail</h2></div>
+    <ol class="events" id="events"><li class="empty">Nothing yet.</li></ol>
+  </section>
+
+</main>
+
+<footer class="metrics" id="metrics"></footer>
+
+<script src="/app.js" type="module"></script>
+</body>
+</html>
