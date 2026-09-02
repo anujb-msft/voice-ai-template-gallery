@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 668 240" role="img" aria-labelledby="title desc">
+  <title id="title">IT Help Desk Password Reset conceptual architecture</title>
+  <desc id="desc">A proactive callback synchronizes an employee browser and phone with a voice agent that verifies identity and deflects the reset ticket.</desc>
+  <rect width="668" height="240" rx="20" fill="#101d20"/>
+  <text x="334" y="27" fill="#edffff" font-family="system-ui, sans-serif" font-size="15" font-weight="700" text-anchor="middle">Proactive password reset, synchronized across phone and browser</text>
+  <g fill="#173037" stroke="#5fd8d4" stroke-width="2">
+    <rect x="28" y="82" width="122" height="72" rx="12"/>
+    <rect x="192" y="82" width="132" height="72" rx="12"/>
+    <rect x="368" y="82" width="122" height="72" rx="12"/>
+    <rect x="532" y="82" width="108" height="72" rx="12"/>
+  </g>
+  <path d="M150 106H192M324 106H368M490 106H532" stroke="#5fd8d4" stroke-width="4" stroke-linecap="round"/>
+  <path d="M182 98l10 8-10 8M358 98l10 8-10 8M522 98l10 8-10 8" fill="none" stroke="#5fd8d4" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M192 130H150M368 130H324" stroke="#9ceeea" stroke-width="3" stroke-dasharray="6 6" stroke-linecap="round"/>
+  <path d="M160 122l-10 8 10 8M334 122l-10 8 10 8" fill="none" stroke="#9ceeea" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <g fill="#edffff" font-family="system-ui, sans-serif" font-size="13" text-anchor="middle">
+    <text x="89" y="112">Employee</text><text x="89" y="133">browser</text>
+    <text x="258" y="112">Reset voice</text><text x="258" y="133">agent</text>
+    <text x="429" y="112">Employee</text><text x="429" y="133">phone</text>
+    <text x="586" y="112">Directory +</text><text x="586" y="133">ticketing</text>
+  </g>
+  <text x="171" y="180" fill="#9ceeea" font-family="system-ui, sans-serif" font-size="12" text-anchor="middle">wizard state + one-time code</text>
+  <text x="429" y="180" fill="#9ceeea" font-family="system-ui, sans-serif" font-size="12" text-anchor="middle">proactive PSTN callback</text>
+  <text x="586" y="204" fill="#9ceeea" font-family="system-ui, sans-serif" font-size="12" text-anchor="middle">verified reset → ticket deflected</text>
+</svg>

@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Contoso — Sign in</title>
+<link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+<div class="stage">
+
+  <!-- ------------------------------------------------------ sign-in card -->
+  <section class="card" id="loginCard">
+    <div class="brand"><span class="logo"></span> Contoso</div>
+    <h1>Sign in</h1>
+    <p class="sub">Use your corporate account to continue.</p>
+
+    <form id="loginForm" autocomplete="off">
+      <label for="username">Username</label>
+      <input id="username" name="username" type="text" value="alex.morgan" spellcheck="false" />
+
+      <label for="password">Password</label>
+      <input id="password" name="password" type="password" placeholder="••••••••••" />
+
+      <div class="error" id="loginError" hidden></div>
+
+      <button class="primary" type="submit">Sign in</button>
+      <a class="forgot" id="forgotLink" href="#">Forgot password?</a>
+    </form>
+  </section>
+
+  <!-- ------------------------------------------------------ reset wizard -->
+  <section class="card wide" id="resetCard" hidden>
+    <div class="brand"><span class="logo"></span> Contoso <span class="pill">IT assistant</span></div>
+
+    <ol class="steps" id="steps">
+      <li data-step="1"><span class="dot">1</span> Verify identity</li>
+      <li data-step="2"><span class="dot">2</span> Confirm it's you</li>
+      <li data-step="3"><span class="dot">3</span> New password</li>
+    </ol>
+
+    <div class="status" id="status">
+      <div class="spinner" id="spinner"></div>
+      <div>
+        <h2 id="statusLabel">Calling you now</h2>
+        <p id="statusHint">Answer your phone — our IT assistant is calling you.</p>
+      </div>
+    </div>
+
+    <!--
+      Shown when the call drops or the caller hangs up before finishing. The
+      reset session survives, so the fix is a redial rather than starting over.
+    -->
+    <div class="reconnect" id="reconnect" hidden>
+      <div class="reconnect-copy">
+        <strong id="reconnectTitle">The call ended</strong>
+        <span id="reconnectHint">You can pick up right where you left off.</span>
+      </div>
+      <button class="primary" id="callAgain">Call me again</button>
+    </div>
+
+    <!-- step: verification code -->
+    <div class="panel" id="panelCode" hidden>
+      <label for="codeInput">Enter the 6-digit code the assistant reads to you</label>
+      <input id="codeInput" inputmode="numeric" maxlength="6" placeholder="000000" class="code" />
+      <div class="error" id="codeError" hidden>That code didn't match — listen for it again.</div>
+    </div>
+
+    <!-- step: new password -->
+    <div class="panel" id="panelPassword" hidden>
+      <label for="newPassword">New password</label>
+      <input id="newPassword" type="password" placeholder="Type your new password" />
+      <ul class="policy" id="policy"></ul>
+      <button class="primary" id="savePassword" disabled>Update password</button>
+      <div class="error" id="passwordError" hidden></div>
+    </div>
+
+    <!-- step: done -->
+    <div class="panel done" id="panelDone" hidden>
+      <div class="tick">✓</div>
+      <h2>Password updated</h2>
+      <p>You can sign in now. No help desk ticket was needed.</p>
+      <button class="secondary" id="restart">Back to sign in</button>
+    </div>
+
+    <!--
+      Demo instrumentation, not product UX — remove both of these for a real
+      deployment.
+
+      The activity log is the governance story made visible: the model cannot
+      touch the database or the directory, it can only call a fixed set of
+      server-side tools, and every attempt is recorded. It is immune to
+      transcription errors, which is why it leads.
+
+      The transcript is proof the conversation is genuinely live, but speech
+      recognition slips show up here verbatim, so it stays collapsed.
+    -->
+    <details class="feed-wrap" id="activityWrap" open>
+      <summary>Agent activity <span class="badge-demo">demo view</span></summary>
+      <div class="activity" id="activity" aria-live="polite">
+        <div class="feed-empty" id="activityEmpty">No agent actions yet.</div>
+      </div>
+    </details>
+
+    <details class="feed-wrap" id="transcriptWrap">
+      <summary>Live call transcript <span class="badge-demo">demo view</span></summary>
+      <div class="transcript" id="transcript" aria-live="polite"></div>
+    </details>
+  </section>
+
+</div>
+<script src="/vendor/signalr/signalr.min.js"></script>
+<script src="/app.js"></script>
+</body>
+</html>

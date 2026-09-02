@@ -1,0 +1,13 @@
+.DS_Store
+.chrome-smoke*/
+node_modules/
+npm-debug.log*
+
+# Imported template packages ship .env.example only; the real secrets file,
+# runtime SQLite database and logs must never be committed.
+.env
+.env.*
+!.env.example
+*.log
+docs/templates/*/code/data/
+

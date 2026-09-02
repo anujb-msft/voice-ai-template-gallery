@@ -1,0 +1,311 @@
+/**
+ * Shared stylesheet for every thin per-template page
+ * (docs/templates/<id>/index.html). Standalone — this page does not load
+ * gallery.css — but reuses the same paper/ink/accent design language and
+ * type stack as the gallery so a visit here feels like the same product.
+ */
+
+:root {
+  --paper: #f4f0e6;
+  --paper-deep: #ebe5d7;
+  --ink: #1d1a15;
+  --ink-soft: #57503f;
+  --rule: #cdc4ae;
+  --accent: #a8321f;
+  --serif: Georgia, "Iowan Old Style", "Times New Roman", serif;
+  --sans: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --measure: 780px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  color-scheme: light;
+}
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--sans);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: inherit;
+}
+
+a:focus-visible,
+button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+#template-page {
+  max-width: var(--measure);
+  margin: 0 auto;
+  padding: 40px 24px 80px;
+}
+
+.tpl-back {
+  display: inline-block;
+  margin-bottom: 24px;
+  font-size: 13px;
+  font-weight: 650;
+  text-decoration: none;
+  color: var(--ink-soft);
+  border-bottom: 1px solid var(--rule);
+  padding-bottom: 2px;
+}
+
+.tpl-back:hover {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+.tpl-error {
+  padding: 60px 0;
+  text-align: center;
+  color: var(--ink-soft);
+}
+
+.tpl-head {
+  padding: 28px 26px;
+  border-radius: var(--t-radius, 16px);
+  background: var(--t-bg, var(--paper-deep));
+  color: var(--t-ink, var(--ink));
+  font-family: var(--t-font, var(--sans));
+}
+
+.tpl-kicker {
+  margin: 0 0 8px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--t-accent, var(--accent));
+}
+
+.tpl-head h1 {
+  margin: 0 0 6px;
+  font-family: var(--serif);
+  font-size: clamp(28px, 5vw, 42px);
+  font-weight: 540;
+  letter-spacing: -0.02em;
+  line-height: 1.08;
+}
+
+.tpl-sub {
+  margin: 0 0 14px;
+  font-size: 15px;
+  opacity: 0.85;
+}
+
+.tpl-headline {
+  margin: 0 0 16px;
+  font-family: var(--serif);
+  font-size: 19px;
+  font-style: italic;
+}
+
+.tpl-tags {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+}
+
+.tpl-tags li {
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: var(--t-accent, var(--accent));
+  color: var(--t-on-accent, #fff);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.tpl-section {
+  margin-top: 32px;
+}
+
+.tpl-section h2,
+.tpl-card h2 {
+  margin: 0 0 12px;
+  font-family: var(--serif);
+  font-size: 20px;
+  font-weight: 600;
+  border-bottom: 1px solid var(--rule);
+  padding-bottom: 8px;
+}
+
+.tpl-section p {
+  margin: 0 0 16px;
+  color: var(--ink-soft);
+}
+
+.tpl-prompt {
+  margin: 0;
+  padding: 16px 18px;
+  border-left: 3px solid var(--accent);
+  background: var(--paper-deep);
+  border-radius: 0 10px 10px 0;
+  font-family: var(--serif);
+  font-style: italic;
+}
+
+.tpl-grid {
+  margin-top: 32px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+}
+
+.tpl-card {
+  padding: 20px;
+  border-radius: 14px;
+  background: #fffdf8;
+  border: 1px solid var(--rule);
+}
+
+.tpl-detail-row {
+  padding: 10px 0;
+  border-top: 1px solid var(--rule);
+}
+
+.tpl-detail-row:first-of-type {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.tpl-detail-row span {
+  display: block;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  margin-bottom: 3px;
+}
+
+.tpl-detail-row strong {
+  font-weight: 500;
+}
+
+.tpl-deliverables {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 14px;
+}
+
+.tpl-deliverable {
+  padding: 16px 18px;
+  border-radius: 12px;
+  background: #fffdf8;
+  border: 1px solid var(--rule);
+}
+
+.tpl-deliverable-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+
+.tpl-deliverable-head strong {
+  font-size: 15px;
+}
+
+.tpl-deliverable-status {
+  flex: 0 0 auto;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.tpl-deliverable-status--ready {
+  background: #dfe9df;
+  color: #1f4d2d;
+}
+
+.tpl-deliverable-status--pending {
+  background: #f0dcd4;
+  color: #7a3020;
+}
+
+.tpl-deliverable p {
+  margin: 0 0 10px;
+  color: var(--ink-soft);
+  font-size: 14px;
+}
+
+.tpl-deliverable-link {
+  display: inline-block;
+  font-size: 13px;
+  font-weight: 650;
+  text-decoration: none;
+  border-bottom: 1px solid var(--rule);
+  padding-bottom: 2px;
+}
+
+.tpl-deliverable-link:hover {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+.tpl-actions {
+  margin-top: 36px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.tpl-action {
+  display: inline-flex;
+  align-items: center;
+  padding: 12px 20px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+  border: 1px solid var(--ink);
+}
+
+.tpl-action--primary {
+  background: var(--ink);
+  color: #fff;
+}
+
+.tpl-action--primary:hover {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.tpl-action--secondary {
+  background: transparent;
+  color: var(--ink);
+}
+
+.tpl-action--secondary:hover {
+  background: var(--paper-deep);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .tpl-action,
+  .tpl-back,
+  .tpl-deliverable-link {
+    transition: color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
+  }
+}

@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex" />
+    <meta name="description" content="Page not found — return to the Voice AI Agent Templates gallery." />
+    <title>Page not found — Voice AI Agent Templates</title>
+    <!-- Styles are inlined: GitHub Pages serves this file for *any* missing -->
+    <!-- path, so a relative stylesheet link would break at nested depths. -->
+    <style>
+      :root {
+        --paper: #f4f0e6;
+        --ink: #1d1a15;
+        --ink-soft: #57503f;
+        --accent: #a8321f;
+        --sans: "Helvetica Neue", Helvetica, Arial, sans-serif;
+      }
+      body {
+        margin: 0;
+        background: var(--paper);
+        color: var(--ink);
+        font-family: var(--sans);
+        line-height: 1.55;
+        -webkit-font-smoothing: antialiased;
+      }
+      .not-found {
+        min-height: 60vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 1rem;
+        text-align: center;
+        padding: 3rem 1.5rem;
+      }
+      .not-found h1 {
+        font-size: clamp(1.75rem, 4vw, 2.5rem);
+        margin: 0;
+        letter-spacing: -0.02em;
+      }
+      .not-found p {
+        max-width: 32rem;
+        margin: 0;
+        color: var(--ink-soft);
+      }
+      .not-found a {
+        color: var(--accent);
+        font-weight: 600;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="not-found">
+      <h1>404 — Page not found</h1>
+      <p>
+        That page doesn't exist or may have moved. Head back to the
+        catalogue to browse all voice AI agent templates.
+      </p>
+      <p><a id="galleryLink" href="./index.html">&larr; Back to the gallery</a></p>
+    </main>
+    <script>
+      /* GitHub Pages serves this file for any missing path, so "./index.html"
+         is only correct at the site root. Walk up a few levels and use the
+         first one that actually resolves; the static href stays as-is if
+         nothing resolves (or scripting is unavailable). */
+      (function () {
+        var link = document.getElementById("galleryLink");
+        var candidates = ["./index.html", "../index.html", "../../index.html", "../../../index.html"];
+        (function probe(index) {
+          if (index >= candidates.length) return;
+          var url = new URL(candidates[index], window.location.href);
+          fetch(url.href, { method: "GET" })
+            .then(function (response) {
+              if (response.ok) link.setAttribute("href", candidates[index]);
+              else probe(index + 1);
+            })
+            .catch(function () {
+              probe(index + 1);
+            });
+        })(0);
+      })();
+    </script>
+  </body>
+</html>

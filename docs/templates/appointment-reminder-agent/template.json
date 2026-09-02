@@ -1,0 +1,79 @@
+{
+  "$schema": "../../schemas/template.schema.json",
+  "id": "appointment-reminder-agent",
+  "name": "Appointment Reminder Agent",
+  "language": "Outbound · Reminders",
+  "useCase": "Healthcare appointment confirmation",
+  "assistant": "Outbound",
+  "headline": "Confirm, change, or cancel before the slot is lost.",
+  "prompt": "I am calling about your upcoming appointment.",
+  "description": "Contacts patients before appointments and lets them confirm, cancel, or request rescheduling. Production deployments must account for consent, identity, accessibility, and healthcare privacy requirements.",
+  "tags": [
+    "Healthcare",
+    "Outbound",
+    "Reminders"
+  ],
+  "colors": {
+    "bg": "#eef3ed",
+    "panel": "#dce9df",
+    "accent": "#347254",
+    "ink": "#18251d"
+  },
+  "onAccent": "#f3f8f4",
+  "font": "'Helvetica Neue', Helvetica, Arial, sans-serif",
+  "radius": "18px",
+  "readiness": "Illustrative workflow; validate consent, identity, scheduling integration, accessibility, and healthcare privacy requirements.",
+  "business": {
+    "buyer": "Patient access and ambulatory operations leaders",
+    "application": "Contact patients before appointments and let them confirm, cancel, or request a different time.",
+    "roi": "Reduce no-shows, recover appointment capacity, and lower manual reminder effort.",
+    "metrics": "No-show rate · Confirmations · Recovered slots"
+  },
+  "technical": {
+    "complexity": "Medium",
+    "systems": "Scheduling system · Patient contact data · Telephony",
+    "build": "Outbound campaigns, identity checks, confirmation, cancellation, reschedule handoff, and consent."
+  },
+  "paths": {
+    "page": "templates/appointment-reminder-agent/",
+    "manifest": "templates/appointment-reminder-agent/template.json",
+    "readme": "templates/appointment-reminder-agent/README.md",
+    "codeReadme": "templates/appointment-reminder-agent/code/README.md",
+    "codeEnvironment": "templates/appointment-reminder-agent/code/.env.example",
+    "videoReadme": "templates/appointment-reminder-agent/video/README.md",
+    "captions": "templates/appointment-reminder-agent/video/captions.vtt",
+    "transcript": "templates/appointment-reminder-agent/video/transcript.md",
+    "slidesReadme": "templates/appointment-reminder-agent/slides/README.md",
+    "thumbnail": "templates/appointment-reminder-agent/media/thumbnail.svg",
+    "architecture": "templates/appointment-reminder-agent/media/architecture.svg"
+  },
+  "assets": {
+    "expected": [
+      {
+        "path": "templates/appointment-reminder-agent/video/demo.mp4",
+        "status": "pending",
+        "description": "Narrated demonstration recording (MP4)."
+      },
+      {
+        "path": "templates/appointment-reminder-agent/video/poster.webp",
+        "status": "pending",
+        "description": "Poster image for the video player (WebP)."
+      },
+      {
+        "path": "templates/appointment-reminder-agent/slides/appointment-reminder-agent.pptx",
+        "status": "pending",
+        "description": "Editable presentation deck (PPTX)."
+      },
+      {
+        "path": "templates/appointment-reminder-agent/slides/appointment-reminder-agent.pdf",
+        "status": "pending",
+        "description": "Presentation export (PDF)."
+      },
+      {
+        "path": "templates/appointment-reminder-agent/slides/preview.webp",
+        "status": "pending",
+        "description": "Presentation preview image (WebP)."
+      }
+    ]
+  }
+}

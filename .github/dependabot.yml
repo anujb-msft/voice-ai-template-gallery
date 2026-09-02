@@ -1,0 +1,7 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /docs/templates/it-helpdesk-password-reset/code
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5

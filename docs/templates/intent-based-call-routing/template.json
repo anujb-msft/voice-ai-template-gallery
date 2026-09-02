@@ -1,0 +1,79 @@
+{
+  "$schema": "../../schemas/template.schema.json",
+  "id": "intent-based-call-routing",
+  "name": "Intent-Based Call Routing",
+  "language": "Inbound · Voice Receptionist",
+  "useCase": "Cross-industry intelligent reception",
+  "assistant": "Inbound",
+  "headline": "Understand the reason. Route to the right team.",
+  "prompt": "Tell me briefly what you are calling about.",
+  "description": "Classifies a caller's stated reason and routes the call to the appropriate team, queue, or self-service flow. The bounded routing policy makes it a practical starting point for evaluating voice automation.",
+  "tags": [
+    "Cross-industry",
+    "Call routing",
+    "Reception"
+  ],
+  "colors": {
+    "bg": "#17140f",
+    "panel": "#29231a",
+    "accent": "#e0a63c",
+    "ink": "#f7f0e0"
+  },
+  "onAccent": "#17140f",
+  "font": "'Helvetica Neue', Helvetica, Arial, sans-serif",
+  "radius": "10px",
+  "readiness": "Illustrative workflow; evaluate intent accuracy, transfer policy, business-hours behavior, and fallback with representative calls.",
+  "business": {
+    "buyer": "Customer service and operations leaders",
+    "application": "Understand why a caller is contacting the organization and route them to the correct team, queue, or self-service flow.",
+    "roi": "Lower receptionist workload, fewer incorrect transfers, and better first-call resolution.",
+    "metrics": "Transfer accuracy · First-call resolution · Receptionist hours saved"
+  },
+  "technical": {
+    "complexity": "Low",
+    "systems": "Phone system · Employee directory · Routing rules",
+    "build": "Intent classification, routing policy, business-hours logic, fallback, and warm transfer."
+  },
+  "paths": {
+    "page": "templates/intent-based-call-routing/",
+    "manifest": "templates/intent-based-call-routing/template.json",
+    "readme": "templates/intent-based-call-routing/README.md",
+    "codeReadme": "templates/intent-based-call-routing/code/README.md",
+    "codeEnvironment": "templates/intent-based-call-routing/code/.env.example",
+    "videoReadme": "templates/intent-based-call-routing/video/README.md",
+    "captions": "templates/intent-based-call-routing/video/captions.vtt",
+    "transcript": "templates/intent-based-call-routing/video/transcript.md",
+    "slidesReadme": "templates/intent-based-call-routing/slides/README.md",
+    "thumbnail": "templates/intent-based-call-routing/media/thumbnail.svg",
+    "architecture": "templates/intent-based-call-routing/media/architecture.svg"
+  },
+  "assets": {
+    "expected": [
+      {
+        "path": "templates/intent-based-call-routing/video/demo.mp4",
+        "status": "pending",
+        "description": "Narrated demonstration recording (MP4)."
+      },
+      {
+        "path": "templates/intent-based-call-routing/video/poster.webp",
+        "status": "pending",
+        "description": "Poster image for the video player (WebP)."
+      },
+      {
+        "path": "templates/intent-based-call-routing/slides/intent-based-call-routing.pptx",
+        "status": "pending",
+        "description": "Editable presentation deck (PPTX)."
+      },
+      {
+        "path": "templates/intent-based-call-routing/slides/intent-based-call-routing.pdf",
+        "status": "pending",
+        "description": "Presentation export (PDF)."
+      },
+      {
+        "path": "templates/intent-based-call-routing/slides/preview.webp",
+        "status": "pending",
+        "description": "Presentation preview image (WebP)."
+      }
+    ]
+  }
+}

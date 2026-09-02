@@ -1,0 +1,80 @@
+{
+  "$schema": "../../schemas/template.schema.json",
+  "id": "it-helpdesk-password-reset",
+  "name": "IT Help Desk Password Reset",
+  "language": "Outbound · Identity Verification",
+  "useCase": "Enterprise IT help desk password recovery",
+  "assistant": "Outbound",
+  "headline": "Forgot password? We already called you back.",
+  "prompt": "Hi, I'm calling about the password reset you just requested.",
+  "description": "Calls an employee back after they request a password reset, synchronizes a voice call with a browser flow, verifies presence across channels, and coaches them through a policy-compliant reset. The included implementation is a local demo that requires substantial security hardening before real use.",
+  "tags": [
+    "Enterprise",
+    "IT operations",
+    "Outbound"
+  ],
+  "colors": {
+    "bg": "#0d1b2e",
+    "panel": "#132844",
+    "accent": "#4da3ff",
+    "ink": "#eaf4ff"
+  },
+  "onAccent": "#04101f",
+  "font": "'Helvetica Neue', Helvetica, Arial, sans-serif",
+  "radius": "12px",
+  "readiness": "Demo reference implementation; not production-ready. Complete security, privacy, identity, accessibility, abuse-prevention, and operational reviews before deployment.",
+  "business": {
+    "buyer": "IT service-desk and employee-experience leaders",
+    "application": "Give employees who click Forgot password an immediate outbound callback that verifies identity over a live voice call and browser wizard, then coaches them through a compliant password reset.",
+    "roi": "Reduce routine Tier 1 handling and shorten employee recovery time after production controls and system integrations are in place.",
+    "metrics": "Ticket deflection rate · Employee recovery time · Escalation rate"
+  },
+  "technical": {
+    "complexity": "High",
+    "systems": "Azure Communication Services · Azure AI Voice Live · SignalR/WebSocket · Identity directory · Ticketing system",
+    "build": "Outbound call placement, voice-plus-browser code verification, real-time password-policy coaching, ticket creation and closure, and escalation on repeated identity failure."
+  },
+  "paths": {
+    "page": "templates/it-helpdesk-password-reset/",
+    "manifest": "templates/it-helpdesk-password-reset/template.json",
+    "readme": "templates/it-helpdesk-password-reset/README.md",
+    "codeReadme": "templates/it-helpdesk-password-reset/code/README.md",
+    "codePackage": "templates/it-helpdesk-password-reset/code/package.json",
+    "codeEnvironment": "templates/it-helpdesk-password-reset/code/.env.example",
+    "videoReadme": "templates/it-helpdesk-password-reset/video/README.md",
+    "captions": "templates/it-helpdesk-password-reset/video/captions.vtt",
+    "transcript": "templates/it-helpdesk-password-reset/video/transcript.md",
+    "slidesReadme": "templates/it-helpdesk-password-reset/slides/README.md",
+    "thumbnail": "templates/it-helpdesk-password-reset/media/thumbnail.svg",
+    "architecture": "templates/it-helpdesk-password-reset/media/architecture.svg"
+  },
+  "assets": {
+    "expected": [
+      {
+        "path": "templates/it-helpdesk-password-reset/video/demo.mp4",
+        "status": "pending",
+        "description": "Narrated demonstration recording (MP4)."
+      },
+      {
+        "path": "templates/it-helpdesk-password-reset/video/poster.webp",
+        "status": "pending",
+        "description": "Poster image for the video player (WebP)."
+      },
+      {
+        "path": "templates/it-helpdesk-password-reset/slides/it-helpdesk-password-reset.pptx",
+        "status": "pending",
+        "description": "Editable presentation deck (PPTX)."
+      },
+      {
+        "path": "templates/it-helpdesk-password-reset/slides/it-helpdesk-password-reset.pdf",
+        "status": "pending",
+        "description": "Presentation export (PDF)."
+      },
+      {
+        "path": "templates/it-helpdesk-password-reset/slides/preview.webp",
+        "status": "pending",
+        "description": "Presentation preview image (WebP)."
+      }
+    ]
+  }
+}

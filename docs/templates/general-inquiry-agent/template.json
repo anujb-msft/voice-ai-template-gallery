@@ -1,0 +1,79 @@
+{
+  "$schema": "../../schemas/template.schema.json",
+  "id": "general-inquiry-agent",
+  "name": "General Inquiry Agent",
+  "language": "Inbound · Tier 1 Support",
+  "useCase": "Business and government information service",
+  "assistant": "Inbound",
+  "headline": "Answer the common question before it becomes a queue.",
+  "prompt": "What information can I find for you?",
+  "description": "Provides grounded answers about services, policies, locations, hours, and eligibility. It is a reusable entry scenario when source ownership, freshness, citations, and escalation are clearly defined.",
+  "tags": [
+    "Cross-industry",
+    "Information",
+    "Tier 1 support"
+  ],
+  "colors": {
+    "bg": "#20170f",
+    "panel": "#342419",
+    "accent": "#ef9867",
+    "ink": "#fff2e7"
+  },
+  "onAccent": "#251208",
+  "font": "'Helvetica Neue', Helvetica, Arial, sans-serif",
+  "radius": "8px",
+  "readiness": "Illustrative workflow; validate source freshness, answer accuracy, citations, accessibility, and human escalation.",
+  "business": {
+    "buyer": "Customer experience and public-service leaders",
+    "application": "Provide trusted answers to common questions about services, policies, locations, hours, and eligibility.",
+    "roi": "Reduce repetitive calls and make accurate information available outside staffed hours.",
+    "metrics": "Call deflection · Answer accuracy · Escalation rate"
+  },
+  "technical": {
+    "complexity": "Low",
+    "systems": "Approved content · Website or knowledge base · Telephony",
+    "build": "Content grounding, freshness controls, answer citations, fallback, and human transfer."
+  },
+  "paths": {
+    "page": "templates/general-inquiry-agent/",
+    "manifest": "templates/general-inquiry-agent/template.json",
+    "readme": "templates/general-inquiry-agent/README.md",
+    "codeReadme": "templates/general-inquiry-agent/code/README.md",
+    "codeEnvironment": "templates/general-inquiry-agent/code/.env.example",
+    "videoReadme": "templates/general-inquiry-agent/video/README.md",
+    "captions": "templates/general-inquiry-agent/video/captions.vtt",
+    "transcript": "templates/general-inquiry-agent/video/transcript.md",
+    "slidesReadme": "templates/general-inquiry-agent/slides/README.md",
+    "thumbnail": "templates/general-inquiry-agent/media/thumbnail.svg",
+    "architecture": "templates/general-inquiry-agent/media/architecture.svg"
+  },
+  "assets": {
+    "expected": [
+      {
+        "path": "templates/general-inquiry-agent/video/demo.mp4",
+        "status": "pending",
+        "description": "Narrated demonstration recording (MP4)."
+      },
+      {
+        "path": "templates/general-inquiry-agent/video/poster.webp",
+        "status": "pending",
+        "description": "Poster image for the video player (WebP)."
+      },
+      {
+        "path": "templates/general-inquiry-agent/slides/general-inquiry-agent.pptx",
+        "status": "pending",
+        "description": "Editable presentation deck (PPTX)."
+      },
+      {
+        "path": "templates/general-inquiry-agent/slides/general-inquiry-agent.pdf",
+        "status": "pending",
+        "description": "Presentation export (PDF)."
+      },
+      {
+        "path": "templates/general-inquiry-agent/slides/preview.webp",
+        "status": "pending",
+        "description": "Presentation preview image (WebP)."
+      }
+    ]
+  }
+}

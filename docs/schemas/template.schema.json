@@ -1,0 +1,109 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "template.schema.json",
+  "title": "Voice AI template manifest",
+  "type": "object",
+  "required": [
+    "id",
+    "name",
+    "language",
+    "useCase",
+    "assistant",
+    "headline",
+    "prompt",
+    "description",
+    "tags",
+    "colors",
+    "onAccent",
+    "font",
+    "radius",
+    "readiness",
+    "business",
+    "technical",
+    "paths",
+    "assets"
+  ],
+  "properties": {
+    "$schema": { "type": "string" },
+    "id": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
+    "name": { "type": "string", "minLength": 1 },
+    "language": { "type": "string", "minLength": 1 },
+    "useCase": { "type": "string", "minLength": 1 },
+    "assistant": { "type": "string", "minLength": 1 },
+    "headline": { "type": "string", "minLength": 1 },
+    "prompt": { "type": "string", "minLength": 1 },
+    "description": { "type": "string", "minLength": 1 },
+    "tags": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "colors": {
+      "type": "object",
+      "required": ["bg", "panel", "accent", "ink"],
+      "additionalProperties": false,
+      "properties": {
+        "bg": { "type": "string" },
+        "panel": { "type": "string" },
+        "accent": { "type": "string" },
+        "ink": { "type": "string" }
+      }
+    },
+    "onAccent": { "type": "string" },
+    "font": { "type": "string" },
+    "radius": { "type": "string" },
+    "readiness": { "type": "string", "minLength": 1 },
+    "business": {
+      "type": "object",
+      "required": ["buyer", "application", "roi", "metrics"],
+      "additionalProperties": false,
+      "properties": {
+        "buyer": { "type": "string", "minLength": 1 },
+        "application": { "type": "string", "minLength": 1 },
+        "roi": { "type": "string", "minLength": 1 },
+        "metrics": { "type": "string", "minLength": 1 }
+      }
+    },
+    "technical": {
+      "type": "object",
+      "required": ["complexity", "systems", "build"],
+      "additionalProperties": false,
+      "properties": {
+        "complexity": { "type": "string", "minLength": 1 },
+        "systems": { "type": "string", "minLength": 1 },
+        "build": { "type": "string", "minLength": 1 }
+      }
+    },
+    "paths": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {
+        "type": "string",
+        "minLength": 1,
+        "pattern": "^(?!/)(?!\\.\\.)"
+      }
+    },
+    "assets": {
+      "type": "object",
+      "required": ["expected"],
+      "additionalProperties": false,
+      "properties": {
+        "expected": {
+          "type": "array",
+          "minItems": 5,
+          "items": {
+            "type": "object",
+            "required": ["path", "status", "description"],
+            "additionalProperties": false,
+            "properties": {
+              "path": { "type": "string", "pattern": "^(?!/)(?!\\.\\.)" },
+              "status": { "enum": ["ready", "pending"] },
+              "description": { "type": "string", "minLength": 1 }
+            }
+          }
+        }
+      }
+    }
+  },
+  "additionalProperties": false
+}

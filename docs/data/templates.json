@@ -1,0 +1,872 @@
+[
+  {
+    "$schema": "../../schemas/template.schema.json",
+    "id": "311-service-assistant",
+    "name": "311 Service Assistant",
+    "language": "Inbound · Tier 1 Support",
+    "useCase": "Local-government constituent service",
+    "assistant": "Inbound",
+    "headline": "One civic number, from question to completed request.",
+    "prompt": "What can your local government help you with today?",
+    "description": "Answers common civic questions, routes requests, guides multi-step services, and captures reports through a single public number. Adapt the service catalogue and escalation rules to local requirements.",
+    "tags": [
+      "Public sector",
+      "Local government",
+      "311"
+    ],
+    "colors": {
+      "bg": "#132033",
+      "panel": "#1b3150",
+      "accent": "#7ec8ff",
+      "ink": "#eff7ff"
+    },
+    "onAccent": "#0b1b2c",
+    "font": "'Helvetica Neue', Helvetica, Arial, sans-serif",
+    "radius": "8px",
+    "readiness": "Illustrative workflow; validate service coverage, accessibility, location handling, and departmental escalation rules.",
+    "business": {
+      "buyer": "Constituent services and digital-government leaders",
+      "application": "Answer civic questions, route requests, guide multi-step applications, and capture reports through one public number.",
+      "roi": "Deflect routine calls, extend service hours, and complete more constituent requests on first contact.",
+      "metrics": "Containment · Request completion · Time to resolution"
+    },
+    "technical": {
+      "complexity": "Medium",
+      "systems": "Knowledge base · 311 or case system · Department directory",
+      "build": "Grounded answers, service-request intake, location capture, departmental routing, and escalation."
+    },
+    "paths": {
+      "page": "templates/311-service-assistant/",
+      "manifest": "templates/311-service-assistant/template.json",
+      "readme": "templates/311-service-assistant/README.md",
+      "codeReadme": "templates/311-service-assistant/code/README.md",
+      "codeEnvironment": "templates/311-service-assistant/code/.env.example",
+      "videoReadme": "templates/311-service-assistant/video/README.md",
+      "captions": "templates/311-service-assistant/video/captions.vtt",
+      "transcript": "templates/311-service-assistant/video/transcript.md",
+      "slidesReadme": "templates/311-service-assistant/slides/README.md",
+      "thumbnail": "templates/311-service-assistant/media/thumbnail.svg",
+      "architecture": "templates/311-service-assistant/media/architecture.svg"
+    },
+    "assets": {
+      "expected": [
+        {
+          "path": "templates/311-service-assistant/video/demo.mp4",
+          "status": "pending",
+          "description": "Narrated demonstration recording (MP4)."
+        },
+        {
+          "path": "templates/311-service-assistant/video/poster.webp",
+          "status": "pending",
+          "description": "Poster image for the video player (WebP)."
+        },
+        {
+          "path": "templates/311-service-assistant/slides/311-service-assistant.pptx",
+          "status": "pending",
+          "description": "Editable presentation deck (PPTX)."
+        },
+        {
+          "path": "templates/311-service-assistant/slides/311-service-assistant.pdf",
+          "status": "pending",
+          "description": "Presentation export (PDF)."
+        },
+        {
+          "path": "templates/311-service-assistant/slides/preview.webp",
+          "status": "pending",
+          "description": "Presentation preview image (WebP)."
+        }
+      ]
+    }
+  },
+  {
+    "$schema": "../../schemas/template.schema.json",
+    "id": "after-hours-sales-lead-capture",
+    "name": "After-Hours Sales Lead Capture",
+    "language": "Inbound · Sales / CRM",
+    "useCase": "Manufacturing and distribution lead capture",
+    "assistant": "Inbound",
+    "headline": "Never let an unanswered call become a lost lead.",
+    "prompt": "I can capture what you need and have sales follow up.",
+    "description": "Captures and qualifies callers when sales staff are unavailable, then records the lead and routes it for follow-up. The bounded workflow is suitable for evaluating after-hours coverage and CRM handoff.",
+    "tags": [
+      "Manufacturing",
+      "Sales",
+      "Lead capture"
+    ],
+    "colors": {
+      "bg": "#211519",
+      "panel": "#382129",
+      "accent": "#f08aab",
+      "ink": "#fff0f5"
+    },
+    "onAccent": "#2b0f19",
+    "font": "'Helvetica Neue', Helvetica, Arial, sans-serif",
+    "radius": "14px",
+    "readiness": "Illustrative workflow; validate consent, qualification criteria, CRM ownership, duplicate handling, and follow-up policy.",
+    "business": {
+      "buyer": "Sales and revenue operations leaders",
+      "application": "Capture and qualify callers when sales staff are unavailable during peaks, evenings, and weekends.",
+      "roi": "Recover otherwise missed pipeline and reduce time to first response.",
+      "metrics": "Leads captured · Qualified lead rate · Response time"
+    },
+    "technical": {
+      "complexity": "Low",
+      "systems": "CRM · Sales routing · Telephony",
+      "build": "Lead qualification, contact capture, CRM creation, ownership routing, and follow-up notification."
+    },
+    "paths": {
+      "page": "templates/after-hours-sales-lead-capture/",
+      "manifest": "templates/after-hours-sales-lead-capture/template.json",
+      "readme": "templates/after-hours-sales-lead-capture/README.md",
+      "codeReadme": "templates/after-hours-sales-lead-capture/code/README.md",
+      "codeEnvironment": "templates/after-hours-sales-lead-capture/code/.env.example",
+      "videoReadme": "templates/after-hours-sales-lead-capture/video/README.md",
+      "captions": "templates/after-hours-sales-lead-capture/video/captions.vtt",
+      "transcript": "templates/after-hours-sales-lead-capture/video/transcript.md",
+      "slidesReadme": "templates/after-hours-sales-lead-capture/slides/README.md",
+      "thumbnail": "templates/after-hours-sales-lead-capture/media/thumbnail.svg",
+      "architecture": "templates/after-hours-sales-lead-capture/media/architecture.svg"
+    },
+    "assets": {
+      "expected": [
+        {
+          "path": "templates/after-hours-sales-lead-capture/video/demo.mp4",
+          "status": "pending",
+          "description": "Narrated demonstration recording (MP4)."
+        },
+        {
+          "path": "templates/after-hours-sales-lead-capture/video/poster.webp",
+          "status": "pending",
+          "description": "Poster image for the video player (WebP)."
+        },
+        {
+          "path": "templates/after-hours-sales-lead-capture/slides/after-hours-sales-lead-capture.pptx",
+          "status": "pending",
+          "description": "Editable presentation deck (PPTX)."
+        },
+        {
+          "path": "templates/after-hours-sales-lead-capture/slides/after-hours-sales-lead-capture.pdf",
+          "status": "pending",
+          "description": "Presentation export (PDF)."
+        },
+        {
+          "path": "templates/after-hours-sales-lead-capture/slides/preview.webp",
+          "status": "pending",
+          "description": "Presentation preview image (WebP)."
+        }
+      ]
+    }
+  },
+  {
+    "$schema": "../../schemas/template.schema.json",
+    "id": "appointment-reminder-agent",
+    "name": "Appointment Reminder Agent",
+    "language": "Outbound · Reminders",
+    "useCase": "Healthcare appointment confirmation",
+    "assistant": "Outbound",
+    "headline": "Confirm, change, or cancel before the slot is lost.",
+    "prompt": "I am calling about your upcoming appointment.",
+    "description": "Contacts patients before appointments and lets them confirm, cancel, or request rescheduling. Production deployments must account for consent, identity, accessibility, and healthcare privacy requirements.",
+    "tags": [
+      "Healthcare",
+      "Outbound",
+      "Reminders"
+    ],
+    "colors": {
+      "bg": "#eef3ed",
+      "panel": "#dce9df",
+      "accent": "#347254",
+      "ink": "#18251d"
+    },
+    "onAccent": "#f3f8f4",
+    "font": "'Helvetica Neue', Helvetica, Arial, sans-serif",
+    "radius": "18px",
+    "readiness": "Illustrative workflow; validate consent, identity, scheduling integration, accessibility, and healthcare privacy requirements.",
+    "business": {
+      "buyer": "Patient access and ambulatory operations leaders",
+      "application": "Contact patients before appointments and let them confirm, cancel, or request a different time.",
+      "roi": "Reduce no-shows, recover appointment capacity, and lower manual reminder effort.",
+      "metrics": "No-show rate · Confirmations · Recovered slots"
+    },
+    "technical": {
+      "complexity": "Medium",
+      "systems": "Scheduling system · Patient contact data · Telephony",
+      "build": "Outbound campaigns, identity checks, confirmation, cancellation, reschedule handoff, and consent."
+    },
+    "paths": {
+      "page": "templates/appointment-reminder-agent/",
+      "manifest": "templates/appointment-reminder-agent/template.json",
+      "readme": "templates/appointment-reminder-agent/README.md",
+      "codeReadme": "templates/appointment-reminder-agent/code/README.md",
+      "codeEnvironment": "templates/appointment-reminder-agent/code/.env.example",
+      "videoReadme": "templates/appointment-reminder-agent/video/README.md",
+      "captions": "templates/appointment-reminder-agent/video/captions.vtt",
+      "transcript": "templates/appointment-reminder-agent/video/transcript.md",
+      "slidesReadme": "templates/appointment-reminder-agent/slides/README.md",
+      "thumbnail": "templates/appointment-reminder-agent/media/thumbnail.svg",
+      "architecture": "templates/appointment-reminder-agent/media/architecture.svg"
+    },
+    "assets": {
+      "expected": [
+        {
+          "path": "templates/appointment-reminder-agent/video/demo.mp4",
+          "status": "pending",
+          "description": "Narrated demonstration recording (MP4)."
+        },
+        {
+          "path": "templates/appointment-reminder-agent/video/poster.webp",
+          "status": "pending",
+          "description": "Poster image for the video player (WebP)."
+        },
+        {
+          "path": "templates/appointment-reminder-agent/slides/appointment-reminder-agent.pptx",
+          "status": "pending",
+          "description": "Editable presentation deck (PPTX)."
+        },
+        {
+          "path": "templates/appointment-reminder-agent/slides/appointment-reminder-agent.pdf",
+          "status": "pending",
+          "description": "Presentation export (PDF)."
+        },
+        {
+          "path": "templates/appointment-reminder-agent/slides/preview.webp",
+          "status": "pending",
+          "description": "Presentation preview image (WebP)."
+        }
+      ]
+    }
+  },
+  {
+    "$schema": "../../schemas/template.schema.json",
+    "id": "appointment-scheduling-agent",
+    "name": "Appointment Scheduling Agent",
+    "language": "Inbound · Appointment Scheduling",
+    "useCase": "Healthcare access and scheduling",
+    "assistant": "Inbound",
+    "headline": "Turn the call into a booked appointment.",
+    "prompt": "Let us find the right time for your visit.",
+    "description": "Finds appropriate appointment availability and completes a booking through a conversational call. Identity, eligibility, scheduling constraints, and exception handling make this a more advanced integration scenario.",
+    "tags": [
+      "Healthcare",
+      "Scheduling",
+      "Patient access"
+    ],
+    "colors": {
+      "bg": "#f1eee7",
+      "panel": "#e0d9cc",
+      "accent": "#8d5638",
+      "ink": "#2b211a"
+    },
+    "onAccent": "#fff8ef",
+    "font": "'Helvetica Neue', Helvetica, Arial, sans-serif",
+    "radius": "20px",
+    "readiness": "Illustrative workflow; validate identity, eligibility, availability, consent, accessibility, and exception handling.",
+    "business": {
+      "buyer": "Patient access and contact-center leaders",
+      "application": "Find appropriate appointment availability and complete a booking through a conversational call.",
+      "roi": "Increase booked appointments, reduce scheduling calls, and extend access beyond office hours.",
+      "metrics": "Bookings completed · Abandonment · Scheduler hours saved"
+    },
+    "technical": {
+      "complexity": "High",
+      "systems": "Scheduling API · Patient identity · Eligibility rules",
+      "build": "Identity, appointment-type logic, availability search, booking, confirmation, and exception handling."
+    },
+    "paths": {
+      "page": "templates/appointment-scheduling-agent/",
+      "manifest": "templates/appointment-scheduling-agent/template.json",
+      "readme": "templates/appointment-scheduling-agent/README.md",
+      "codeReadme": "templates/appointment-scheduling-agent/code/README.md",
+      "codeEnvironment": "templates/appointment-scheduling-agent/code/.env.example",
+      "videoReadme": "templates/appointment-scheduling-agent/video/README.md",
+      "captions": "templates/appointment-scheduling-agent/video/captions.vtt",
+      "transcript": "templates/appointment-scheduling-agent/video/transcript.md",
+      "slidesReadme": "templates/appointment-scheduling-agent/slides/README.md",
+      "thumbnail": "templates/appointment-scheduling-agent/media/thumbnail.svg",
+      "architecture": "templates/appointment-scheduling-agent/media/architecture.svg"
+    },
+    "assets": {
+      "expected": [
+        {
+          "path": "templates/appointment-scheduling-agent/video/demo.mp4",
+          "status": "pending",
+          "description": "Narrated demonstration recording (MP4)."
+        },
+        {
+          "path": "templates/appointment-scheduling-agent/video/poster.webp",
+          "status": "pending",
+          "description": "Poster image for the video player (WebP)."
+        },
+        {
+          "path": "templates/appointment-scheduling-agent/slides/appointment-scheduling-agent.pptx",
+          "status": "pending",
+          "description": "Editable presentation deck (PPTX)."
+        },
+        {
+          "path": "templates/appointment-scheduling-agent/slides/appointment-scheduling-agent.pdf",
+          "status": "pending",
+          "description": "Presentation export (PDF)."
+        },
+        {
+          "path": "templates/appointment-scheduling-agent/slides/preview.webp",
+          "status": "pending",
+          "description": "Presentation preview image (WebP)."
+        }
+      ]
+    }
+  },
+  {
+    "$schema": "../../schemas/template.schema.json",
+    "id": "bid-price-lookup-agent",
+    "name": "Bid / Price Lookup Agent",
+    "language": "Inbound · Tier 1 Support",
+    "useCase": "Manufacturing and distribution pricing",
+    "assistant": "Inbound",
+    "headline": "Make today's price available on every call.",
+    "prompt": "Which commodity or bid location do you need?",
+    "description": "Returns current bid or commodity pricing by location, reducing repetitive calls and manually updated recordings. The implementation must make data freshness and caller authorization explicit.",
+    "tags": [
+      "Manufacturing",
+      "Pricing",
+      "Tier 1 support"
+    ],
+    "colors": {
+      "bg": "#191a12",
+      "panel": "#292c1b",
+      "accent": "#c7dc63",
+      "ink": "#f7f9e8"
+    },
+    "onAccent": "#1d2109",
+    "font": "'Helvetica Neue', Helvetica, Arial, sans-serif",
+    "radius": "6px",
+    "readiness": "Illustrative workflow; validate pricing freshness, authorization, location matching, disclaimers, and fallback behavior.",
+    "business": {
+      "buyer": "Commercial and customer-service leaders",
+      "application": "Give callers current bid or commodity pricing without requiring staff or manually updated voicemail.",
+      "roi": "Eliminate repetitive price calls and keep pricing consistently available.",
+      "metrics": "Calls automated · Staff time saved · Price freshness"
+    },
+    "technical": {
+      "complexity": "Low",
+      "systems": "Pricing feed · Location data · Telephony",
+      "build": "Price lookup, freshness checks, location selection, playback, authentication where required, and fallback."
+    },
+    "paths": {
+      "page": "templates/bid-price-lookup-agent/",
+      "manifest": "templates/bid-price-lookup-agent/template.json",
+      "readme": "templates/bid-price-lookup-agent/README.md",
+      "codeReadme": "templates/bid-price-lookup-agent/code/README.md",
+      "codeEnvironment": "templates/bid-price-lookup-agent/code/.env.example",
+      "videoReadme": "templates/bid-price-lookup-agent/video/README.md",
+      "captions": "templates/bid-price-lookup-agent/video/captions.vtt",
+      "transcript": "templates/bid-price-lookup-agent/video/transcript.md",
+      "slidesReadme": "templates/bid-price-lookup-agent/slides/README.md",
+      "thumbnail": "templates/bid-price-lookup-agent/media/thumbnail.svg",
+      "architecture": "templates/bid-price-lookup-agent/media/architecture.svg"
+    },
+    "assets": {
+      "expected": [
+        {
+          "path": "templates/bid-price-lookup-agent/video/demo.mp4",
+          "status": "pending",
+          "description": "Narrated demonstration recording (MP4)."
+        },
+        {
+          "path": "templates/bid-price-lookup-agent/video/poster.webp",
+          "status": "pending",
+          "description": "Poster image for the video player (WebP)."
+        },
+        {
+          "path": "templates/bid-price-lookup-agent/slides/bid-price-lookup-agent.pptx",
+          "status": "pending",
+          "description": "Editable presentation deck (PPTX)."
+        },
+        {
+          "path": "templates/bid-price-lookup-agent/slides/bid-price-lookup-agent.pdf",
+          "status": "pending",
+          "description": "Presentation export (PDF)."
+        },
+        {
+          "path": "templates/bid-price-lookup-agent/slides/preview.webp",
+          "status": "pending",
+          "description": "Presentation preview image (WebP)."
+        }
+      ]
+    }
+  },
+  {
+    "$schema": "../../schemas/template.schema.json",
+    "id": "contextual-on-call-pager",
+    "name": "Contextual On-Call Pager",
+    "language": "Outbound · Reminders",
+    "useCase": "On-call operations response",
+    "assistant": "Outbound",
+    "headline": "Reach the right person with the context already attached.",
+    "prompt": "You are on call. Here is the issue reported in the voicemail.",
+    "description": "Calls the current on-call person and supplies concise context captured from the original request. The workflow focuses on schedule lookup, retries, acknowledgement, and escalation.",
+    "tags": [
+      "Operations",
+      "On-call",
+      "Outbound"
+    ],
+    "colors": {
+      "bg": "#101d20",
+      "panel": "#173037",
+      "accent": "#5fd8d4",
+      "ink": "#edffff"
+    },
+    "onAccent": "#082023",
+    "font": "'Helvetica Neue', Helvetica, Arial, sans-serif",
+    "radius": "8px",
+    "readiness": "Illustrative workflow; validate on-call schedules, contact permissions, retries, acknowledgements, and escalation policy.",
+    "business": {
+      "buyer": "Emergency response and operations leaders",
+      "application": "Call the current on-call person and provide the issue context captured from the original voicemail.",
+      "roi": "Reduce response time and remove manual pager coordination.",
+      "metrics": "Time to acknowledge · Successful contacts · Escalation time"
+    },
+    "technical": {
+      "complexity": "Low",
+      "systems": "On-call schedule · Voicemail transcription · Outbound calling",
+      "build": "Schedule lookup, concise context generation, call retries, acknowledgment, and escalation to the next contact."
+    },
+    "paths": {
+      "page": "templates/contextual-on-call-pager/",
+      "manifest": "templates/contextual-on-call-pager/template.json",
+      "readme": "templates/contextual-on-call-pager/README.md",
+      "codeReadme": "templates/contextual-on-call-pager/code/README.md",
+      "codeEnvironment": "templates/contextual-on-call-pager/code/.env.example",
+      "videoReadme": "templates/contextual-on-call-pager/video/README.md",
+      "captions": "templates/contextual-on-call-pager/video/captions.vtt",
+      "transcript": "templates/contextual-on-call-pager/video/transcript.md",
+      "slidesReadme": "templates/contextual-on-call-pager/slides/README.md",
+      "thumbnail": "templates/contextual-on-call-pager/media/thumbnail.svg",
+      "architecture": "templates/contextual-on-call-pager/media/architecture.svg"
+    },
+    "assets": {
+      "expected": [
+        {
+          "path": "templates/contextual-on-call-pager/video/demo.mp4",
+          "status": "pending",
+          "description": "Narrated demonstration recording (MP4)."
+        },
+        {
+          "path": "templates/contextual-on-call-pager/video/poster.webp",
+          "status": "pending",
+          "description": "Poster image for the video player (WebP)."
+        },
+        {
+          "path": "templates/contextual-on-call-pager/slides/contextual-on-call-pager.pptx",
+          "status": "pending",
+          "description": "Editable presentation deck (PPTX)."
+        },
+        {
+          "path": "templates/contextual-on-call-pager/slides/contextual-on-call-pager.pdf",
+          "status": "pending",
+          "description": "Presentation export (PDF)."
+        },
+        {
+          "path": "templates/contextual-on-call-pager/slides/preview.webp",
+          "status": "pending",
+          "description": "Presentation preview image (WebP)."
+        }
+      ]
+    }
+  },
+  {
+    "$schema": "../../schemas/template.schema.json",
+    "id": "customer-record-lookup-update",
+    "name": "Customer Record Lookup & Update",
+    "language": "Inbound · Sales / CRM",
+    "useCase": "Cross-industry CRM voice workflow",
+    "assistant": "Inbound",
+    "headline": "Bring customer context into the call—and write it back.",
+    "prompt": "I found the account. What should I update from this conversation?",
+    "description": "Retrieves customer history from an authorized system and writes confirmed call outcomes back to the record. The reference scope emphasizes least-privilege access, explicit confirmation, and auditable changes.",
+    "tags": [
+      "Cross-industry",
+      "CRM",
+      "Record updates"
+    ],
+    "colors": {
+      "bg": "#101b1a",
+      "panel": "#18302d",
+      "accent": "#63d8bd",
+      "ink": "#eafaf5"
+    },
+    "onAccent": "#071816",
+    "font": "'Helvetica Neue', Helvetica, Arial, sans-serif",
+    "radius": "12px",
+    "readiness": "Illustrative workflow; validate field-level permissions, identity, data retention, and write-back confirmation in your environment.",
+    "business": {
+      "buyer": "Sales, service, and revenue operations leaders",
+      "application": "Retrieve customer history during a call and write outcomes, notes, and next steps back to the system of record.",
+      "roi": "Shorter handle time, more complete CRM records, and less after-call administration.",
+      "metrics": "Handle time · Record completion · After-call work saved"
+    },
+    "technical": {
+      "complexity": "Medium",
+      "systems": "CRM or ITSM · Identity · Telephony",
+      "build": "Authenticated record lookup, field-level writeback, call summarization, and confirmation before updates."
+    },
+    "paths": {
+      "page": "templates/customer-record-lookup-update/",
+      "manifest": "templates/customer-record-lookup-update/template.json",
+      "readme": "templates/customer-record-lookup-update/README.md",
+      "codeReadme": "templates/customer-record-lookup-update/code/README.md",
+      "codeEnvironment": "templates/customer-record-lookup-update/code/.env.example",
+      "videoReadme": "templates/customer-record-lookup-update/video/README.md",
+      "captions": "templates/customer-record-lookup-update/video/captions.vtt",
+      "transcript": "templates/customer-record-lookup-update/video/transcript.md",
+      "slidesReadme": "templates/customer-record-lookup-update/slides/README.md",
+      "thumbnail": "templates/customer-record-lookup-update/media/thumbnail.svg",
+      "architecture": "templates/customer-record-lookup-update/media/architecture.svg"
+    },
+    "assets": {
+      "expected": [
+        {
+          "path": "templates/customer-record-lookup-update/video/demo.mp4",
+          "status": "pending",
+          "description": "Narrated demonstration recording (MP4)."
+        },
+        {
+          "path": "templates/customer-record-lookup-update/video/poster.webp",
+          "status": "pending",
+          "description": "Poster image for the video player (WebP)."
+        },
+        {
+          "path": "templates/customer-record-lookup-update/slides/customer-record-lookup-update.pptx",
+          "status": "pending",
+          "description": "Editable presentation deck (PPTX)."
+        },
+        {
+          "path": "templates/customer-record-lookup-update/slides/customer-record-lookup-update.pdf",
+          "status": "pending",
+          "description": "Presentation export (PDF)."
+        },
+        {
+          "path": "templates/customer-record-lookup-update/slides/preview.webp",
+          "status": "pending",
+          "description": "Presentation preview image (WebP)."
+        }
+      ]
+    }
+  },
+  {
+    "$schema": "../../schemas/template.schema.json",
+    "id": "general-inquiry-agent",
+    "name": "General Inquiry Agent",
+    "language": "Inbound · Tier 1 Support",
+    "useCase": "Business and government information service",
+    "assistant": "Inbound",
+    "headline": "Answer the common question before it becomes a queue.",
+    "prompt": "What information can I find for you?",
+    "description": "Provides grounded answers about services, policies, locations, hours, and eligibility. It is a reusable entry scenario when source ownership, freshness, citations, and escalation are clearly defined.",
+    "tags": [
+      "Cross-industry",
+      "Information",
+      "Tier 1 support"
+    ],
+    "colors": {
+      "bg": "#20170f",
+      "panel": "#342419",
+      "accent": "#ef9867",
+      "ink": "#fff2e7"
+    },
+    "onAccent": "#251208",
+    "font": "'Helvetica Neue', Helvetica, Arial, sans-serif",
+    "radius": "8px",
+    "readiness": "Illustrative workflow; validate source freshness, answer accuracy, citations, accessibility, and human escalation.",
+    "business": {
+      "buyer": "Customer experience and public-service leaders",
+      "application": "Provide trusted answers to common questions about services, policies, locations, hours, and eligibility.",
+      "roi": "Reduce repetitive calls and make accurate information available outside staffed hours.",
+      "metrics": "Call deflection · Answer accuracy · Escalation rate"
+    },
+    "technical": {
+      "complexity": "Low",
+      "systems": "Approved content · Website or knowledge base · Telephony",
+      "build": "Content grounding, freshness controls, answer citations, fallback, and human transfer."
+    },
+    "paths": {
+      "page": "templates/general-inquiry-agent/",
+      "manifest": "templates/general-inquiry-agent/template.json",
+      "readme": "templates/general-inquiry-agent/README.md",
+      "codeReadme": "templates/general-inquiry-agent/code/README.md",
+      "codeEnvironment": "templates/general-inquiry-agent/code/.env.example",
+      "videoReadme": "templates/general-inquiry-agent/video/README.md",
+      "captions": "templates/general-inquiry-agent/video/captions.vtt",
+      "transcript": "templates/general-inquiry-agent/video/transcript.md",
+      "slidesReadme": "templates/general-inquiry-agent/slides/README.md",
+      "thumbnail": "templates/general-inquiry-agent/media/thumbnail.svg",
+      "architecture": "templates/general-inquiry-agent/media/architecture.svg"
+    },
+    "assets": {
+      "expected": [
+        {
+          "path": "templates/general-inquiry-agent/video/demo.mp4",
+          "status": "pending",
+          "description": "Narrated demonstration recording (MP4)."
+        },
+        {
+          "path": "templates/general-inquiry-agent/video/poster.webp",
+          "status": "pending",
+          "description": "Poster image for the video player (WebP)."
+        },
+        {
+          "path": "templates/general-inquiry-agent/slides/general-inquiry-agent.pptx",
+          "status": "pending",
+          "description": "Editable presentation deck (PPTX)."
+        },
+        {
+          "path": "templates/general-inquiry-agent/slides/general-inquiry-agent.pdf",
+          "status": "pending",
+          "description": "Presentation export (PDF)."
+        },
+        {
+          "path": "templates/general-inquiry-agent/slides/preview.webp",
+          "status": "pending",
+          "description": "Presentation preview image (WebP)."
+        }
+      ]
+    }
+  },
+  {
+    "$schema": "../../schemas/template.schema.json",
+    "id": "intent-based-call-routing",
+    "name": "Intent-Based Call Routing",
+    "language": "Inbound · Voice Receptionist",
+    "useCase": "Cross-industry intelligent reception",
+    "assistant": "Inbound",
+    "headline": "Understand the reason. Route to the right team.",
+    "prompt": "Tell me briefly what you are calling about.",
+    "description": "Classifies a caller's stated reason and routes the call to the appropriate team, queue, or self-service flow. The bounded routing policy makes it a practical starting point for evaluating voice automation.",
+    "tags": [
+      "Cross-industry",
+      "Call routing",
+      "Reception"
+    ],
+    "colors": {
+      "bg": "#17140f",
+      "panel": "#29231a",
+      "accent": "#e0a63c",
+      "ink": "#f7f0e0"
+    },
+    "onAccent": "#17140f",
+    "font": "'Helvetica Neue', Helvetica, Arial, sans-serif",
+    "radius": "10px",
+    "readiness": "Illustrative workflow; evaluate intent accuracy, transfer policy, business-hours behavior, and fallback with representative calls.",
+    "business": {
+      "buyer": "Customer service and operations leaders",
+      "application": "Understand why a caller is contacting the organization and route them to the correct team, queue, or self-service flow.",
+      "roi": "Lower receptionist workload, fewer incorrect transfers, and better first-call resolution.",
+      "metrics": "Transfer accuracy · First-call resolution · Receptionist hours saved"
+    },
+    "technical": {
+      "complexity": "Low",
+      "systems": "Phone system · Employee directory · Routing rules",
+      "build": "Intent classification, routing policy, business-hours logic, fallback, and warm transfer."
+    },
+    "paths": {
+      "page": "templates/intent-based-call-routing/",
+      "manifest": "templates/intent-based-call-routing/template.json",
+      "readme": "templates/intent-based-call-routing/README.md",
+      "codeReadme": "templates/intent-based-call-routing/code/README.md",
+      "codeEnvironment": "templates/intent-based-call-routing/code/.env.example",
+      "videoReadme": "templates/intent-based-call-routing/video/README.md",
+      "captions": "templates/intent-based-call-routing/video/captions.vtt",
+      "transcript": "templates/intent-based-call-routing/video/transcript.md",
+      "slidesReadme": "templates/intent-based-call-routing/slides/README.md",
+      "thumbnail": "templates/intent-based-call-routing/media/thumbnail.svg",
+      "architecture": "templates/intent-based-call-routing/media/architecture.svg"
+    },
+    "assets": {
+      "expected": [
+        {
+          "path": "templates/intent-based-call-routing/video/demo.mp4",
+          "status": "pending",
+          "description": "Narrated demonstration recording (MP4)."
+        },
+        {
+          "path": "templates/intent-based-call-routing/video/poster.webp",
+          "status": "pending",
+          "description": "Poster image for the video player (WebP)."
+        },
+        {
+          "path": "templates/intent-based-call-routing/slides/intent-based-call-routing.pptx",
+          "status": "pending",
+          "description": "Editable presentation deck (PPTX)."
+        },
+        {
+          "path": "templates/intent-based-call-routing/slides/intent-based-call-routing.pdf",
+          "status": "pending",
+          "description": "Presentation export (PDF)."
+        },
+        {
+          "path": "templates/intent-based-call-routing/slides/preview.webp",
+          "status": "pending",
+          "description": "Presentation preview image (WebP)."
+        }
+      ]
+    }
+  },
+  {
+    "$schema": "../../schemas/template.schema.json",
+    "id": "it-hr-help-desk-triage",
+    "name": "IT / HR Help Desk Triage",
+    "language": "Inbound · Tier 1 Support",
+    "useCase": "Enterprise employee service",
+    "assistant": "Inbound",
+    "headline": "Resolve the routine request. Route the sensitive one.",
+    "prompt": "Is this about IT access, HR policy, or benefits?",
+    "description": "Identifies whether an employee needs IT or HR help, answers approved routine questions, and routes sensitive or unresolved cases to the correct team. Clear policy ownership and privacy boundaries are essential.",
+    "tags": [
+      "Enterprise",
+      "Employee service",
+      "IT and HR"
+    ],
+    "colors": {
+      "bg": "#171728",
+      "panel": "#252542",
+      "accent": "#a99cff",
+      "ink": "#f3f1ff"
+    },
+    "onAccent": "#15102c",
+    "font": "'Helvetica Neue', Helvetica, Arial, sans-serif",
+    "radius": "10px",
+    "readiness": "Illustrative workflow; validate policy ownership, privacy boundaries, identity requirements, and routing with both IT and HR stakeholders.",
+    "business": {
+      "buyer": "IT, HR, and employee-experience leaders",
+      "application": "Identify whether an employee needs IT or HR help, answer common questions, and route sensitive cases correctly.",
+      "roi": "Deflect Tier 1 requests and shorten time to the right support team.",
+      "metrics": "Tier 1 deflection · Routing accuracy · Resolution time"
+    },
+    "technical": {
+      "complexity": "Medium",
+      "systems": "ITSM · HR knowledge · Employee identity",
+      "build": "Domain triage, grounded answers, employee verification, ticket creation, and policy-aware escalation."
+    },
+    "paths": {
+      "page": "templates/it-hr-help-desk-triage/",
+      "manifest": "templates/it-hr-help-desk-triage/template.json",
+      "readme": "templates/it-hr-help-desk-triage/README.md",
+      "codeReadme": "templates/it-hr-help-desk-triage/code/README.md",
+      "codeEnvironment": "templates/it-hr-help-desk-triage/code/.env.example",
+      "videoReadme": "templates/it-hr-help-desk-triage/video/README.md",
+      "captions": "templates/it-hr-help-desk-triage/video/captions.vtt",
+      "transcript": "templates/it-hr-help-desk-triage/video/transcript.md",
+      "slidesReadme": "templates/it-hr-help-desk-triage/slides/README.md",
+      "thumbnail": "templates/it-hr-help-desk-triage/media/thumbnail.svg",
+      "architecture": "templates/it-hr-help-desk-triage/media/architecture.svg"
+    },
+    "assets": {
+      "expected": [
+        {
+          "path": "templates/it-hr-help-desk-triage/video/demo.mp4",
+          "status": "pending",
+          "description": "Narrated demonstration recording (MP4)."
+        },
+        {
+          "path": "templates/it-hr-help-desk-triage/video/poster.webp",
+          "status": "pending",
+          "description": "Poster image for the video player (WebP)."
+        },
+        {
+          "path": "templates/it-hr-help-desk-triage/slides/it-hr-help-desk-triage.pptx",
+          "status": "pending",
+          "description": "Editable presentation deck (PPTX)."
+        },
+        {
+          "path": "templates/it-hr-help-desk-triage/slides/it-hr-help-desk-triage.pdf",
+          "status": "pending",
+          "description": "Presentation export (PDF)."
+        },
+        {
+          "path": "templates/it-hr-help-desk-triage/slides/preview.webp",
+          "status": "pending",
+          "description": "Presentation preview image (WebP)."
+        }
+      ]
+    }
+  },
+  {
+    "$schema": "../../schemas/template.schema.json",
+    "id": "it-helpdesk-password-reset",
+    "name": "IT Help Desk Password Reset",
+    "language": "Outbound · Identity Verification",
+    "useCase": "Enterprise IT help desk password recovery",
+    "assistant": "Outbound",
+    "headline": "Forgot password? We already called you back.",
+    "prompt": "Hi, I'm calling about the password reset you just requested.",
+    "description": "Calls an employee back after they request a password reset, synchronizes a voice call with a browser flow, verifies presence across channels, and coaches them through a policy-compliant reset. The included implementation is a local demo that requires substantial security hardening before real use.",
+    "tags": [
+      "Enterprise",
+      "IT operations",
+      "Outbound"
+    ],
+    "colors": {
+      "bg": "#0d1b2e",
+      "panel": "#132844",
+      "accent": "#4da3ff",
+      "ink": "#eaf4ff"
+    },
+    "onAccent": "#04101f",
+    "font": "'Helvetica Neue', Helvetica, Arial, sans-serif",
+    "radius": "12px",
+    "readiness": "Demo reference implementation; not production-ready. Complete security, privacy, identity, accessibility, abuse-prevention, and operational reviews before deployment.",
+    "business": {
+      "buyer": "IT service-desk and employee-experience leaders",
+      "application": "Give employees who click Forgot password an immediate outbound callback that verifies identity over a live voice call and browser wizard, then coaches them through a compliant password reset.",
+      "roi": "Reduce routine Tier 1 handling and shorten employee recovery time after production controls and system integrations are in place.",
+      "metrics": "Ticket deflection rate · Employee recovery time · Escalation rate"
+    },
+    "technical": {
+      "complexity": "High",
+      "systems": "Azure Communication Services · Azure AI Voice Live · SignalR/WebSocket · Identity directory · Ticketing system",
+      "build": "Outbound call placement, voice-plus-browser code verification, real-time password-policy coaching, ticket creation and closure, and escalation on repeated identity failure."
+    },
+    "paths": {
+      "page": "templates/it-helpdesk-password-reset/",
+      "manifest": "templates/it-helpdesk-password-reset/template.json",
+      "readme": "templates/it-helpdesk-password-reset/README.md",
+      "codeReadme": "templates/it-helpdesk-password-reset/code/README.md",
+      "codePackage": "templates/it-helpdesk-password-reset/code/package.json",
+      "codeEnvironment": "templates/it-helpdesk-password-reset/code/.env.example",
+      "videoReadme": "templates/it-helpdesk-password-reset/video/README.md",
+      "captions": "templates/it-helpdesk-password-reset/video/captions.vtt",
+      "transcript": "templates/it-helpdesk-password-reset/video/transcript.md",
+      "slidesReadme": "templates/it-helpdesk-password-reset/slides/README.md",
+      "thumbnail": "templates/it-helpdesk-password-reset/media/thumbnail.svg",
+      "architecture": "templates/it-helpdesk-password-reset/media/architecture.svg"
+    },
+    "assets": {
+      "expected": [
+        {
+          "path": "templates/it-helpdesk-password-reset/video/demo.mp4",
+          "status": "pending",
+          "description": "Narrated demonstration recording (MP4)."
+        },
+        {
+          "path": "templates/it-helpdesk-password-reset/video/poster.webp",
+          "status": "pending",
+          "description": "Poster image for the video player (WebP)."
+        },
+        {
+          "path": "templates/it-helpdesk-password-reset/slides/it-helpdesk-password-reset.pptx",
+          "status": "pending",
+          "description": "Editable presentation deck (PPTX)."
+        },
+        {
+          "path": "templates/it-helpdesk-password-reset/slides/it-helpdesk-password-reset.pdf",
+          "status": "pending",
+          "description": "Presentation export (PDF)."
+        },
+        {
+          "path": "templates/it-helpdesk-password-reset/slides/preview.webp",
+          "status": "pending",
+          "description": "Presentation preview image (WebP)."
+        }
+      ]
+    }
+  }
+]

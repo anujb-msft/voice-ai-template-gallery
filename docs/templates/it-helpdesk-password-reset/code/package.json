@@ -1,0 +1,26 @@
+{
+  "name": "it-helpdesk-password-reset",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Voice agent template: proactive IT help desk password reset over an outbound PSTN call, with a live web wizard the agent monitors via SignalR.",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "node src/server.mjs",
+    "dev": "node --watch src/server.mjs",
+    "seed": "node scripts/seed.mjs",
+    "tunnel": "devtunnel host -p 8090 --allow-anonymous",
+    "check": "node --check src/server.mjs"
+  },
+  "dependencies": {
+    "@azure/communication-call-automation": "^1.6.0",
+    "@microsoft/signalr": "^8.0.7",
+    "better-sqlite3": "^11.10.0",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "jsonwebtoken": "^9.0.2",
+    "ws": "^8.18.0"
+  }
+}

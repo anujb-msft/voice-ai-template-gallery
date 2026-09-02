@@ -1,0 +1,79 @@
+{
+  "$schema": "../../schemas/template.schema.json",
+  "id": "appointment-scheduling-agent",
+  "name": "Appointment Scheduling Agent",
+  "language": "Inbound · Appointment Scheduling",
+  "useCase": "Healthcare access and scheduling",
+  "assistant": "Inbound",
+  "headline": "Turn the call into a booked appointment.",
+  "prompt": "Let us find the right time for your visit.",
+  "description": "Finds appropriate appointment availability and completes a booking through a conversational call. Identity, eligibility, scheduling constraints, and exception handling make this a more advanced integration scenario.",
+  "tags": [
+    "Healthcare",
+    "Scheduling",
+    "Patient access"
+  ],
+  "colors": {
+    "bg": "#f1eee7",
+    "panel": "#e0d9cc",
+    "accent": "#8d5638",
+    "ink": "#2b211a"
+  },
+  "onAccent": "#fff8ef",
+  "font": "'Helvetica Neue', Helvetica, Arial, sans-serif",
+  "radius": "20px",
+  "readiness": "Illustrative workflow; validate identity, eligibility, availability, consent, accessibility, and exception handling.",
+  "business": {
+    "buyer": "Patient access and contact-center leaders",
+    "application": "Find appropriate appointment availability and complete a booking through a conversational call.",
+    "roi": "Increase booked appointments, reduce scheduling calls, and extend access beyond office hours.",
+    "metrics": "Bookings completed · Abandonment · Scheduler hours saved"
+  },
+  "technical": {
+    "complexity": "High",
+    "systems": "Scheduling API · Patient identity · Eligibility rules",
+    "build": "Identity, appointment-type logic, availability search, booking, confirmation, and exception handling."
+  },
+  "paths": {
+    "page": "templates/appointment-scheduling-agent/",
+    "manifest": "templates/appointment-scheduling-agent/template.json",
+    "readme": "templates/appointment-scheduling-agent/README.md",
+    "codeReadme": "templates/appointment-scheduling-agent/code/README.md",
+    "codeEnvironment": "templates/appointment-scheduling-agent/code/.env.example",
+    "videoReadme": "templates/appointment-scheduling-agent/video/README.md",
+    "captions": "templates/appointment-scheduling-agent/video/captions.vtt",
+    "transcript": "templates/appointment-scheduling-agent/video/transcript.md",
+    "slidesReadme": "templates/appointment-scheduling-agent/slides/README.md",
+    "thumbnail": "templates/appointment-scheduling-agent/media/thumbnail.svg",
+    "architecture": "templates/appointment-scheduling-agent/media/architecture.svg"
+  },
+  "assets": {
+    "expected": [
+      {
+        "path": "templates/appointment-scheduling-agent/video/demo.mp4",
+        "status": "pending",
+        "description": "Narrated demonstration recording (MP4)."
+      },
+      {
+        "path": "templates/appointment-scheduling-agent/video/poster.webp",
+        "status": "pending",
+        "description": "Poster image for the video player (WebP)."
+      },
+      {
+        "path": "templates/appointment-scheduling-agent/slides/appointment-scheduling-agent.pptx",
+        "status": "pending",
+        "description": "Editable presentation deck (PPTX)."
+      },
+      {
+        "path": "templates/appointment-scheduling-agent/slides/appointment-scheduling-agent.pdf",
+        "status": "pending",
+        "description": "Presentation export (PDF)."
+      },
+      {
+        "path": "templates/appointment-scheduling-agent/slides/preview.webp",
+        "status": "pending",
+        "description": "Presentation preview image (WebP)."
+      }
+    ]
+  }
+}

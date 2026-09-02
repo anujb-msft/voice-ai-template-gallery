@@ -1,0 +1,79 @@
+{
+  "$schema": "../../schemas/template.schema.json",
+  "id": "customer-record-lookup-update",
+  "name": "Customer Record Lookup & Update",
+  "language": "Inbound · Sales / CRM",
+  "useCase": "Cross-industry CRM voice workflow",
+  "assistant": "Inbound",
+  "headline": "Bring customer context into the call—and write it back.",
+  "prompt": "I found the account. What should I update from this conversation?",
+  "description": "Retrieves customer history from an authorized system and writes confirmed call outcomes back to the record. The reference scope emphasizes least-privilege access, explicit confirmation, and auditable changes.",
+  "tags": [
+    "Cross-industry",
+    "CRM",
+    "Record updates"
+  ],
+  "colors": {
+    "bg": "#101b1a",
+    "panel": "#18302d",
+    "accent": "#63d8bd",
+    "ink": "#eafaf5"
+  },
+  "onAccent": "#071816",
+  "font": "'Helvetica Neue', Helvetica, Arial, sans-serif",
+  "radius": "12px",
+  "readiness": "Illustrative workflow; validate field-level permissions, identity, data retention, and write-back confirmation in your environment.",
+  "business": {
+    "buyer": "Sales, service, and revenue operations leaders",
+    "application": "Retrieve customer history during a call and write outcomes, notes, and next steps back to the system of record.",
+    "roi": "Shorter handle time, more complete CRM records, and less after-call administration.",
+    "metrics": "Handle time · Record completion · After-call work saved"
+  },
+  "technical": {
+    "complexity": "Medium",
+    "systems": "CRM or ITSM · Identity · Telephony",
+    "build": "Authenticated record lookup, field-level writeback, call summarization, and confirmation before updates."
+  },
+  "paths": {
+    "page": "templates/customer-record-lookup-update/",
+    "manifest": "templates/customer-record-lookup-update/template.json",
+    "readme": "templates/customer-record-lookup-update/README.md",
+    "codeReadme": "templates/customer-record-lookup-update/code/README.md",
+    "codeEnvironment": "templates/customer-record-lookup-update/code/.env.example",
+    "videoReadme": "templates/customer-record-lookup-update/video/README.md",
+    "captions": "templates/customer-record-lookup-update/video/captions.vtt",
+    "transcript": "templates/customer-record-lookup-update/video/transcript.md",
+    "slidesReadme": "templates/customer-record-lookup-update/slides/README.md",
+    "thumbnail": "templates/customer-record-lookup-update/media/thumbnail.svg",
+    "architecture": "templates/customer-record-lookup-update/media/architecture.svg"
+  },
+  "assets": {
+    "expected": [
+      {
+        "path": "templates/customer-record-lookup-update/video/demo.mp4",
+        "status": "pending",
+        "description": "Narrated demonstration recording (MP4)."
+      },
+      {
+        "path": "templates/customer-record-lookup-update/video/poster.webp",
+        "status": "pending",
+        "description": "Poster image for the video player (WebP)."
+      },
+      {
+        "path": "templates/customer-record-lookup-update/slides/customer-record-lookup-update.pptx",
+        "status": "pending",
+        "description": "Editable presentation deck (PPTX)."
+      },
+      {
+        "path": "templates/customer-record-lookup-update/slides/customer-record-lookup-update.pdf",
+        "status": "pending",
+        "description": "Presentation export (PDF)."
+      },
+      {
+        "path": "templates/customer-record-lookup-update/slides/preview.webp",
+        "status": "pending",
+        "description": "Presentation preview image (WebP)."
+      }
+    ]
+  }
+}

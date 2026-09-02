@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 668 240" role="img" aria-labelledby="title desc">
+  <title id="title">IT Help Desk Password Reset voice AI template</title>
+  <desc id="desc">An employee browser and phone connect to a voice agent for a secure proactive password reset.</desc>
+  <rect width="668" height="240" rx="20" fill="#101d20"/>
+  <rect x="28" y="28" width="612" height="184" rx="16" fill="#173037"/>
+  <path d="M216 120H302M368 120H452" stroke="#5fd8d4" stroke-width="4" stroke-linecap="round"/>
+  <path d="M292 112l10 8-10 8M442 112l10 8-10 8" fill="none" stroke="#5fd8d4" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="58" y="76" width="158" height="88" rx="12" fill="#10282e" stroke="#5fd8d4" stroke-width="2"/>
+  <rect x="79" y="94" width="116" height="10" rx="5" fill="#5fd8d4"/>
+  <rect x="79" y="116" width="76" height="8" rx="4" fill="#9ceeea"/>
+  <rect x="79" y="136" width="95" height="8" rx="4" fill="#9ceeea"/>
+  <circle cx="335" cy="120" r="39" fill="#5fd8d4"/>
+  <path d="M321 120h28M335 106v28" stroke="#082023" stroke-width="5" stroke-linecap="round"/>
+  <rect x="452" y="65" width="128" height="110" rx="20" fill="#10282e" stroke="#5fd8d4" stroke-width="2"/>
+  <path d="M488 92c0-10 8-18 18-18s18 8 18 18v37c0 10-8 18-18 18s-18-8-18-18V92Z" fill="none" stroke="#edffff" stroke-width="4"/>
+  <path d="M480 119c0 14 11 25 26 25s26-11 26-25M506 144v15M495 159h22" fill="none" stroke="#edffff" stroke-width="4" stroke-linecap="round"/>
+  <text x="137" y="191" fill="#edffff" font-family="system-ui, sans-serif" font-size="13" text-anchor="middle">Browser wizard</text>
+  <text x="335" y="181" fill="#edffff" font-family="system-ui, sans-serif" font-size="13" text-anchor="middle">Voice agent</text>
+  <text x="516" y="191" fill="#edffff" font-family="system-ui, sans-serif" font-size="13" text-anchor="middle">Callback phone</text>
+</svg>

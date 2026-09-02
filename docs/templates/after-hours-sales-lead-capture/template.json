@@ -1,0 +1,79 @@
+{
+  "$schema": "../../schemas/template.schema.json",
+  "id": "after-hours-sales-lead-capture",
+  "name": "After-Hours Sales Lead Capture",
+  "language": "Inbound · Sales / CRM",
+  "useCase": "Manufacturing and distribution lead capture",
+  "assistant": "Inbound",
+  "headline": "Never let an unanswered call become a lost lead.",
+  "prompt": "I can capture what you need and have sales follow up.",
+  "description": "Captures and qualifies callers when sales staff are unavailable, then records the lead and routes it for follow-up. The bounded workflow is suitable for evaluating after-hours coverage and CRM handoff.",
+  "tags": [
+    "Manufacturing",
+    "Sales",
+    "Lead capture"
+  ],
+  "colors": {
+    "bg": "#211519",
+    "panel": "#382129",
+    "accent": "#f08aab",
+    "ink": "#fff0f5"
+  },
+  "onAccent": "#2b0f19",
+  "font": "'Helvetica Neue', Helvetica, Arial, sans-serif",
+  "radius": "14px",
+  "readiness": "Illustrative workflow; validate consent, qualification criteria, CRM ownership, duplicate handling, and follow-up policy.",
+  "business": {
+    "buyer": "Sales and revenue operations leaders",
+    "application": "Capture and qualify callers when sales staff are unavailable during peaks, evenings, and weekends.",
+    "roi": "Recover otherwise missed pipeline and reduce time to first response.",
+    "metrics": "Leads captured · Qualified lead rate · Response time"
+  },
+  "technical": {
+    "complexity": "Low",
+    "systems": "CRM · Sales routing · Telephony",
+    "build": "Lead qualification, contact capture, CRM creation, ownership routing, and follow-up notification."
+  },
+  "paths": {
+    "page": "templates/after-hours-sales-lead-capture/",
+    "manifest": "templates/after-hours-sales-lead-capture/template.json",
+    "readme": "templates/after-hours-sales-lead-capture/README.md",
+    "codeReadme": "templates/after-hours-sales-lead-capture/code/README.md",
+    "codeEnvironment": "templates/after-hours-sales-lead-capture/code/.env.example",
+    "videoReadme": "templates/after-hours-sales-lead-capture/video/README.md",
+    "captions": "templates/after-hours-sales-lead-capture/video/captions.vtt",
+    "transcript": "templates/after-hours-sales-lead-capture/video/transcript.md",
+    "slidesReadme": "templates/after-hours-sales-lead-capture/slides/README.md",
+    "thumbnail": "templates/after-hours-sales-lead-capture/media/thumbnail.svg",
+    "architecture": "templates/after-hours-sales-lead-capture/media/architecture.svg"
+  },
+  "assets": {
+    "expected": [
+      {
+        "path": "templates/after-hours-sales-lead-capture/video/demo.mp4",
+        "status": "pending",
+        "description": "Narrated demonstration recording (MP4)."
+      },
+      {
+        "path": "templates/after-hours-sales-lead-capture/video/poster.webp",
+        "status": "pending",
+        "description": "Poster image for the video player (WebP)."
+      },
+      {
+        "path": "templates/after-hours-sales-lead-capture/slides/after-hours-sales-lead-capture.pptx",
+        "status": "pending",
+        "description": "Editable presentation deck (PPTX)."
+      },
+      {
+        "path": "templates/after-hours-sales-lead-capture/slides/after-hours-sales-lead-capture.pdf",
+        "status": "pending",
+        "description": "Presentation export (PDF)."
+      },
+      {
+        "path": "templates/after-hours-sales-lead-capture/slides/preview.webp",
+        "status": "pending",
+        "description": "Presentation preview image (WebP)."
+      }
+    ]
+  }
+}

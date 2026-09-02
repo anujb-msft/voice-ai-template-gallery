@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 668 240" role="img" aria-labelledby="title desc">
+<title id="title">it-hr-help-desk-triage conceptual architecture</title>
+<desc id="desc">Caller, voice agent, workflow, and system touchpoint diagram.</desc>
+<rect width="668" height="240" rx="20" fill="#101d20"/>
+<path d="M88 130H202M258 130H372M428 130H542" stroke="#5fd8d4" stroke-width="4" stroke-linecap="round"/>
+<g fill="#173037" stroke="#5fd8d4" stroke-width="2"><rect x="28" y="96" width="120" height="68" rx="12"/><rect x="202" y="96" width="112" height="68" rx="12"/><rect x="372" y="96" width="112" height="68" rx="12"/><rect x="542" y="96" width="100" height="68" rx="12"/></g>
+<g fill="#edffff" font-family="system-ui, sans-serif" font-size="14" text-anchor="middle"><text x="88" y="136">Caller</text><text x="258" y="136">Voice agent</text><text x="428" y="136">Workflow</text><text x="592" y="136">Systems</text></g>
+</svg>

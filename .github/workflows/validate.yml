@@ -1,0 +1,50 @@
+name: Validate
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  catalogue:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Validate and generate catalogue
+        run: node scripts/generate-template-index.js
+
+      - name: Verify generated data is current
+        run: git diff --exit-code -- docs/data
+
+  password-reset-demo:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: docs/templates/it-helpdesk-password-reset/code
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: docs/templates/it-helpdesk-password-reset/code/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check server syntax
+        run: npm run check

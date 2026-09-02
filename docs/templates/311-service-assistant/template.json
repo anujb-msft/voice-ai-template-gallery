@@ -1,0 +1,79 @@
+{
+  "$schema": "../../schemas/template.schema.json",
+  "id": "311-service-assistant",
+  "name": "311 Service Assistant",
+  "language": "Inbound · Tier 1 Support",
+  "useCase": "Local-government constituent service",
+  "assistant": "Inbound",
+  "headline": "One civic number, from question to completed request.",
+  "prompt": "What can your local government help you with today?",
+  "description": "Answers common civic questions, routes requests, guides multi-step services, and captures reports through a single public number. Adapt the service catalogue and escalation rules to local requirements.",
+  "tags": [
+    "Public sector",
+    "Local government",
+    "311"
+  ],
+  "colors": {
+    "bg": "#132033",
+    "panel": "#1b3150",
+    "accent": "#7ec8ff",
+    "ink": "#eff7ff"
+  },
+  "onAccent": "#0b1b2c",
+  "font": "'Helvetica Neue', Helvetica, Arial, sans-serif",
+  "radius": "8px",
+  "readiness": "Illustrative workflow; validate service coverage, accessibility, location handling, and departmental escalation rules.",
+  "business": {
+    "buyer": "Constituent services and digital-government leaders",
+    "application": "Answer civic questions, route requests, guide multi-step applications, and capture reports through one public number.",
+    "roi": "Deflect routine calls, extend service hours, and complete more constituent requests on first contact.",
+    "metrics": "Containment · Request completion · Time to resolution"
+  },
+  "technical": {
+    "complexity": "Medium",
+    "systems": "Knowledge base · 311 or case system · Department directory",
+    "build": "Grounded answers, service-request intake, location capture, departmental routing, and escalation."
+  },
+  "paths": {
+    "page": "templates/311-service-assistant/",
+    "manifest": "templates/311-service-assistant/template.json",
+    "readme": "templates/311-service-assistant/README.md",
+    "codeReadme": "templates/311-service-assistant/code/README.md",
+    "codeEnvironment": "templates/311-service-assistant/code/.env.example",
+    "videoReadme": "templates/311-service-assistant/video/README.md",
+    "captions": "templates/311-service-assistant/video/captions.vtt",
+    "transcript": "templates/311-service-assistant/video/transcript.md",
+    "slidesReadme": "templates/311-service-assistant/slides/README.md",
+    "thumbnail": "templates/311-service-assistant/media/thumbnail.svg",
+    "architecture": "templates/311-service-assistant/media/architecture.svg"
+  },
+  "assets": {
+    "expected": [
+      {
+        "path": "templates/311-service-assistant/video/demo.mp4",
+        "status": "pending",
+        "description": "Narrated demonstration recording (MP4)."
+      },
+      {
+        "path": "templates/311-service-assistant/video/poster.webp",
+        "status": "pending",
+        "description": "Poster image for the video player (WebP)."
+      },
+      {
+        "path": "templates/311-service-assistant/slides/311-service-assistant.pptx",
+        "status": "pending",
+        "description": "Editable presentation deck (PPTX)."
+      },
+      {
+        "path": "templates/311-service-assistant/slides/311-service-assistant.pdf",
+        "status": "pending",
+        "description": "Presentation export (PDF)."
+      },
+      {
+        "path": "templates/311-service-assistant/slides/preview.webp",
+        "status": "pending",
+        "description": "Presentation preview image (WebP)."
+      }
+    ]
+  }
+}

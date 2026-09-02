@@ -1,0 +1,79 @@
+{
+  "$schema": "../../schemas/template.schema.json",
+  "id": "it-hr-help-desk-triage",
+  "name": "IT / HR Help Desk Triage",
+  "language": "Inbound · Tier 1 Support",
+  "useCase": "Enterprise employee service",
+  "assistant": "Inbound",
+  "headline": "Resolve the routine request. Route the sensitive one.",
+  "prompt": "Is this about IT access, HR policy, or benefits?",
+  "description": "Identifies whether an employee needs IT or HR help, answers approved routine questions, and routes sensitive or unresolved cases to the correct team. Clear policy ownership and privacy boundaries are essential.",
+  "tags": [
+    "Enterprise",
+    "Employee service",
+    "IT and HR"
+  ],
+  "colors": {
+    "bg": "#171728",
+    "panel": "#252542",
+    "accent": "#a99cff",
+    "ink": "#f3f1ff"
+  },
+  "onAccent": "#15102c",
+  "font": "'Helvetica Neue', Helvetica, Arial, sans-serif",
+  "radius": "10px",
+  "readiness": "Illustrative workflow; validate policy ownership, privacy boundaries, identity requirements, and routing with both IT and HR stakeholders.",
+  "business": {
+    "buyer": "IT, HR, and employee-experience leaders",
+    "application": "Identify whether an employee needs IT or HR help, answer common questions, and route sensitive cases correctly.",
+    "roi": "Deflect Tier 1 requests and shorten time to the right support team.",
+    "metrics": "Tier 1 deflection · Routing accuracy · Resolution time"
+  },
+  "technical": {
+    "complexity": "Medium",
+    "systems": "ITSM · HR knowledge · Employee identity",
+    "build": "Domain triage, grounded answers, employee verification, ticket creation, and policy-aware escalation."
+  },
+  "paths": {
+    "page": "templates/it-hr-help-desk-triage/",
+    "manifest": "templates/it-hr-help-desk-triage/template.json",
+    "readme": "templates/it-hr-help-desk-triage/README.md",
+    "codeReadme": "templates/it-hr-help-desk-triage/code/README.md",
+    "codeEnvironment": "templates/it-hr-help-desk-triage/code/.env.example",
+    "videoReadme": "templates/it-hr-help-desk-triage/video/README.md",
+    "captions": "templates/it-hr-help-desk-triage/video/captions.vtt",
+    "transcript": "templates/it-hr-help-desk-triage/video/transcript.md",
+    "slidesReadme": "templates/it-hr-help-desk-triage/slides/README.md",
+    "thumbnail": "templates/it-hr-help-desk-triage/media/thumbnail.svg",
+    "architecture": "templates/it-hr-help-desk-triage/media/architecture.svg"
+  },
+  "assets": {
+    "expected": [
+      {
+        "path": "templates/it-hr-help-desk-triage/video/demo.mp4",
+        "status": "pending",
+        "description": "Narrated demonstration recording (MP4)."
+      },
+      {
+        "path": "templates/it-hr-help-desk-triage/video/poster.webp",
+        "status": "pending",
+        "description": "Poster image for the video player (WebP)."
+      },
+      {
+        "path": "templates/it-hr-help-desk-triage/slides/it-hr-help-desk-triage.pptx",
+        "status": "pending",
+        "description": "Editable presentation deck (PPTX)."
+      },
+      {
+        "path": "templates/it-hr-help-desk-triage/slides/it-hr-help-desk-triage.pdf",
+        "status": "pending",
+        "description": "Presentation export (PDF)."
+      },
+      {
+        "path": "templates/it-hr-help-desk-triage/slides/preview.webp",
+        "status": "pending",
+        "description": "Presentation preview image (WebP)."
+      }
+    ]
+  }
+}

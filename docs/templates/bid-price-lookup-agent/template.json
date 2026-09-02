@@ -1,0 +1,79 @@
+{
+  "$schema": "../../schemas/template.schema.json",
+  "id": "bid-price-lookup-agent",
+  "name": "Bid / Price Lookup Agent",
+  "language": "Inbound · Tier 1 Support",
+  "useCase": "Manufacturing and distribution pricing",
+  "assistant": "Inbound",
+  "headline": "Make today's price available on every call.",
+  "prompt": "Which commodity or bid location do you need?",
+  "description": "Returns current bid or commodity pricing by location, reducing repetitive calls and manually updated recordings. The implementation must make data freshness and caller authorization explicit.",
+  "tags": [
+    "Manufacturing",
+    "Pricing",
+    "Tier 1 support"
+  ],
+  "colors": {
+    "bg": "#191a12",
+    "panel": "#292c1b",
+    "accent": "#c7dc63",
+    "ink": "#f7f9e8"
+  },
+  "onAccent": "#1d2109",
+  "font": "'Helvetica Neue', Helvetica, Arial, sans-serif",
+  "radius": "6px",
+  "readiness": "Illustrative workflow; validate pricing freshness, authorization, location matching, disclaimers, and fallback behavior.",
+  "business": {
+    "buyer": "Commercial and customer-service leaders",
+    "application": "Give callers current bid or commodity pricing without requiring staff or manually updated voicemail.",
+    "roi": "Eliminate repetitive price calls and keep pricing consistently available.",
+    "metrics": "Calls automated · Staff time saved · Price freshness"
+  },
+  "technical": {
+    "complexity": "Low",
+    "systems": "Pricing feed · Location data · Telephony",
+    "build": "Price lookup, freshness checks, location selection, playback, authentication where required, and fallback."
+  },
+  "paths": {
+    "page": "templates/bid-price-lookup-agent/",
+    "manifest": "templates/bid-price-lookup-agent/template.json",
+    "readme": "templates/bid-price-lookup-agent/README.md",
+    "codeReadme": "templates/bid-price-lookup-agent/code/README.md",
+    "codeEnvironment": "templates/bid-price-lookup-agent/code/.env.example",
+    "videoReadme": "templates/bid-price-lookup-agent/video/README.md",
+    "captions": "templates/bid-price-lookup-agent/video/captions.vtt",
+    "transcript": "templates/bid-price-lookup-agent/video/transcript.md",
+    "slidesReadme": "templates/bid-price-lookup-agent/slides/README.md",
+    "thumbnail": "templates/bid-price-lookup-agent/media/thumbnail.svg",
+    "architecture": "templates/bid-price-lookup-agent/media/architecture.svg"
+  },
+  "assets": {
+    "expected": [
+      {
+        "path": "templates/bid-price-lookup-agent/video/demo.mp4",
+        "status": "pending",
+        "description": "Narrated demonstration recording (MP4)."
+      },
+      {
+        "path": "templates/bid-price-lookup-agent/video/poster.webp",
+        "status": "pending",
+        "description": "Poster image for the video player (WebP)."
+      },
+      {
+        "path": "templates/bid-price-lookup-agent/slides/bid-price-lookup-agent.pptx",
+        "status": "pending",
+        "description": "Editable presentation deck (PPTX)."
+      },
+      {
+        "path": "templates/bid-price-lookup-agent/slides/bid-price-lookup-agent.pdf",
+        "status": "pending",
+        "description": "Presentation export (PDF)."
+      },
+      {
+        "path": "templates/bid-price-lookup-agent/slides/preview.webp",
+        "status": "pending",
+        "description": "Presentation preview image (WebP)."
+      }
+    ]
+  }
+}

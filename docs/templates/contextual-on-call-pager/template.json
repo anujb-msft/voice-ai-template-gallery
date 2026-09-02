@@ -1,0 +1,79 @@
+{
+  "$schema": "../../schemas/template.schema.json",
+  "id": "contextual-on-call-pager",
+  "name": "Contextual On-Call Pager",
+  "language": "Outbound · Reminders",
+  "useCase": "On-call operations response",
+  "assistant": "Outbound",
+  "headline": "Reach the right person with the context already attached.",
+  "prompt": "You are on call. Here is the issue reported in the voicemail.",
+  "description": "Calls the current on-call person and supplies concise context captured from the original request. The workflow focuses on schedule lookup, retries, acknowledgement, and escalation.",
+  "tags": [
+    "Operations",
+    "On-call",
+    "Outbound"
+  ],
+  "colors": {
+    "bg": "#101d20",
+    "panel": "#173037",
+    "accent": "#5fd8d4",
+    "ink": "#edffff"
+  },
+  "onAccent": "#082023",
+  "font": "'Helvetica Neue', Helvetica, Arial, sans-serif",
+  "radius": "8px",
+  "readiness": "Illustrative workflow; validate on-call schedules, contact permissions, retries, acknowledgements, and escalation policy.",
+  "business": {
+    "buyer": "Emergency response and operations leaders",
+    "application": "Call the current on-call person and provide the issue context captured from the original voicemail.",
+    "roi": "Reduce response time and remove manual pager coordination.",
+    "metrics": "Time to acknowledge · Successful contacts · Escalation time"
+  },
+  "technical": {
+    "complexity": "Low",
+    "systems": "On-call schedule · Voicemail transcription · Outbound calling",
+    "build": "Schedule lookup, concise context generation, call retries, acknowledgment, and escalation to the next contact."
+  },
+  "paths": {
+    "page": "templates/contextual-on-call-pager/",
+    "manifest": "templates/contextual-on-call-pager/template.json",
+    "readme": "templates/contextual-on-call-pager/README.md",
+    "codeReadme": "templates/contextual-on-call-pager/code/README.md",
+    "codeEnvironment": "templates/contextual-on-call-pager/code/.env.example",
+    "videoReadme": "templates/contextual-on-call-pager/video/README.md",
+    "captions": "templates/contextual-on-call-pager/video/captions.vtt",
+    "transcript": "templates/contextual-on-call-pager/video/transcript.md",
+    "slidesReadme": "templates/contextual-on-call-pager/slides/README.md",
+    "thumbnail": "templates/contextual-on-call-pager/media/thumbnail.svg",
+    "architecture": "templates/contextual-on-call-pager/media/architecture.svg"
+  },
+  "assets": {
+    "expected": [
+      {
+        "path": "templates/contextual-on-call-pager/video/demo.mp4",
+        "status": "pending",
+        "description": "Narrated demonstration recording (MP4)."
+      },
+      {
+        "path": "templates/contextual-on-call-pager/video/poster.webp",
+        "status": "pending",
+        "description": "Poster image for the video player (WebP)."
+      },
+      {
+        "path": "templates/contextual-on-call-pager/slides/contextual-on-call-pager.pptx",
+        "status": "pending",
+        "description": "Editable presentation deck (PPTX)."
+      },
+      {
+        "path": "templates/contextual-on-call-pager/slides/contextual-on-call-pager.pdf",
+        "status": "pending",
+        "description": "Presentation export (PDF)."
+      },
+      {
+        "path": "templates/contextual-on-call-pager/slides/preview.webp",
+        "status": "pending",
+        "description": "Presentation preview image (WebP)."
+      }
+    ]
+  }
+}
