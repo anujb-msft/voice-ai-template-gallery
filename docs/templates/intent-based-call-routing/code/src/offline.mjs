@@ -1,0 +1,108 @@
+/**
+ * Offline intent classifier.
+ *
+ * This is NOT the intent engine. In a configured deployment, Voice Live decides
+ * the route and calls `propose_route`. This keyword matcher exists so the sample
+ * runs end to end with no Azure subscription: a typed transcript drives exactly
+ * the same state machine, the same confidence gate, the same confirmation, the
+ * same Teams handoff assembly. Only the classifier and the audio path are stubs.
+ *
+ * It is deliberately dumb and readable — if it were clever it would be mistaken
+ * for the real thing.
+ */
+
+const SIGNALS = {
+  sales: [
+    "buy", "purchase", "pricing", "price", "quote", "renew", "renewal", "upgrade",
+    "subscription", "plan", "sales", "demo", "contract", "licence", "license", "order",
+  ],
+  support: [
+    "broken", "error", "not working", "doesn't work", "does not work", "down", "outage",
+    "fix", "install", "bug", "technical", "support", "crash", "slow", "offline", "reset",
+    "login", "log in", "can't connect", "cannot connect",
+  ],
+  billing: [
+    "invoice", "bill", "billing", "charge", "charged", "refund", "payment", "paid",
+    "receipt", "overcharged", "credit card", "statement", "owe", "double charged",
+  ],
+  reception: [
+    "person", "human", "someone", "somebody", "representative", "operator", "real agent",
+    "speak to a", "talk to a",
+  ],
+};
+
+/** Explicit asks for a human, which bypass classification entirely. */
+export function wantsHuman(text) {
+  const t = normalise(text);
+  return SIGNALS.reception.some((k) => t.includes(k));
+}
+
+function normalise(text) {
+  return ` ${String(text ?? "").toLowerCase().replace(/[^a-z0-9' ]+/g, " ").replace(/\s+/g, " ")} `;
+}
+
+/**
+ * @returns {{routeId: string|null, confidence: number, matches: string[]}}
+ */
+export function classifyOffline(text, allowedIds = null) {
+  const t = normalise(text);
+
+  const scores = Object.entries(SIGNALS)
+    .filter(([id]) => !allowedIds || allowedIds.includes(id))
+    .map(([id, keywords]) => {
+      const matches = keywords.filter((k) => t.includes(` ${k}`) || t.includes(`${k} `));
+      return { id, matches, hits: matches.length };
+    })
+    .filter((s) => s.hits > 0)
+    .sort((a, b) => b.hits - a.hits);
+
+  if (!scores.length) return { routeId: null, confidence: 0, matches: [] };
+
+  const [best, runnerUp] = scores;
+
+  // More than one category fired with comparable weight. Say so honestly and let
+  // the flow ask a clarifying question rather than guessing between them.
+  if (runnerUp) {
+    const contest = runnerUp.hits / best.hits;
+    if (contest === 1) return { routeId: best.id, confidence: 0.45, matches: best.matches };
+    if (contest >= 0.5) return { routeId: best.id, confidence: 0.6, matches: best.matches };
+    return { routeId: best.id, confidence: 0.8, matches: best.matches };
+  }
+
+  return { routeId: best.id, confidence: best.hits >= 2 ? 0.95 : 0.85, matches: best.matches };
+}
+
+/**
+ * Feed one caller utterance through the flow exactly as the model would:
+ * transcript, then either a human request or a route proposal.
+ */
+export function handleUtterance(flow, callId, text) {
+  flow.pushTranscript(callId, "caller", text);
+
+  if (wantsHuman(text)) return flow.requestHuman(callId, "explicit_request");
+
+  const digit = String(text).trim();
+  if (/^[0-9]$/.test(digit)) return flow.dtmf(callId, digit);
+
+  const { routeId, confidence } = classifyOffline(text, flow.routes.ids);
+  if (!routeId) return flow.noInput(callId);
+
+  return flow.proposeRoute(callId, {
+    routeId,
+    confidence,
+    callTopic: summarise(text),
+    callSummary: `Caller said: ${String(text).trim()}`,
+  });
+}
+
+const AFFIRMATIVE = /\b(yes|yeah|yep|correct|right|that's it|thats it|sure|please|ok|okay)\b/i;
+const NEGATIVE = /\b(no|nope|not really|wrong|actually)\b/i;
+
+export function isAffirmative(text) {
+  return AFFIRMATIVE.test(String(text)) && !NEGATIVE.test(String(text));
+}
+
+function summarise(text) {
+  const words = String(text).trim().split(/\s+/).slice(0, 7).join(" ");
+  return words.charAt(0).toUpperCase() + words.slice(1);
+}

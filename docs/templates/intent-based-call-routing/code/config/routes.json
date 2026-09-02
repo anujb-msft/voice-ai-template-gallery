@@ -1,0 +1,73 @@
+{
+  "organization": "Contoso",
+  "fallbackRouteId": "reception",
+  "routes": [
+    {
+      "id": "sales",
+      "dtmf": "1",
+      "label": "Sales",
+      "description": "Buying, renewing, upgrading, pricing, quotes, or talking to an account team.",
+      "target": {
+        "type": "callQueue",
+        "displayName": "Contoso Sales",
+        "objectId": "00000000-0000-0000-0000-000000000001"
+      },
+      "hours": {
+        "timeZone": "America/Los_Angeles",
+        "days": [1, 2, 3, 4, 5],
+        "open": "08:00",
+        "close": "18:00"
+      },
+      "afterHours": { "behavior": "route", "routeId": "reception" }
+    },
+    {
+      "id": "support",
+      "dtmf": "2",
+      "label": "Support",
+      "description": "Something already purchased is broken, erroring, offline, or needs technical help.",
+      "target": {
+        "type": "callQueue",
+        "displayName": "Contoso Support",
+        "objectId": "00000000-0000-0000-0000-000000000002"
+      },
+      "hours": {
+        "timeZone": "America/Los_Angeles",
+        "days": [1, 2, 3, 4, 5, 6, 0],
+        "open": "00:00",
+        "close": "24:00"
+      },
+      "afterHours": { "behavior": "route", "routeId": "reception" }
+    },
+    {
+      "id": "billing",
+      "dtmf": "3",
+      "label": "Billing",
+      "description": "Invoices, charges, refunds, payment methods, or anything about money already owed or paid.",
+      "target": {
+        "type": "callQueue",
+        "displayName": "Contoso Billing",
+        "objectId": "00000000-0000-0000-0000-000000000003"
+      },
+      "hours": {
+        "timeZone": "America/Los_Angeles",
+        "days": [1, 2, 3, 4, 5],
+        "open": "09:00",
+        "close": "17:00"
+      },
+      "afterHours": { "behavior": "message" }
+    },
+    {
+      "id": "reception",
+      "dtmf": "4",
+      "label": "Reception",
+      "description": "Anything else, an unclear reason, or an explicit request to speak to a person.",
+      "target": {
+        "type": "callQueue",
+        "displayName": "Contoso Reception",
+        "objectId": "00000000-0000-0000-0000-000000000004"
+      },
+      "hours": { "alwaysOpen": true },
+      "afterHours": { "behavior": "route", "routeId": "reception" }
+    }
+  ]
+}

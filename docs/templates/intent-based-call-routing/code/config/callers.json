@@ -1,0 +1,26 @@
+{
+  "_comment": "Fictional Contoso directory used only to personalise the greeting and enrich the Teams handoff. Caller ID is not authentication, so every match is passed to Teams marked unverified.",
+  "callers": [
+    {
+      "phone": "+14255550101",
+      "displayName": "Dana Whitfield",
+      "company": "Northwind Traders",
+      "accountId": "NW-4471",
+      "relationship": "Existing customer"
+    },
+    {
+      "phone": "+14255550102",
+      "displayName": "Marcus Bell",
+      "company": "Fabrikam",
+      "accountId": "FB-2210",
+      "relationship": "Existing customer"
+    },
+    {
+      "phone": "+14255550103",
+      "displayName": "Priya Raman",
+      "company": "Tailwind Logistics",
+      "accountId": "TW-9082",
+      "relationship": "Trial"
+    }
+  ]
+}
