@@ -21,6 +21,13 @@ export const config = {
 
   acs: {
     connectionString: process.env.ACS_CONNECTION_STRING ?? "",
+    /**
+     * Preferred over the connection string. e.g.
+     * https://<resource>.unitedstates.communication.azure.com
+     * When set, the Call Automation client authenticates with
+     * DefaultAzureCredential and no ACS key is stored anywhere.
+     */
+    endpoint: (process.env.ACS_ENDPOINT ?? "").replace(/\/$/, ""),
     /** "public", "dod" or "gcch" — only change this for a sovereign Teams tenant. */
     teamsCloud: process.env.TEAMS_CLOUD ?? "public",
   },
@@ -74,12 +81,16 @@ export const config = {
   dbPath: process.env.DB_PATH ?? "./data/routing.db",
 };
 
-/** Config needed to answer a real inbound call. Empty array means we are live. */
-export function assertCallConfig() {
+/**
+ * Config needed to answer a real inbound call. Empty array means we are live.
+ * Takes the config explicitly so it is a pure function — a readiness check that
+ * silently reads ambient process state is a check you cannot test.
+ */
+export function assertCallConfig(cfg = config) {
   const missing = [];
-  if (!config.acs.connectionString) missing.push("ACS_CONNECTION_STRING");
-  if (!config.publicBaseUrl) missing.push("PUBLIC_BASE_URL");
-  if (!config.voiceLive.endpoint) missing.push("VOICE_LIVE_ENDPOINT");
+  if (!cfg.acs.endpoint && !cfg.acs.connectionString) missing.push("ACS_ENDPOINT");
+  if (!cfg.publicBaseUrl) missing.push("PUBLIC_BASE_URL");
+  if (!cfg.voiceLive.endpoint) missing.push("VOICE_LIVE_ENDPOINT");
   return missing;
 }
 
@@ -88,7 +99,7 @@ export function assertCallConfig() {
  * Voice Live can be configured while ACS is not, and both can be configured
  * while the Teams routing targets are still placeholder GUIDs.
  */
-export function readiness(routes) {
+export function readiness(routes, cfg = config) {
   const placeholder = /^0{8}-0{4}-0{4}-0{4}-0{11}\d$/;
   const unprovisioned = (routes?.menu?.() ?? [])
     .map((r) => routes.get(r.id))
@@ -97,21 +108,22 @@ export function readiness(routes) {
 
   return {
     voiceLive: {
-      ready: Boolean(config.voiceLive.endpoint),
-      auth: config.voiceLive.apiKey ? "api-key" : "entra",
-      model: config.voiceLive.model,
-      apiVersion: config.voiceLive.apiVersion,
+      ready: Boolean(cfg.voiceLive.endpoint),
+      auth: cfg.voiceLive.apiKey ? "api-key" : "entra",
+      model: cfg.voiceLive.model,
+      apiVersion: cfg.voiceLive.apiVersion,
     },
     telephony: {
-      ready: Boolean(config.acs.connectionString) && Boolean(config.publicBaseUrl),
-      missing: assertCallConfig().filter((k) => k !== "VOICE_LIVE_ENDPOINT"),
+      ready: Boolean(cfg.acs.endpoint || cfg.acs.connectionString) && Boolean(cfg.publicBaseUrl),
+      auth: cfg.acs.endpoint ? "entra" : cfg.acs.connectionString ? "connection-string" : "none",
+      missing: assertCallConfig(cfg).filter((k) => k !== "VOICE_LIVE_ENDPOINT"),
     },
     teams: {
       // Placeholder object ids answer the question "why did my transfer fail?"
       // before anyone has to read a log.
       ready: unprovisioned.length === 0,
       unprovisionedRoutes: unprovisioned,
-      cloud: config.acs.teamsCloud,
+      cloud: cfg.acs.teamsCloud,
     },
   };
 }

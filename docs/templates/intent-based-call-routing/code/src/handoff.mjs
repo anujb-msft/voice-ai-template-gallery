@@ -23,6 +23,18 @@ export function teamsIdentifier(target) {
 }
 
 /**
+ * Teams Phone extensibility delivers the dialled resource account in `to.rawId`
+ * as `28:orgid:<object id>`, with `to.kind` documented as "unknown" rather than
+ * "microsoftTeamsApp" — so match on the raw ID and do not trust `kind`.
+ * A call straight to an ACS number has no resource account, which is the
+ * difference between a TPE call and a plain Call Automation one.
+ */
+export function resourceAccountFrom(to) {
+  const match = /^28:(?:orgid:)?([0-9a-f-]{36})$/i.exec(to?.rawId ?? "");
+  return match ? match[1] : null;
+}
+
+/**
  * Only VoIP headers are used here. SIP headers are a PSTN-side mechanism and do
  * not reach a Teams identifier, so putting the handoff context in them would
  * silently drop it — the caller would still be transferred, but the receiving

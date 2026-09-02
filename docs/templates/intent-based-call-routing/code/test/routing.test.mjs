@@ -585,14 +585,23 @@ test("an unknown caller is greeted without a name", () => {
 
 test("readiness separates Voice Live, telephony and Teams provisioning", () => {
   const routes = RoutePolicy.load();
-  const health = readiness(routes);
 
-  // Nothing is configured in the test environment, so every subsystem is honest
-  // about being unready — and says which one for a different reason.
+  // An explicit unconfigured config, so this asserts the function's logic
+  // rather than whatever .env the developer happens to have on disk.
+  const bare = {
+    publicBaseUrl: "",
+    acs: { endpoint: "", connectionString: "", teamsCloud: "public" },
+    voiceLive: { endpoint: "", apiKey: "", model: "gpt-realtime", apiVersion: "2026-04-10" },
+  };
+  const health = readiness(routes, bare);
+
+  // Nothing is configured, so every subsystem is honest about being unready —
+  // and says which one is unready for a different reason.
   assert.equal(health.voiceLive.ready, false);
   assert.equal(health.voiceLive.auth, "entra", "keyless is the default");
   assert.equal(health.telephony.ready, false);
-  assert.deepEqual(health.telephony.missing, ["ACS_CONNECTION_STRING", "PUBLIC_BASE_URL"]);
+  assert.equal(health.telephony.auth, "none");
+  assert.deepEqual(health.telephony.missing, ["ACS_ENDPOINT", "PUBLIC_BASE_URL"]);
   assert.ok(!health.telephony.missing.includes("VOICE_LIVE_ENDPOINT"), "Voice Live is reported separately");
 
   // The shipped routes.json holds placeholder GUIDs. Saying so is the difference
@@ -600,4 +609,18 @@ test("readiness separates Voice Live, telephony and Teams provisioning", () => {
   assert.equal(health.teams.ready, false);
   assert.deepEqual(health.teams.unprovisionedRoutes, ["sales", "support", "billing", "reception"]);
   assert.equal(health.teams.cloud, "public");
+});
+
+test("telephony reports keyless auth when only an ACS endpoint is set", () => {
+  // The point of the Entra path: configured for real calls with no key on disk.
+  const health = readiness(RoutePolicy.load(), {
+    publicBaseUrl: "https://example.devtunnels.ms",
+    acs: { endpoint: "https://acs.communication.azure.com", connectionString: "", teamsCloud: "public" },
+    voiceLive: { endpoint: "https://ai.services.ai.azure.com", apiKey: "", model: "gpt-realtime", apiVersion: "2026-04-10" },
+  });
+
+  assert.equal(health.telephony.ready, true);
+  assert.equal(health.telephony.auth, "entra");
+  assert.deepEqual(health.telephony.missing, []);
+  assert.equal(health.voiceLive.auth, "entra");
 });

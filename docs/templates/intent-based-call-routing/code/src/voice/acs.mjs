@@ -1,4 +1,5 @@
 import { CallAutomationClient } from "@azure/communication-call-automation";
+import { DefaultAzureCredential } from "@azure/identity";
 import { config } from "../config.mjs";
 import { teamsIdentifier, buildCustomCallingContext } from "../handoff.mjs";
 
@@ -9,10 +10,24 @@ const log = (...a) => console.log(new Date().toISOString(), "[acs]", ...a);
 let client;
 export function acsClient() {
   if (!client) {
-    if (!config.acs.connectionString) throw new Error("ACS_CONNECTION_STRING is not set");
-    client = new CallAutomationClient(config.acs.connectionString);
+    // Entra first. A connection string is still accepted, but it means an ACS
+    // key has to live in a file somewhere, and there is no reason to require
+    // that when the SDK takes a TokenCredential.
+    if (config.acs.endpoint) {
+      client = new CallAutomationClient(config.acs.endpoint, credential());
+    } else if (config.acs.connectionString) {
+      client = new CallAutomationClient(config.acs.connectionString);
+    } else {
+      throw new Error("Set ACS_ENDPOINT (preferred) or ACS_CONNECTION_STRING");
+    }
   }
   return client;
+}
+
+let cred;
+function credential() {
+  if (!cred) cred = new DefaultAzureCredential();
+  return cred;
 }
 
 /**

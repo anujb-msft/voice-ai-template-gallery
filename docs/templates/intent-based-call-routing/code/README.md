@@ -143,7 +143,8 @@ values that make real calls possible.
 
 | Variable | Default | Notes |
 | --- | --- | --- |
-| `ACS_CONNECTION_STRING` | — | Required to answer real calls |
+| `ACS_ENDPOINT` | — | Required to answer real calls. Keyless, via `DefaultAzureCredential` |
+| `ACS_CONNECTION_STRING` | — | Fallback if you cannot use Entra. `ACS_ENDPOINT` wins if both are set |
 | `PUBLIC_BASE_URL` | — | Must be reachable by Event Grid and ACS |
 | `VOICE_LIVE_ENDPOINT` | — | Azure AI Services resource |
 | `VOICE_LIVE_API_KEY` | *(empty)* | Leave empty to use Entra, which is recommended |
@@ -162,7 +163,7 @@ configured while `routes.json` still holds the placeholder object IDs:
 {
   "mode": "simulation",
   "voiceLive": { "ready": false, "auth": "entra", "model": "gpt-realtime" },
-  "telephony": { "ready": false, "missing": ["ACS_CONNECTION_STRING", "PUBLIC_BASE_URL"] },
+  "telephony": { "ready": false, "auth": "none", "missing": ["ACS_ENDPOINT", "PUBLIC_BASE_URL"] },
   "teams":     { "ready": false, "unprovisionedRoutes": ["sales", "support", "billing", "reception"] }
 }
 ```
@@ -171,9 +172,13 @@ That last line answers "why did my transfer fail?" before anyone has to read a l
 
 ### Keyless auth
 
-Voice Live accepts an API key, but Entra is what Microsoft recommends and is the
-default here. Assign the identity running this server both roles on the AI Services
-resource:
+Both Azure connections default to Entra, so no key needs to live on disk.
+
+**ACS.** Set `ACS_ENDPOINT` and leave `ACS_CONNECTION_STRING` unset. The signed-in
+identity needs **Communication and Email Service Owner** on the ACS resource. Locally
+that identity comes from `az login`; in Azure, use a managed identity.
+
+**Voice Live.** Assign the same identity both roles on the AI Services resource:
 
 - **Cognitive Services User**
 - **Foundry User**
@@ -206,19 +211,50 @@ change, not a prompt rewrite — the menu given to the model is generated from t
 
 ## Connecting it to a real phone number
 
-1. **Provision.** An ACS resource with a PSTN number, an Azure AI Services resource,
-   and a Teams tenant with Teams Phone licences.
-2. **Authorise the ACS resource to call your tenant.** A Teams or Global Administrator
-   runs `Set-CsTeamsAcsFederationConfiguration`. See
+Inbound uses **Teams Phone extensibility**: the caller dials a Teams service number
+on a resource account, Teams routes the call to your linked ACS resource, and this
+sample answers it with Call Automation.
+
+```
+PSTN caller → Teams service number → Teams resource account → linked ACS resource
+            → Microsoft.Communication.IncomingCall (Event Grid) → this sample
+```
+
+> **The number is the part that trips people up.** Teams Phone extensibility requires
+> a Teams *service* number, from Microsoft Calling Plan, Operator Connect, or Direct
+> Routing. **A phone number purchased in Azure Communication Services cannot be
+> assigned to a Teams resource account** — there is no cmdlet or portal path that
+> converts one. Acquiring a Microsoft number also needs at least one Calling Plan
+> licence in the tenant, and toll-free needs funded pay-as-you-go billing. The free
+> `PHONESYSTEM_VIRTUALUSER` licence is right for the resource account itself but does
+> not let you acquire a number.
+>
+> If you only hold an ACS number you can still exercise the whole state machine —
+> calls to it reach this sample as ordinary Call Automation calls. They arrive
+> without the Teams resource account identity, and the server logs them as
+> `acs-direct` rather than `teams-phone-extensibility` so the difference is never
+> silent.
+
+1. **Provision.** An ACS resource, an Azure AI Services resource, and a Teams tenant
+   with a service number on a resource account.
+2. **Register a calling bot** and create the resource account against its application
+   ID, so the account is yours rather than a first-party Auto Attendant.
+3. **Bind the resource account to ACS.** `Set-CsOnlineApplicationInstance -AcsResourceId
+   <immutable GUID>` then `Sync-CsOnlineApplicationInstance`. Note this is *not*
+   `Set-CsTeamsAcsFederationConfiguration`, which governs a different feature — ACS
+   users talking to Teams users — and does nothing for phone extensibility. See
    [`scripts/provision-teams-phone.ps1`](scripts/provision-teams-phone.ps1).
-3. **Collect object IDs.** Get the Entra object ID of each call queue's resource
-   account and put it in `routes.json`.
-4. **Expose this server.** `npm run tunnel`, then set `PUBLIC_BASE_URL`.
-5. **Subscribe to `IncomingCall`.** Create an Event Grid system topic on the ACS
+4. **Grant ACS server consent** for that resource account via the `teamsExtension`
+   assignment API. The Teams-side binding alone is only half of it.
+5. **Collect object IDs.** Get the Entra object ID of each call queue's resource
+   account and put it in `routes.json`. These are the *transfer targets*, separate
+   from the inbound resource account.
+6. **Expose this server.** `npm run tunnel`, then set `PUBLIC_BASE_URL`.
+7. **Subscribe to `IncomingCall`.** Create an Event Grid system topic on the ACS
    resource with a webhook subscription to `<PUBLIC_BASE_URL>/api/events`, filtered to
    `Microsoft.Communication.IncomingCall`. The server answers the validation handshake
-   automatically.
-6. **Call the number.**
+   automatically. Set the Azure Bot calling webhook to `https://eventgrid.azure.net`.
+8. **Check `/health`,** then call the number.
 
 ## Project layout
 

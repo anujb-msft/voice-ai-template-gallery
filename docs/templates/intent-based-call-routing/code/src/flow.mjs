@@ -80,7 +80,7 @@ export class RoutingFlow {
   // ------------------------------------------------------------------ lifecycle
 
   /** An inbound call has arrived but has not been answered yet. */
-  create({ callId = randomUUID(), fromPhone = null, incomingCallContext = null, sessionId = null } = {}) {
+  create({ callId = randomUUID(), fromPhone = null, incomingCallContext = null, sessionId = null, resourceAccountId = null } = {}) {
     const caller = this.callers?.lookup(fromPhone) ?? null;
 
     const call = {
@@ -90,6 +90,12 @@ export class RoutingFlow {
       caller,
       sessionId,
       incomingCallContext,
+      // Set when the call arrived for a Teams resource account under Teams Phone
+      // extensibility; null when it came straight to an ACS number. One ACS
+      // resource can back several resource accounts, so this is what says which
+      // line was dialled.
+      resourceAccountId,
+      arrival: resourceAccountId ? "teams-phone-extensibility" : "acs-direct",
       callConnectionId: null,
       state: STATES.RINGING,
       proposed: null,

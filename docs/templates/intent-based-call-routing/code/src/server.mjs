@@ -12,6 +12,7 @@ import { createHub } from "./realtime.mjs";
 import { handleUtterance, registerSimulatedAgent } from "./offline.mjs";
 import { attachMediaBridge, activeBridges } from "./voice/call-bridge.mjs";
 import { answerInboundCall, transferToTeams, startDtmfRecognition, hangUp } from "./voice/acs.mjs";
+import { resourceAccountFrom } from "./handoff.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const log = (...a) => console.log(new Date().toISOString(), ...a);
@@ -99,17 +100,22 @@ app.post(
 
 async function onIncomingCall(data) {
   const fromPhone = data?.from?.rawId?.replace(/^4:/, "") ?? data?.from?.phoneNumber?.value ?? null;
+  const resourceAccountId = resourceAccountFrom(data?.to);
 
   const call = flow.create({
     callId: randomUUID(),
     fromPhone: fromPhone ? normalisePhone(fromPhone) : null,
     incomingCallContext: data.incomingCallContext,
+    resourceAccountId,
     // Preserve an Auto Attendant's session id when this line sits behind one, so
     // the whole journey correlates in Teams rather than restarting here.
     sessionId: data.customContext?.voipHeaders?.["CallDetails.SessionId"] ?? data.correlationId ?? null,
   });
 
-  log("[call] incoming", call.id, "from", call.maskedPhone);
+  log("[call] incoming", call.id, "from", call.maskedPhone, "via", call.arrival);
+  if (call.arrival === "acs-direct") {
+    log("[call] note: no Teams resource account on this call — Teams Phone extensibility context is absent");
+  }
 
   const { callConnectionId } = await answerInboundCall({
     incomingCallContext: data.incomingCallContext,

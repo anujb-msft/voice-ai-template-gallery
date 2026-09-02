@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { teamsIdentifier, buildCustomCallingContext } from "../src/handoff.mjs";
+import { teamsIdentifier, buildCustomCallingContext, resourceAccountFrom } from "../src/handoff.mjs";
 import { RoutingFlow, STATES } from "../src/flow.mjs";
 import { RoutePolicy, CallerDirectory } from "../src/routes.mjs";
 import { MemoryAudit } from "../src/audit.mjs";
@@ -243,4 +243,35 @@ test("affirmatives are recognised without swallowing corrections", () => {
   assert.equal(isAffirmative("yeah that's it"), true);
   assert.equal(isAffirmative("no, actually billing"), false);
   assert.equal(isAffirmative("yes but actually I meant support"), false);
+});
+
+// ------------------------------------ Teams Phone extensibility inbound identity
+
+test("a TPE call carries the dialled resource account", () => {
+  // Teams Phone extensibility puts the resource account in to.rawId. Note the
+  // documented to.kind is "unknown", not "microsoftTeamsApp" — matching on kind
+  // would silently classify every real TPE call as a plain ACS one.
+  const to = { kind: "unknown", rawId: "28:orgid:cc123456-5678-5678-1234-ccc123456789" };
+  assert.equal(resourceAccountFrom(to), "cc123456-5678-5678-1234-ccc123456789");
+
+  const { flow } = makeFlow();
+  const call = flow.create({ fromPhone: "+14255550111", resourceAccountId: resourceAccountFrom(to) });
+  assert.equal(call.arrival, "teams-phone-extensibility");
+  assert.equal(call.resourceAccountId, "cc123456-5678-5678-1234-ccc123456789");
+});
+
+test("a call straight to an ACS number is not mistaken for a TPE call", () => {
+  assert.equal(resourceAccountFrom({ kind: "phoneNumber", rawId: "4:+18552903649" }), null);
+  assert.equal(resourceAccountFrom(undefined), null);
+  assert.equal(resourceAccountFrom({ rawId: "28:orgid:not-a-guid" }), null);
+
+  const call = makeFlow().flow.create({ fromPhone: "+14255550111" });
+  assert.equal(call.arrival, "acs-direct");
+  assert.equal(call.resourceAccountId, null);
+});
+
+test("the caller's phone number survives the ACS 4: raw-id prefix", () => {
+  // from.rawId arrives as "4:+E164"; dropping the prefix is what makes the
+  // known-caller lookup work at all.
+  assert.equal("4:+12065551212".replace(/^4:/, ""), "+12065551212");
 });
