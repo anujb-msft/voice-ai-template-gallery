@@ -8,6 +8,13 @@ import { MemoryAudit } from "../src/audit.mjs";
 import { handleUtterance, isAffirmative } from "../src/offline.mjs";
 import { AGENT_TOOLS, buildInstructions } from "../src/agent.mjs";
 
+// The shipped config, pinned explicitly. RoutePolicy.load() otherwise honours
+// ROUTES_PATH, so a developer testing against their own tenant would turn these
+// assertions red without changing a line of source.
+const SHIPPED_ROUTES = "./config/routes.json";
+const SHIPPED_CALLERS = "./config/callers.json";
+
+
 /**
  * Covers the boundary between the routing decision and Teams: how a route
  * target becomes an identifier, how context becomes VoIP headers, and what the
@@ -20,11 +27,11 @@ const CLOSED = Date.parse("2026-09-03T02:00:00Z");
 function makeFlow({ now = OPEN } = {}) {
   const audit = new MemoryAudit();
   const flow = new RoutingFlow({
-    routes: RoutePolicy.load(),
-    callers: CallerDirectory.load(),
+    routes: RoutePolicy.load(SHIPPED_ROUTES),
+    callers: CallerDirectory.load(SHIPPED_CALLERS),
     audit,
     now: () => now,
-    options: { transferDelayMs: 0 },
+    options: { transferDelayMs: 0, confidenceThreshold: 0.75, maxClarifications: 2 },
   });
   return { flow, audit };
 }
@@ -51,7 +58,7 @@ test("a target with no object id fails loudly rather than dialling nowhere", () 
 });
 
 test("every configured route target resolves to a Teams identifier", () => {
-  const routes = RoutePolicy.load();
+  const routes = RoutePolicy.load(SHIPPED_ROUTES);
   for (const id of routes.ids) {
     const identifier = teamsIdentifier(routes.get(id).target);
     assert.ok(identifier.teamsAppId || identifier.microsoftTeamsUserId, `${id} has no usable identifier`);
@@ -175,7 +182,7 @@ test("every tool the bridge dispatches exists in the schema and vice versa", () 
 });
 
 test("the instructions disclose the assistant and list only route ids", () => {
-  const routes = RoutePolicy.load();
+  const routes = RoutePolicy.load(SHIPPED_ROUTES);
   const instructions = buildInstructions(routes);
 
   assert.match(instructions, /automated assistant/i);

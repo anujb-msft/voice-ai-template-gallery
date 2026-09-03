@@ -7,6 +7,13 @@ import { MemoryAudit } from "../src/audit.mjs";
 import { readiness } from "../src/config.mjs";
 import { classifyOffline, handleUtterance, wantsHuman, registerSimulatedAgent } from "../src/offline.mjs";
 
+// The shipped config, pinned explicitly. RoutePolicy.load() otherwise honours
+// ROUTES_PATH, so a developer testing against their own tenant would turn these
+// assertions red without changing a line of source.
+const SHIPPED_ROUTES = "./config/routes.json";
+const SHIPPED_CALLERS = "./config/callers.json";
+
+
 /**
  * The whole routing flow is exercised here with no Azure, no database and no
  * network. Everything the model is not trusted with — the route allowlist, the
@@ -26,13 +33,14 @@ function makeFlow({ now = OPEN, transfer = null, options = {} } = {}) {
   let clock = now;
   const audit = new MemoryAudit();
   const flow = new RoutingFlow({
-    routes: RoutePolicy.load(),
-    callers: CallerDirectory.load(),
+    routes: RoutePolicy.load(SHIPPED_ROUTES),
+    callers: CallerDirectory.load(SHIPPED_CALLERS),
     audit,
     transfer,
     now: () => clock,
     // transferDelayMs 0 removes the mind-change timer so tests stay deterministic.
-    options: { transferDelayMs: 0, ...options },
+    // Policy values the assertions depend on are stated, not inherited from env.
+    options: { transferDelayMs: 0, confidenceThreshold: 0.75, maxClarifications: 2, ...options },
   });
   return { flow, audit, advance: (ms) => (clock += ms) };
 }
@@ -346,7 +354,7 @@ test("after hours, sales diverts to reception and says so", async () => {
 });
 
 test("a 24x7 route stays open at night", () => {
-  const routes = RoutePolicy.load();
+  const routes = RoutePolicy.load(SHIPPED_ROUTES);
   assert.equal(routes.isOpen("support", new Date(CLOSED)), true);
   assert.equal(routes.isOpen("sales", new Date(CLOSED)), false);
   assert.equal(routes.isOpen("billing", new Date(CLOSED)), false);
@@ -429,7 +437,7 @@ test("the handoff carries no Teams object ids the model could have influenced", 
 });
 
 test("the model's menu describes routes but never their targets", () => {
-  const menuText = RoutePolicy.load().menuText();
+  const menuText = RoutePolicy.load(SHIPPED_ROUTES).menuText();
   assert.match(menuText, /sales/);
   assert.match(menuText, /Keypad 1/);
   assert.ok(!menuText.includes("objectId"));
@@ -584,7 +592,7 @@ test("an unknown caller is greeted without a name", () => {
 // ------------------------------------------------------------------- readiness
 
 test("readiness separates Voice Live, telephony and Teams provisioning", () => {
-  const routes = RoutePolicy.load();
+  const routes = RoutePolicy.load(SHIPPED_ROUTES);
 
   // An explicit unconfigured config, so this asserts the function's logic
   // rather than whatever .env the developer happens to have on disk.
@@ -613,7 +621,7 @@ test("readiness separates Voice Live, telephony and Teams provisioning", () => {
 
 test("telephony reports keyless auth when only an ACS endpoint is set", () => {
   // The point of the Entra path: configured for real calls with no key on disk.
-  const health = readiness(RoutePolicy.load(), {
+  const health = readiness(RoutePolicy.load(SHIPPED_ROUTES), {
     publicBaseUrl: "https://example.devtunnels.ms",
     acs: { endpoint: "https://acs.communication.azure.com", connectionString: "", teamsCloud: "public" },
     voiceLive: { endpoint: "https://ai.services.ai.azure.com", apiKey: "", model: "gpt-realtime", apiVersion: "2026-04-10" },

@@ -1,3 +1,6 @@
 node_modules/
 data/
 .env
+# Point ROUTES_PATH / CALLERS_PATH at these to try the sample against a real
+# tenant without putting your own object IDs into the shipped config.
+config/*.local.json

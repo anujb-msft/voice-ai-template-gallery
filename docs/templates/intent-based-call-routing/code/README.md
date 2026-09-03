@@ -248,7 +248,10 @@ PSTN caller → Teams service number → Teams resource account → linked ACS r
    assignment API. The Teams-side binding alone is only half of it.
 5. **Collect object IDs.** Get the Entra object ID of each call queue's resource
    account and put it in `routes.json`. These are the *transfer targets*, separate
-   from the inbound resource account.
+   from the inbound resource account. To keep your own IDs out of git, copy it to
+   `config/routes.local.json` and set `ROUTES_PATH` — `config/*.local.json` is
+   gitignored. If your tenant has no call queues yet, a `"type": "user"` target
+   pointing at any Teams user with Enterprise Voice is enough to see a transfer.
 6. **Expose this server.** `npm run tunnel`, then set `PUBLIC_BASE_URL`.
 7. **Subscribe to `IncomingCall`.** Create an Event Grid system topic on the ACS
    resource with a webhook subscription to `<PUBLIC_BASE_URL>/api/events`, filtered to
