@@ -1,6 +1,7 @@
 import { WebSocketServer } from "ws";
 import { VoiceLiveSession, buildInstructions } from "./voice-live.mjs";
 import { hangUp } from "./acs.mjs";
+import { config } from "../config.mjs";
 
 const log = (...a) => console.log(new Date().toISOString(), "[bridge]", ...a);
 
@@ -27,7 +28,7 @@ class CallBridge {
 
   async start() {
     this.voice = new VoiceLiveSession({
-      instructions: buildInstructions(this.flow.routes),
+      instructions: buildInstructions(this.flow.routes, config.locale),
       onAgentAudio: (base64Pcm) => this.#toCaller(base64Pcm),
       onEvent: (e) => this.#onVoiceEvent(e),
       onToolCall: (name, args) => this.#onToolCall(name, args),

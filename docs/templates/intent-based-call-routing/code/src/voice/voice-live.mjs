@@ -1,8 +1,8 @@
 import WebSocket from "ws";
 import { config } from "../config.mjs";
-import { AGENT_TOOLS, buildInstructions } from "../agent.mjs";
+import { AGENT_TOOLS, buildInstructions, localeLanguage } from "../agent.mjs";
 
-export { AGENT_TOOLS, buildInstructions };
+export { AGENT_TOOLS, buildInstructions, localeLanguage };
 
 const log = (...a) => console.log(new Date().toISOString(), "[voice-live]", ...a);
 
@@ -48,6 +48,7 @@ export class VoiceLiveSession {
 
   async connect() {
     const { endpoint, model, apiVersion, voice } = config.voiceLive;
+    const language = localeLanguage(config.locale);
     const url =
       `${endpoint.replace(/^https:/, "wss:")}/voice-live/realtime` +
       `?api-version=${encodeURIComponent(apiVersion)}&model=${encodeURIComponent(model)}`;
@@ -70,7 +71,10 @@ export class VoiceLiveSession {
             voice: { name: voice, type: "azure-standard" },
             tools: AGENT_TOOLS,
             tool_choice: "auto",
-            input_audio_transcription: { model: "whisper-1" },
+            // Voice Live expects an ISO-639-1 hint for multimodal-model
+            // transcription ("en"), while the rest of the sample exposes the
+            // more specific BCP-47 locale ("en-US").
+            input_audio_transcription: { model: "gpt-4o-transcribe", language: language.code },
             turn_detection: {
               type: "azure_semantic_vad",
               threshold: 0.3,

@@ -6,7 +6,7 @@ import { RoutingFlow, STATES } from "../src/flow.mjs";
 import { RoutePolicy, CallerDirectory } from "../src/routes.mjs";
 import { MemoryAudit } from "../src/audit.mjs";
 import { handleUtterance, isAffirmative } from "../src/offline.mjs";
-import { AGENT_TOOLS, buildInstructions } from "../src/agent.mjs";
+import { AGENT_TOOLS, buildInstructions, localeLanguage } from "../src/agent.mjs";
 
 // The shipped config, pinned explicitly. RoutePolicy.load() otherwise honours
 // ROUTES_PATH, so a developer testing against their own tenant would turn these
@@ -183,13 +183,26 @@ test("every tool the bridge dispatches exists in the schema and vice versa", () 
 
 test("the instructions disclose the assistant and list only route ids", () => {
   const routes = RoutePolicy.load(SHIPPED_ROUTES);
-  const instructions = buildInstructions(routes);
+  const instructions = buildInstructions(routes, "en-US");
 
   assert.match(instructions, /automated assistant/i);
   assert.match(instructions, /Contoso/);
+  assert.match(instructions, /Start every call in American English \(en-US\)/);
+  assert.match(instructions, /including the very first word/i);
   for (const id of routes.ids) assert.ok(instructions.includes(id), `${id} missing from the menu`);
   assert.ok(!instructions.includes("0000-0000"), "Teams object ids must never reach the model");
   assert.match(instructions, /never invent/i);
+});
+
+test("locale controls the opening language and transcription hint", () => {
+  const routes = RoutePolicy.load(SHIPPED_ROUTES);
+  const language = localeLanguage("fr-FR");
+  const instructions = buildInstructions(routes, "fr-FR");
+
+  assert.deepEqual(language, { locale: "fr-FR", code: "fr", label: "French (France)" });
+  assert.match(instructions, /Start every call in French \(France\) \(fr-FR\)/);
+  assert.doesNotMatch(instructions, /American English/);
+  assert.equal(localeLanguage("en-US").code, "en", "Voice Live transcription uses ISO-639-1");
 });
 
 // ------------------------------------------------------- offline console driving

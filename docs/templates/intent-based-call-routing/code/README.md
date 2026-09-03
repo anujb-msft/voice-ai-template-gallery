@@ -148,6 +148,8 @@ values that make real calls possible.
 | `PUBLIC_BASE_URL` | — | Must be reachable by Event Grid and ACS |
 | `VOICE_LIVE_ENDPOINT` | — | Azure AI Services resource |
 | `VOICE_LIVE_API_KEY` | *(empty)* | Leave empty to use Entra, which is recommended |
+| `LOCALE` | `en-US` | Opening/model language and speech-recognition hint; callers may explicitly request a switch |
+| `VOICE_LIVE_VOICE` | `en-US-Ava:DragonHDLatestNeural` | Azure TTS voice; set this alongside `LOCALE` |
 | `CONFIDENCE_THRESHOLD` | `0.75` | Below this the agent must ask, not guess |
 | `ROUTE_TIME_BUDGET_MS` | `90000` | Answer to confirmed route; expiry goes to a person |
 | `MAX_CLARIFICATIONS` | `2` | Then a person |
