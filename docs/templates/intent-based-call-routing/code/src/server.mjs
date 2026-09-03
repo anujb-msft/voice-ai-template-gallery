@@ -152,6 +152,14 @@ app.post(
           break;
         }
 
+        case "MediaStreamingFailed": {
+          // Without the reason this reads as "it broke", which is how a socket
+          // that never connected can look like a Voice Live problem.
+          const info = event.data?.resultInformation ?? {};
+          log("[call] media streaming failed", `code=${info.code} sub=${info.subCode}`, info.message ?? "");
+          break;
+        }
+
         case "CallTransferAccepted":
           log("[call] transfer accepted", callId);
           break;
@@ -290,8 +298,23 @@ app.get("/health", (_req, res) => {
 // ----------------------------------------------------------------------- start
 
 const server = createServer(app);
-hub.attach(server);
-attachMediaBridge(server, flow);
+
+// One upgrade listener, routed by pathname. See attachMediaBridge for why this
+// cannot be left to `new WebSocketServer({ server, path })`.
+const wsRoutes = new Map([
+  ["/ws/hub", hub.attach()],
+  ["/ws/media", attachMediaBridge(flow)],
+]);
+
+server.on("upgrade", (req, socket, head) => {
+  const { pathname } = new URL(req.url, "http://localhost");
+  const wss = wsRoutes.get(pathname);
+  if (!wss) {
+    log("[ws] no handler for", pathname);
+    return socket.destroy();
+  }
+  wss.handleUpgrade(req, socket, head, (ws) => wss.emit("connection", ws, req));
+});
 
 server.listen(config.port, config.host, () => {
   log(`Intent-based call routing demo on http://${config.host}:${config.port}`);

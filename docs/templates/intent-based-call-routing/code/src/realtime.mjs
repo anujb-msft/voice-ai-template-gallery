@@ -17,8 +17,13 @@ export class LocalWebSocketHub {
   /** Every message, so a console opened mid-call is not blank. */
   #backlog = new Map();
 
-  attach(httpServer, path = "/ws/hub") {
-    const wss = new WebSocketServer({ server: httpServer, path });
+  /**
+   * Returns the server so the caller can route upgrades. Deliberately
+   * `noServer`: attaching two WebSocketServers to one HTTP server does not work,
+   * because each aborts the handshake for paths it does not own.
+   */
+  attach() {
+    const wss = new WebSocketServer({ noServer: true });
 
     wss.on("connection", (socket, req) => {
       const userId = new URL(req.url, "http://localhost").searchParams.get("user") ?? "*";

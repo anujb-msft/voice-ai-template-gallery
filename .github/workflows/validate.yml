@@ -75,3 +75,10 @@ jobs:
 
       - name: Check server syntax
         run: npm run check
+
+      # The unit suite is dependency-free by design, so it cannot see transport
+      # faults. This boots the server and checks both WebSocket endpoints accept
+      # an upgrade — they once did not, and the only symptom was a connected call
+      # sitting in silence with "MediaStreamingFailed" in the ACS callback.
+      - name: Smoke test the WebSocket endpoints
+        run: npm run smoke
