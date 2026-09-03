@@ -62,7 +62,7 @@ Try these:
 Run the tests — they need no Azure and no network:
 
 ```bash
-npm test     # 58 cases across the state machine and the Teams handoff
+npm test     # 63 cases across the state machine and the Teams handoff
 npm run check
 ```
 
@@ -261,6 +261,31 @@ PSTN caller → Teams service number → Teams resource account → linked ACS r
    automatically. Set the Azure Bot calling webhook to `https://eventgrid.azure.net`.
 8. **Check `/health`,** then call the number.
 
+### Live call test matrix
+
+These phrases exercise the common paths through a real Voice Live call. Confidence
+is model-generated in live mode, so the exact score can vary; the `0.75` gate and
+the behavior on either side of it are deterministic.
+
+| Flow | Say or do | Expected behavior |
+| --- | --- | --- |
+| Billing | `I was charged twice on my credit card` → `yes` | Offers Billing, waits for confirmation, then transfers |
+| Support | `The customer portal is down and shows an error` → `yes` | Offers Support, then transfers after confirmation |
+| Sales | `I need pricing for about 100 seats` → `yes` | Offers Sales, then transfers after confirmation |
+| Human escape | `Can I just speak to a person?` | Goes directly to Reception without another question or confirmation |
+| Ambiguous intent | `I was charged for a renewal I didn't order` | Should clarify whether the issue is the purchase or the charge when confidence falls below the gate; answer `The charge on my card is wrong` for Billing |
+| Mind change | Start with the Billing phrase, confirm, then immediately interrupt with `No, wait — the portal is down` | Cancels the pending transfer and reclassifies to Support; the default window is 1.2 seconds |
+| Keypad | Press `1`, `2`, `3`, or `4` | Commits Sales, Support, Billing, or Reception without spoken confirmation; unmapped digits are ignored |
+| Out of scope | `What are your store hours?` | Declines to invent an answer and asks what team you need; a second unrelated factual question falls back to Reception |
+| Language switch | `Please continue in French` | Switches because the caller explicitly requested it; a new call still starts in `LOCALE` |
+| Transfer recovery | Confirm any offered route while its Teams target is unavailable | Retries once, tries the fallback route, then gives an honest apology instead of leaving the caller in silence |
+
+The physical destinations come from the file selected by `ROUTES_PATH`. If several
+routes point to the same Teams user during initial testing, the spoken decision and
+handoff context still differ, but every accepted route rings that same user. Likewise,
+after-hours behavior only appears when the active route has real business hours; a
+local test file with `alwaysOpen: true` deliberately disables it.
+
 ## Project layout
 
 ```
@@ -282,7 +307,7 @@ config/
   routes.json     the routing policy
   callers.json    fictional caller directory
 public/           the presenter console
-test/             58 cases, no Azure required
+test/             63 cases, no Azure required
 ```
 
 `flow.mjs`, `routes.mjs`, `handoff.mjs`, `agent.mjs`, `offline.mjs` and `audit.mjs`
