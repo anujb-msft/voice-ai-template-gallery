@@ -201,7 +201,8 @@ clearly marked as demo surfaces, show no secrets, and never claim a transfer com
 while in simulation mode.
 
 Configuration covers `PORT` (`8091`, so the sample runs alongside the password-reset
-demo on `8090`), `PUBLIC_BASE_URL`, `ACS_CONNECTION_STRING`, an Event Grid incoming-call
+demo on `8090`), `PUBLIC_BASE_URL`, `ACS_ENDPOINT` (keyless via `DefaultAzureCredential`,
+with `ACS_CONNECTION_STRING` as a fallback), an Event Grid incoming-call
 endpoint, `CONFIDENCE_THRESHOLD` (`0.75`), `ROUTE_TIME_BUDGET_MS` (`90000`), and a single
 `LOCALE`/`VOICE` pair so the English demo can be repointed without touching prompts or
 code. The presenter console and mock Teams view are served over a plain local WebSocket;
