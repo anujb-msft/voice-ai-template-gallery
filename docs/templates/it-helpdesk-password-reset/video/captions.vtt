@@ -1,9 +1,126 @@
 WEBVTT
 
-NOTE Draft captions. Replace and time-align after video/demo.mp4 is produced.
+N01
+00:00:01.200 --> 00:00:07.950
+— Narrator
+Locked out. The one support moment where you already know who needs help — and what for.
 
-00:00:00.000 --> 00:00:04.000
-This IT help desk password reset demonstration is pending production.
+N02
+00:00:09.200 --> 00:00:13.946
+— Narrator
+So: what if help arrived the instant that intent was declared?
 
-00:00:04.000 --> 00:00:08.000
-The final video will show the proactive callback, identity verification, and synchronized browser workflow.
+N03a
+00:00:14.600 --> 00:00:22.850
+— Narrator
+Here's the good news: they have already told you. One click on Forgot password, and the reset is under way.
+
+N03b
+00:00:25.400 --> 00:00:27.850
+— Narrator
+No queue. No hold music.
+
+N04
+00:00:28.800 --> 00:00:39.850
+— Narrator
+And the phone rings. This is Teams Phone Extensibility — the callback goes out on the organisation's own Teams service number. It looks like IT, because it is.
+
+D01
+00:00:41.000 --> 00:00:46.800
+— Agent
+Hi Alex — Contoso IT assistant, calling about that password reset.
+
+D02
+00:00:51.000 --> 00:00:56.250
+— Agent
+Quick check before we start — the last four digits of your employee ID?
+
+D03
+00:00:56.700 --> 00:00:59.600
+— Employee
+Four two one seven.
+
+N05
+00:01:00.600 --> 00:01:09.250
+— Narrator
+Watch the browser. The instant the server accepts those digits, the page moves. Same session, same second.
+
+D04
+00:01:12.600 --> 00:01:21.850
+— Agent
+Your code is four, nine, two, seven, three, one. Type it into the page that is already open.
+
+N06
+00:01:26.600 --> 00:01:33.600
+— Narrator
+Heard on the phone. Typed on the device. That is presence, proved across two channels.
+
+N07
+00:01:36.800 --> 00:01:44.800
+— Narrator
+One server holds all of this together — the call, the browser, and an agent that can ask for exactly four things.
+
+D05
+00:01:47.400 --> 00:01:50.750
+— Employee
+Wait — can you just tell me my current password?
+
+D06
+00:01:52.000 --> 00:01:58.550
+— Agent
+I can't — passwords are stored scrambled, so nobody at IT can see them. Including me.
+
+N08
+00:01:58.600 --> 00:02:04.550
+— Narrator
+That is the boundary — the agent answers from IT's own file, and nothing more.
+
+N09
+00:02:11.400 --> 00:02:18.250
+— Narrator
+Now the good part. The server checks every rule as they type, and tells the agent what is missing.
+
+D09
+00:02:20.200 --> 00:02:22.550
+— Employee
+It won't let me save this one.
+
+D10
+00:02:23.300 --> 00:02:30.850
+— Agent
+You're close — twelve characters, one capital, one symbol, and not your own name.
+
+D11
+00:02:31.600 --> 00:02:35.850
+— Agent
+That's done — you can sign in now. Anything else I can help with?
+
+N10
+00:02:37.300 --> 00:02:43.850
+— Narrator
+Back to work in about a minute — and the ticket that opened with the click closes itself, deflected.
+
+N11
+00:02:45.000 --> 00:02:50.214
+— Narrator
+Every action the agent asked for is on the record — allowed or refused.
+
+N12
+00:02:51.600 --> 00:03:01.700
+— Narrator
+Multiply that across a Monday morning: routine resets handled in minutes, and your specialists freed for the problems that genuinely need them.
+
+N13
+00:03:05.600 --> 00:03:15.950
+— Narrator
+And it drops into what you already run. Point it at Entra ID. Point it at ServiceNow or Jira — the seams are already there.
+
+N14a
+00:03:17.000 --> 00:03:20.600
+— Narrator
+Proactive. Multimodal. Governed.
+
+N14b
+00:03:21.400 --> 00:03:28.150
+— Narrator
+Teams Phone Extensibility, a live voice agent, and your policy — working as one.

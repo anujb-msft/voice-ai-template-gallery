@@ -1,5 +1,6 @@
 import { CallAutomationClient } from "@azure/communication-call-automation";
 import { config } from "../config.mjs";
+import { callerArguments } from "../telephony.mjs";
 
 let client;
 export function acsClient() {
@@ -18,21 +19,26 @@ export function acsClient() {
  *     matched to the right browser session
  *   - the callback URL, so ACS lifecycle events are attributable
  *
- * Note: `callerId` must be a *geographic* ACS number. Toll-free numbers cannot
- * originate outbound PSTN calls.
+ * Caller identity is mode-specific: either a geographic ACS number or a Teams
+ * resource account configured for Teams Phone extensibility.
  */
 export async function placeResetCall({ sessionId, toPhoneNumber }) {
   const base = config.publicBaseUrl;
   const wss = base.replace(/^https:/, "wss:");
+  const caller = callerArguments({
+    mode: config.acs.telephonyMode,
+    callerId: config.acs.callerId,
+    teamsResourceAccountId: config.acs.teamsResourceAccountId,
+  });
 
   const result = await acsClient().createCall(
     {
       targetParticipant: { phoneNumber: toPhoneNumber },
-      // Required on the invite itself when dialling a PSTN number.
-      sourceCallIdNumber: { phoneNumber: config.acs.callerId },
+      ...caller.invite,
     },
     `${base}/api/calls/callback?session=${encodeURIComponent(sessionId)}`,
     {
+      ...caller.options,
       mediaStreamingOptions: {
         transportType: "websocket",
         transportUrl: `${wss}/ws/media?session=${encodeURIComponent(sessionId)}`,

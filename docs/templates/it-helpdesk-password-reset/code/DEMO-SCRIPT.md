@@ -14,7 +14,10 @@ npm start                      # http://localhost:8090
 curl -s localhost:8090/health  # expect "callReady": true
 ```
 
-- [ ] `/health` shows `callReady: true` and `voiceModel: gpt-realtime`
+- [ ] `/health` shows `callReady: true`, `voiceModel: gpt-realtime`,
+      `telephonyMode: teams-phone`, and no missing call configuration
+- [ ] The Teams resource account has its service number, outbound PSTN connectivity,
+      ACS server consent, and current licensing
 - [ ] Dev tunnel is up and reachable
 - [ ] Browser open at `http://localhost:8090`, sign-in page showing
 - [ ] **Phone in hand, off silent, speaker on** — the audience needs to hear both sides
@@ -53,6 +56,8 @@ Click **Forgot password?**
 
 The wizard moves to **Calling you now**. Hold the phone up as it rings — the gap between
 the click and the ring is the whole pitch, so let it land rather than talking over it.
+For the recorded TPE version, briefly show that the incoming caller ID is the Teams
+service number, but mask enough digits that the production number is not disclosed.
 
 Answer on speaker. The agent greets you by name and asks for the last four of your
 employee ID.
