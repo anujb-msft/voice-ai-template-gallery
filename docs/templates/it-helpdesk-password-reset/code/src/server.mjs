@@ -243,7 +243,9 @@ app.get("/health", (_req, res) =>
     directory: directory.name,
     ticketing: ticketing.name,
     voiceModel: config.voiceLive.model,
+    telephonyMode: config.acs.telephonyMode,
     callReady: assertCallConfig().length === 0,
+    missingCallConfig: assertCallConfig(),
   }),
 );
 

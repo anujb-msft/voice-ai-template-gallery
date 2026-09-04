@@ -823,8 +823,8 @@ window.VOICE_AI_TEMPLATES = [
     },
     "technical": {
       "complexity": "High",
-      "systems": "Azure Communication Services · Azure AI Voice Live · SignalR/WebSocket · Identity directory · Ticketing system",
-      "build": "Outbound call placement, voice-plus-browser code verification, real-time password-policy coaching, ticket creation and closure, and escalation on repeated identity failure."
+      "systems": "Teams Phone Extensibility · Azure AI Voice Live · ACS Call Automation · SignalR/WebSocket · Identity directory · Ticketing system",
+      "build": "Selectable Teams Phone or direct ACS outbound calling, voice-plus-browser code verification, real-time password-policy coaching, ticket creation and closure, and escalation on repeated identity failure."
     },
     "paths": {
       "page": "templates/it-helpdesk-password-reset/",
@@ -844,13 +844,13 @@ window.VOICE_AI_TEMPLATES = [
       "expected": [
         {
           "path": "templates/it-helpdesk-password-reset/video/demo.mp4",
-          "status": "pending",
-          "description": "Narrated demonstration recording (MP4)."
+          "status": "ready",
+          "description": "Approved 3:30 Teams Phone Extensibility demonstration (MP4)."
         },
         {
           "path": "templates/it-helpdesk-password-reset/video/poster.webp",
-          "status": "pending",
-          "description": "Poster image for the video player (WebP)."
+          "status": "ready",
+          "description": "Poster image from the approved demonstration (WebP)."
         },
         {
           "path": "templates/it-helpdesk-password-reset/slides/it-helpdesk-password-reset.pptx",

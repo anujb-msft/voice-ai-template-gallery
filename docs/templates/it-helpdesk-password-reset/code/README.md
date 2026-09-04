@@ -49,8 +49,8 @@ over SignalR.
         │  ▲                                    │  ▲
         │  │ WebSocket, PCM16 24 kHz mono       │  │ WebSocket
         ▼  │ (ACS bidirectional streaming)      ▼  │
-   Azure Communication Services          Azure AI Voice Live
-      Call Automation                       (gpt-realtime)
+   Teams Phone service number            Azure AI Voice Live
+     via ACS Call Automation                 (gpt-realtime)
 ```
 
 **The agent can only change state by calling tools.** All security-sensitive logic
@@ -103,7 +103,9 @@ and metrics work, no call is placed. That is enough to demo the UX.
 | `HOST` | Bind address. Defaults to `127.0.0.1`; set it explicitly for a container or remote development environment. |
 | `PUBLIC_BASE_URL` | Public HTTPS URL ACS can reach. `devtunnel host -p 8090 --allow-anonymous` (create the port with `--protocol http`, not `https`). |
 | `ACS_CONNECTION_STRING` | Azure Communication Services resource. |
-| `ACS_CALLER_ID` | **Must be a geographic number.** Toll-free ACS numbers cannot place outbound calls. |
+| `TELEPHONY_MODE` | `acs-direct` (default) or `teams-phone`. |
+| `ACS_CALLER_ID` | Required only for `acs-direct`. Must be a geographic ACS number; toll-free ACS numbers cannot place outbound calls. |
+| `TPE_RESOURCE_ACCOUNT_ID` | Required only for `teams-phone`. Use the Teams resource account object ID, not its phone number or the bot application ID. |
 | `VOICE_LIVE_ENDPOINT` | `https://<resource>.services.ai.azure.com` — an Azure AI Services resource (`kind=AIServices`) with a custom domain. |
 | `VOICE_LIVE_MODEL` | `gpt-realtime`. Pick a region that serves the model — see [supported models and regions](https://learn.microsoft.com/azure/ai-services/speech-service/voice-live#supported-models-and-regions). |
 | `AZURE_SIGNALR_CONNECTION_STRING` | Optional. Must be **Serverless** service mode. Leave empty to use the built-in WebSocket hub. |
@@ -113,8 +115,41 @@ and metrics work, no call is placed. That is enough to demo the UX.
 Check your wiring at `GET /health`:
 
 ```json
-{ "realtime": "azure-signalr", "voiceModel": "gpt-realtime", "callReady": true }
+{
+  "realtime": "azure-signalr",
+  "voiceModel": "gpt-realtime",
+  "telephonyMode": "teams-phone",
+  "callReady": true,
+  "missingCallConfig": []
+}
 ```
+
+### Place callbacks through Teams Phone extensibility
+
+The default `acs-direct` mode originates the callback from a geographic number purchased
+in ACS. Set `TELEPHONY_MODE=teams-phone` to originate it from a Teams resource account
+instead:
+
+```
+this server → ACS Call Automation (teamsAppSource = resource account object ID)
+            → Teams Phone service number → employee PSTN phone
+```
+
+This path requires a Teams service number from Calling Plan, Operator Connect, or Direct
+Routing. An ACS-purchased number cannot be assigned to the Teams resource account.
+Calling Plan outbound calls also require the current Pay-As-You-Go Calling Plan setup;
+Operator Connect requirements depend on the carrier.
+
+1. Register the calling bot and obtain its application ID.
+2. Create a Teams resource account against that application.
+3. Bind and sync the resource account to the ACS immutable resource ID.
+4. Assign the resource account a Teams service number and the required licences/policies.
+5. Grant ACS server consent for the resource account.
+6. Set `TELEPHONY_MODE=teams-phone` and `TPE_RESOURCE_ACCOUNT_ID=<object-id>`.
+7. Run `scripts/provision-teams-phone.ps1` for the Teams-side setup and printed checklist.
+8. Check `/health`, then trigger **Forgot password?**
+
+The existing direct ACS and simulation paths remain available as recording fallbacks.
 
 ---
 
@@ -222,6 +257,8 @@ src/
 public/                   sign-in page and live reset wizard
 scripts/
   seed.mjs                sample users
+  provision-teams-phone.ps1
+                          binds the outbound Teams resource account to ACS
   ws-test.mjs             Voice Live connectivity check, no phone call needed
 ```
 

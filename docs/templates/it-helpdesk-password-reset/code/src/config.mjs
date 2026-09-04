@@ -1,4 +1,5 @@
 import "dotenv/config";
+import { normalizeTelephonyMode, telephonyMissing } from "./telephony.mjs";
 
 const required = (name) => {
   const v = process.env[name];
@@ -19,8 +20,11 @@ export const config = {
 
   acs: {
     connectionString: process.env.ACS_CONNECTION_STRING ?? "",
-    /** Must be a geographic (local) number — toll-free numbers cannot place outbound calls. */
+    telephonyMode: normalizeTelephonyMode(process.env.TELEPHONY_MODE),
+    /** Used only in acs-direct mode. Must be a geographic ACS number. */
     callerId: process.env.ACS_CALLER_ID ?? "",
+    /** Used only in teams-phone mode. This is the Teams resource account object ID. */
+    teamsResourceAccountId: process.env.TPE_RESOURCE_ACCOUNT_ID ?? "",
   },
 
   voiceLive: {
@@ -58,7 +62,13 @@ export const config = {
 export function assertCallConfig() {
   const missing = [];
   if (!config.acs.connectionString) missing.push("ACS_CONNECTION_STRING");
-  if (!config.acs.callerId) missing.push("ACS_CALLER_ID");
+  missing.push(
+    ...telephonyMissing({
+      mode: config.acs.telephonyMode,
+      callerId: config.acs.callerId,
+      teamsResourceAccountId: config.acs.teamsResourceAccountId,
+    }),
+  );
   if (!config.publicBaseUrl) missing.push("PUBLIC_BASE_URL");
   if (!config.voiceLive.endpoint) missing.push("VOICE_LIVE_ENDPOINT");
   if (!config.voiceLive.apiKey) missing.push("VOICE_LIVE_API_KEY");
