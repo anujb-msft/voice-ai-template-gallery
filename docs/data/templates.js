@@ -499,7 +499,7 @@ window.VOICE_AI_TEMPLATES = [
       ]
     },
     "source": {
-      "spec": null,
+      "spec": "templates/contextual-on-call-pager/SPEC.md",
       "runnable": false,
       "code": []
     }
