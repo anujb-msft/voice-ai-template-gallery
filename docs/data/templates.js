@@ -79,7 +79,7 @@ window.VOICE_AI_TEMPLATES = [
       ]
     },
     "source": {
-      "spec": null,
+      "spec": "templates/311-service-assistant/SPEC.md",
       "runnable": false,
       "code": []
     }
