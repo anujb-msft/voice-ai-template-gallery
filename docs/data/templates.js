@@ -415,7 +415,7 @@ window.VOICE_AI_TEMPLATES = [
       ]
     },
     "source": {
-      "spec": null,
+      "spec": "templates/bid-price-lookup-agent/SPEC.md",
       "runnable": false,
       "code": []
     }

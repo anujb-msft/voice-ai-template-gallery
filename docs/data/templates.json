@@ -414,7 +414,7 @@
       ]
     },
     "source": {
-      "spec": null,
+      "spec": "templates/bid-price-lookup-agent/SPEC.md",
       "runnable": false,
       "code": []
     }
