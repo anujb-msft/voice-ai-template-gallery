@@ -582,7 +582,7 @@
       ]
     },
     "source": {
-      "spec": null,
+      "spec": "templates/customer-record-lookup-update/SPEC.md",
       "runnable": false,
       "code": []
     }

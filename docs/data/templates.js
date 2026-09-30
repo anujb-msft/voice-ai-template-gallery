@@ -583,7 +583,7 @@ window.VOICE_AI_TEMPLATES = [
       ]
     },
     "source": {
-      "spec": null,
+      "spec": "templates/customer-record-lookup-update/SPEC.md",
       "runnable": false,
       "code": []
     }
