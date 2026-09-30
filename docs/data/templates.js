@@ -163,7 +163,7 @@ window.VOICE_AI_TEMPLATES = [
       ]
     },
     "source": {
-      "spec": null,
+      "spec": "templates/after-hours-sales-lead-capture/SPEC.md",
       "runnable": false,
       "code": []
     }
