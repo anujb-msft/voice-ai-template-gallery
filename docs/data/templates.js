@@ -841,7 +841,7 @@ window.VOICE_AI_TEMPLATES = [
       ]
     },
     "source": {
-      "spec": null,
+      "spec": "templates/it-hr-help-desk-triage/SPEC.md",
       "runnable": false,
       "code": []
     }
