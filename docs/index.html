@@ -16,7 +16,7 @@
     <meta property="og:type" content="website" />
     <title>Voice AI Agent Template Gallery</title>
     <link rel="icon" href="favicon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="assets/gallery.css?v=20260902-1" />
+    <link rel="stylesheet" href="assets/gallery.css?v=20260905-1" />
   </head>
   <body>
     <a class="skip-link" href="#catalogue">Skip to the catalogue</a>
@@ -173,25 +173,35 @@
                 <label class="agent-field">
                   <span>Coding agent</span>
                   <select id="agentSelect">
+                    <option value="copilot" selected>GitHub Copilot</option>
                     <option value="claude">Claude Code</option>
                     <option value="codex">Codex CLI</option>
-                    <option value="copilot">GitHub Copilot CLI</option>
                     <option value="cursor">Cursor Agent</option>
                     <option value="gemini">Gemini CLI</option>
                   </select>
                 </label>
                 <div class="command-block">
                   <div class="command-head">
-                    <span id="commandLabel">Claude Code</span>
+                    <span id="commandLabel">GitHub Copilot</span>
                     <button class="copy-button" id="copyCommand" type="button">
                       Copy build prompt
                     </button>
                   </div>
                   <pre><code id="commandText"></code></pre>
                 </div>
+                <a
+                  class="copilot-app-button"
+                  id="openCopilotApp"
+                  href="ghapp://"
+                  target="_blank"
+                  rel="noopener"
+                >
+                  Open in GitHub Copilot app
+                </a>
                 <p class="command-note">
                   Commands request the change only — no permission-bypass flags
-                  are included.
+                  are included. The Copilot app starts in plan mode and asks
+                  you to confirm before creating the session.
                 </p>
               </div>
             </div>
@@ -203,7 +213,7 @@
     <p class="toast" id="toast" role="status" aria-live="polite" hidden></p>
 
     <!-- Generated folder-owned template data (window.VOICE_AI_TEMPLATES). -->
-    <script src="data/templates.js?v=20260904-1"></script>
-    <script src="assets/gallery.js?v=20260903-1"></script>
+    <script src="data/templates.js?v=20260905-1"></script>
+    <script src="assets/gallery.js?v=20260905-1"></script>
   </body>
 </html>

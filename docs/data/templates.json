@@ -76,6 +76,11 @@
           "description": "Presentation preview image (WebP)."
         }
       ]
+    },
+    "source": {
+      "spec": null,
+      "runnable": false,
+      "code": []
     }
   },
   {
@@ -155,6 +160,11 @@
           "description": "Presentation preview image (WebP)."
         }
       ]
+    },
+    "source": {
+      "spec": null,
+      "runnable": false,
+      "code": []
     }
   },
   {
@@ -234,6 +244,11 @@
           "description": "Presentation preview image (WebP)."
         }
       ]
+    },
+    "source": {
+      "spec": null,
+      "runnable": false,
+      "code": []
     }
   },
   {
@@ -313,6 +328,11 @@
           "description": "Presentation preview image (WebP)."
         }
       ]
+    },
+    "source": {
+      "spec": null,
+      "runnable": false,
+      "code": []
     }
   },
   {
@@ -392,6 +412,11 @@
           "description": "Presentation preview image (WebP)."
         }
       ]
+    },
+    "source": {
+      "spec": null,
+      "runnable": false,
+      "code": []
     }
   },
   {
@@ -471,6 +496,11 @@
           "description": "Presentation preview image (WebP)."
         }
       ]
+    },
+    "source": {
+      "spec": null,
+      "runnable": false,
+      "code": []
     }
   },
   {
@@ -550,6 +580,11 @@
           "description": "Presentation preview image (WebP)."
         }
       ]
+    },
+    "source": {
+      "spec": null,
+      "runnable": false,
+      "code": []
     }
   },
   {
@@ -629,6 +664,11 @@
           "description": "Presentation preview image (WebP)."
         }
       ]
+    },
+    "source": {
+      "spec": "templates/general-inquiry-agent/SPEC.md",
+      "runnable": false,
+      "code": []
     }
   },
   {
@@ -707,6 +747,17 @@
           "status": "pending",
           "description": "Presentation preview image (WebP)."
         }
+      ]
+    },
+    "source": {
+      "spec": "templates/intent-based-call-routing/SPEC.md",
+      "runnable": true,
+      "code": [
+        "templates/intent-based-call-routing/code/package.json",
+        "templates/intent-based-call-routing/code/src/",
+        "templates/intent-based-call-routing/code/test/",
+        "templates/intent-based-call-routing/code/config/",
+        "templates/intent-based-call-routing/code/DEMO-SCRIPT.md"
       ]
     }
   },
@@ -787,6 +838,11 @@
           "description": "Presentation preview image (WebP)."
         }
       ]
+    },
+    "source": {
+      "spec": null,
+      "runnable": false,
+      "code": []
     }
   },
   {
@@ -866,6 +922,17 @@
           "status": "pending",
           "description": "Presentation preview image (WebP)."
         }
+      ]
+    },
+    "source": {
+      "spec": null,
+      "runnable": true,
+      "code": [
+        "templates/it-helpdesk-password-reset/code/package.json",
+        "templates/it-helpdesk-password-reset/code/src/",
+        "templates/it-helpdesk-password-reset/code/test/",
+        "templates/it-helpdesk-password-reset/code/knowledge/",
+        "templates/it-helpdesk-password-reset/code/DEMO-SCRIPT.md"
       ]
     }
   }

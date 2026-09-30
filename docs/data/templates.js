@@ -77,6 +77,11 @@ window.VOICE_AI_TEMPLATES = [
           "description": "Presentation preview image (WebP)."
         }
       ]
+    },
+    "source": {
+      "spec": null,
+      "runnable": false,
+      "code": []
     }
   },
   {
@@ -156,6 +161,11 @@ window.VOICE_AI_TEMPLATES = [
           "description": "Presentation preview image (WebP)."
         }
       ]
+    },
+    "source": {
+      "spec": null,
+      "runnable": false,
+      "code": []
     }
   },
   {
@@ -235,6 +245,11 @@ window.VOICE_AI_TEMPLATES = [
           "description": "Presentation preview image (WebP)."
         }
       ]
+    },
+    "source": {
+      "spec": null,
+      "runnable": false,
+      "code": []
     }
   },
   {
@@ -314,6 +329,11 @@ window.VOICE_AI_TEMPLATES = [
           "description": "Presentation preview image (WebP)."
         }
       ]
+    },
+    "source": {
+      "spec": null,
+      "runnable": false,
+      "code": []
     }
   },
   {
@@ -393,6 +413,11 @@ window.VOICE_AI_TEMPLATES = [
           "description": "Presentation preview image (WebP)."
         }
       ]
+    },
+    "source": {
+      "spec": null,
+      "runnable": false,
+      "code": []
     }
   },
   {
@@ -472,6 +497,11 @@ window.VOICE_AI_TEMPLATES = [
           "description": "Presentation preview image (WebP)."
         }
       ]
+    },
+    "source": {
+      "spec": null,
+      "runnable": false,
+      "code": []
     }
   },
   {
@@ -551,6 +581,11 @@ window.VOICE_AI_TEMPLATES = [
           "description": "Presentation preview image (WebP)."
         }
       ]
+    },
+    "source": {
+      "spec": null,
+      "runnable": false,
+      "code": []
     }
   },
   {
@@ -630,6 +665,11 @@ window.VOICE_AI_TEMPLATES = [
           "description": "Presentation preview image (WebP)."
         }
       ]
+    },
+    "source": {
+      "spec": "templates/general-inquiry-agent/SPEC.md",
+      "runnable": false,
+      "code": []
     }
   },
   {
@@ -708,6 +748,17 @@ window.VOICE_AI_TEMPLATES = [
           "status": "pending",
           "description": "Presentation preview image (WebP)."
         }
+      ]
+    },
+    "source": {
+      "spec": "templates/intent-based-call-routing/SPEC.md",
+      "runnable": true,
+      "code": [
+        "templates/intent-based-call-routing/code/package.json",
+        "templates/intent-based-call-routing/code/src/",
+        "templates/intent-based-call-routing/code/test/",
+        "templates/intent-based-call-routing/code/config/",
+        "templates/intent-based-call-routing/code/DEMO-SCRIPT.md"
       ]
     }
   },
@@ -788,6 +839,11 @@ window.VOICE_AI_TEMPLATES = [
           "description": "Presentation preview image (WebP)."
         }
       ]
+    },
+    "source": {
+      "spec": null,
+      "runnable": false,
+      "code": []
     }
   },
   {
@@ -867,6 +923,17 @@ window.VOICE_AI_TEMPLATES = [
           "status": "pending",
           "description": "Presentation preview image (WebP)."
         }
+      ]
+    },
+    "source": {
+      "spec": null,
+      "runnable": true,
+      "code": [
+        "templates/it-helpdesk-password-reset/code/package.json",
+        "templates/it-helpdesk-password-reset/code/src/",
+        "templates/it-helpdesk-password-reset/code/test/",
+        "templates/it-helpdesk-password-reset/code/knowledge/",
+        "templates/it-helpdesk-password-reset/code/DEMO-SCRIPT.md"
       ]
     }
   }
