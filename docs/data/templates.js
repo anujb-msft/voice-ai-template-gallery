@@ -80,8 +80,14 @@ window.VOICE_AI_TEMPLATES = [
     },
     "source": {
       "spec": "templates/311-service-assistant/SPEC.md",
-      "runnable": false,
-      "code": []
+      "runnable": true,
+      "code": [
+        "templates/311-service-assistant/code/package.json",
+        "templates/311-service-assistant/code/src/",
+        "templates/311-service-assistant/code/test/",
+        "templates/311-service-assistant/code/config/",
+        "templates/311-service-assistant/code/DEMO-SCRIPT.md"
+      ]
     }
   },
   {
@@ -164,8 +170,14 @@ window.VOICE_AI_TEMPLATES = [
     },
     "source": {
       "spec": "templates/after-hours-sales-lead-capture/SPEC.md",
-      "runnable": false,
-      "code": []
+      "runnable": true,
+      "code": [
+        "templates/after-hours-sales-lead-capture/code/package.json",
+        "templates/after-hours-sales-lead-capture/code/src/",
+        "templates/after-hours-sales-lead-capture/code/test/",
+        "templates/after-hours-sales-lead-capture/code/config/",
+        "templates/after-hours-sales-lead-capture/code/DEMO-SCRIPT.md"
+      ]
     }
   },
   {
@@ -248,8 +260,14 @@ window.VOICE_AI_TEMPLATES = [
     },
     "source": {
       "spec": "templates/appointment-reminder-agent/SPEC.md",
-      "runnable": false,
-      "code": []
+      "runnable": true,
+      "code": [
+        "templates/appointment-reminder-agent/code/package.json",
+        "templates/appointment-reminder-agent/code/src/",
+        "templates/appointment-reminder-agent/code/test/",
+        "templates/appointment-reminder-agent/code/config/",
+        "templates/appointment-reminder-agent/code/DEMO-SCRIPT.md"
+      ]
     }
   },
   {
@@ -332,8 +350,14 @@ window.VOICE_AI_TEMPLATES = [
     },
     "source": {
       "spec": "templates/appointment-scheduling-agent/SPEC.md",
-      "runnable": false,
-      "code": []
+      "runnable": true,
+      "code": [
+        "templates/appointment-scheduling-agent/code/package.json",
+        "templates/appointment-scheduling-agent/code/src/",
+        "templates/appointment-scheduling-agent/code/test/",
+        "templates/appointment-scheduling-agent/code/config/",
+        "templates/appointment-scheduling-agent/code/DEMO-SCRIPT.md"
+      ]
     }
   },
   {
@@ -416,8 +440,14 @@ window.VOICE_AI_TEMPLATES = [
     },
     "source": {
       "spec": "templates/bid-price-lookup-agent/SPEC.md",
-      "runnable": false,
-      "code": []
+      "runnable": true,
+      "code": [
+        "templates/bid-price-lookup-agent/code/package.json",
+        "templates/bid-price-lookup-agent/code/src/",
+        "templates/bid-price-lookup-agent/code/test/",
+        "templates/bid-price-lookup-agent/code/config/",
+        "templates/bid-price-lookup-agent/code/DEMO-SCRIPT.md"
+      ]
     }
   },
   {
@@ -500,8 +530,14 @@ window.VOICE_AI_TEMPLATES = [
     },
     "source": {
       "spec": "templates/contextual-on-call-pager/SPEC.md",
-      "runnable": false,
-      "code": []
+      "runnable": true,
+      "code": [
+        "templates/contextual-on-call-pager/code/package.json",
+        "templates/contextual-on-call-pager/code/src/",
+        "templates/contextual-on-call-pager/code/test/",
+        "templates/contextual-on-call-pager/code/config/",
+        "templates/contextual-on-call-pager/code/DEMO-SCRIPT.md"
+      ]
     }
   },
   {
@@ -584,8 +620,14 @@ window.VOICE_AI_TEMPLATES = [
     },
     "source": {
       "spec": "templates/customer-record-lookup-update/SPEC.md",
-      "runnable": false,
-      "code": []
+      "runnable": true,
+      "code": [
+        "templates/customer-record-lookup-update/code/package.json",
+        "templates/customer-record-lookup-update/code/src/",
+        "templates/customer-record-lookup-update/code/test/",
+        "templates/customer-record-lookup-update/code/config/",
+        "templates/customer-record-lookup-update/code/DEMO-SCRIPT.md"
+      ]
     }
   },
   {
@@ -668,8 +710,14 @@ window.VOICE_AI_TEMPLATES = [
     },
     "source": {
       "spec": "templates/general-inquiry-agent/SPEC.md",
-      "runnable": false,
-      "code": []
+      "runnable": true,
+      "code": [
+        "templates/general-inquiry-agent/code/package.json",
+        "templates/general-inquiry-agent/code/src/",
+        "templates/general-inquiry-agent/code/test/",
+        "templates/general-inquiry-agent/code/config/",
+        "templates/general-inquiry-agent/code/DEMO-SCRIPT.md"
+      ]
     }
   },
   {
@@ -842,8 +890,14 @@ window.VOICE_AI_TEMPLATES = [
     },
     "source": {
       "spec": "templates/it-hr-help-desk-triage/SPEC.md",
-      "runnable": false,
-      "code": []
+      "runnable": true,
+      "code": [
+        "templates/it-hr-help-desk-triage/code/package.json",
+        "templates/it-hr-help-desk-triage/code/src/",
+        "templates/it-hr-help-desk-triage/code/test/",
+        "templates/it-hr-help-desk-triage/code/config/",
+        "templates/it-hr-help-desk-triage/code/DEMO-SCRIPT.md"
+      ]
     }
   },
   {
