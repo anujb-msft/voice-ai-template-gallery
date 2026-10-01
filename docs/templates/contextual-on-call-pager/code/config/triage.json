@@ -1,0 +1,23 @@
+{
+  "tenantSaidMaxChars": 160,
+  "noHeatThresholdF": 55,
+  "emergency": {
+    "keywords": ["fire", "smoke", "gas smell", "smell gas", "carbon monoxide", "injury", "hurt", "danger", "break in"],
+    "safetyLine": "If anyone is in danger, or you smell gas or see fire, hang up and call 911 now."
+  },
+  "urgent": {
+    "activeLeak": ["active leak", "leaking", "water coming", "ceiling", "flood", "burst pipe"],
+    "lockout": ["locked out", "lockout", "can't get in", "cannot get in"],
+    "noPower": ["no power", "power out", "electricity out"],
+    "noHeat": ["no heat", "heat is out", "furnace", "heater"],
+    "safetyLines": {
+      "active_leak": "If you can do so safely, shut off the nearest water valve while we contact the technician.",
+      "no_heat": "Please avoid unsafe heating sources such as ovens or outdoor heaters indoors.",
+      "lockout": "Please wait in a safe, well-lit place while we contact the technician.",
+      "no_power": "If you see sparks or smell smoke, call 911 immediately."
+    }
+  },
+  "routine": {
+    "keywords": ["dripping faucet", "slow drain", "dishwasher", "appliance", "light bulb", "paint", "parking", "noise"]
+  }
+}

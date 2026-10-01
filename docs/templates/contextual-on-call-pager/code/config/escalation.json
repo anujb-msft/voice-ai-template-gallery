@@ -1,0 +1,8 @@
+{
+  "levels": ["primary", "secondary", "propertyManager"],
+  "attemptsPerLevel": 2,
+  "gapMinutes": { "urgent": 3, "emergency": 1 },
+  "unacknowledgedAlertMinutes": 20,
+  "duplicateWindowMinutes": 120,
+  "answeringMachineAckSeconds": 30
+}

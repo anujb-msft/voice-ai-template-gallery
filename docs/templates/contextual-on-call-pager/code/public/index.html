@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Contextual On-Call Pager Demo</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <header>
+    <p class="eyebrow">Demo surface</p>
+    <h1>Contextual On-Call Pager</h1>
+    <p>Simulate tenant intake, triage, on-call paging, escalation, acknowledgement, and tenant follow-up.</p>
+  </header>
+  <main>
+    <section class="panel controls">
+      <h2>Run a simulated urgent leak</h2>
+      <label>Caller phone <input id="fromPhone" value="+15551230001" /></label>
+      <textarea id="transcript">Yes, unit 4B at Maple Court.
+Water is coming through the kitchen ceiling.
+You can enter; the lockbox is by the back door.
+Call me back at 555-123-0001.</textarea>
+      <div class="row">
+        <button id="start">Start intake + first page</button>
+        <button data-outcome="accept">Tech accepts</button>
+        <button data-outcome="decline">Tech declines</button>
+        <button data-outcome="no-answer">No answer</button>
+        <button data-outcome="voicemail">Voicemail</button>
+        <button data-outcome="bridge">Bridge to tenant</button>
+        <button id="advance">Advance clock 3 min</button>
+      </div>
+    </section>
+    <section class="grid">
+      <article class="panel"><h2>Health</h2><pre id="health">Loading…</pre></article>
+      <article class="panel"><h2>Stats</h2><pre id="stats">Loading…</pre></article>
+      <article class="panel wide"><h2>Latest incident</h2><pre id="incident">Run a simulation.</pre></article>
+      <article class="panel wide"><h2>Realtime timeline</h2><ol id="timeline"></ol></article>
+    </section>
+  </main>
+  <script type="module" src="/app.js"></script>
+</body>
+</html>

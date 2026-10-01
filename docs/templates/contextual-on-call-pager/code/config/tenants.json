@@ -1,0 +1,7 @@
+{
+  "tenants": [
+    { "name": "Alice Rivera", "phone": "+15551230001", "propertyId": "maple-court", "unit": "4B" },
+    { "name": "Ben Carter", "phone": "+15551230002", "propertyId": "maple-court", "unit": "2A" },
+    { "name": "Dee Nguyen", "phone": "+15551230003", "propertyId": "pine-terrace", "unit": "11" }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "technicians": [
+    { "id": "tech-morgan", "name": "Morgan Lee", "mobile": "+15551231001", "teamsUserId": "11111111-1111-1111-1111-111111111111" },
+    { "id": "tech-priya", "name": "Priya Shah", "mobile": "+15551231002", "teamsUserId": "22222222-2222-2222-2222-222222222222" },
+    { "id": "tech-omar", "name": "Omar Diaz", "mobile": "+15551231003", "teamsUserId": "33333333-3333-3333-3333-333333333333" },
+    { "id": "mgr-evelyn", "name": "Evelyn Park", "mobile": "+15551232001", "teamsUserId": "44444444-4444-4444-4444-444444444444" },
+    { "id": "mgr-sam", "name": "Sam Wilson", "mobile": "+15551232002", "teamsUserId": "55555555-5555-5555-5555-555555555555" }
+  ],
+  "rotations": {
+    "central": [
+      { "startsOn": "2026-09-28", "primary": "tech-morgan", "secondary": "tech-priya" },
+      { "startsOn": "2026-10-05", "primary": "tech-priya", "secondary": "tech-morgan" }
+    ],
+    "north": [
+      { "startsOn": "2026-09-28", "primary": "tech-omar", "secondary": "tech-priya" }
+    ]
+  },
+  "overrides": [
+    { "date": "2026-10-01", "group": "central", "primary": "tech-priya", "secondary": "tech-morgan", "reason": "swap" },
+    { "date": "2026-12-25", "group": "central", "primary": "tech-omar", "secondary": "tech-priya", "reason": "holiday" }
+  ]
+}

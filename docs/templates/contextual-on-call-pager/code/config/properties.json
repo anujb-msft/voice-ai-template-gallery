@@ -1,0 +1,21 @@
+{
+  "organization": "Contoso Property Management",
+  "properties": [
+    {
+      "id": "maple-court",
+      "name": "Maple Court",
+      "address": "1200 Maple Avenue",
+      "aliases": ["maple", "maple court", "1200 maple"],
+      "group": "central",
+      "managerId": "mgr-evelyn"
+    },
+    {
+      "id": "pine-terrace",
+      "name": "Pine Terrace",
+      "address": "88 Pine Street",
+      "aliases": ["pine", "pine terrace"],
+      "group": "north",
+      "managerId": "mgr-sam"
+    }
+  ]
+}
