@@ -247,7 +247,7 @@ window.VOICE_AI_TEMPLATES = [
       ]
     },
     "source": {
-      "spec": null,
+      "spec": "templates/appointment-reminder-agent/SPEC.md",
       "runnable": false,
       "code": []
     }
