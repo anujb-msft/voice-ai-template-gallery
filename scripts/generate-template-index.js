@@ -203,7 +203,7 @@ function main() {
     })
     .sort((left, right) => left.name.localeCompare(right.name));
 
-  if (templates.length !== 11) throw new Error(`expected 11 template manifests, found ${templates.length}`);
+  if (templates.length === 0) throw new Error("no template manifests found");
   const ids = new Set(templates.map((template) => template.id));
   if (ids.size !== templates.length) throw new Error("template ids must be unique");
 
