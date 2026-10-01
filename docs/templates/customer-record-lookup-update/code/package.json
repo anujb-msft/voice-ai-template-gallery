@@ -1,0 +1,26 @@
+{
+  "name": "customer-record-lookup-update",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Voice agent template: a Contoso sales assistant that briefs reps on CRM records and commits confirmed, auditable updates.",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "node src/server.mjs",
+    "dev": "node --watch src/server.mjs",
+    "test": "node --test test/*.test.mjs",
+    "tunnel": "devtunnel host -p 8097 --allow-anonymous",
+    "check": "for f in src/*.mjs src/providers/*.mjs src/voice/*.mjs scripts/*.mjs test/*.mjs; do node --check \"$f\" || exit 1; done; echo \"syntax ok\"",
+    "smoke": "node scripts/smoke-websockets.mjs"
+  },
+  "dependencies": {
+    "@azure/communication-call-automation": "^1.6.0",
+    "@azure/identity": "^4.5.0",
+    "better-sqlite3": "^11.10.0",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "ws": "^8.18.0"
+  }
+}

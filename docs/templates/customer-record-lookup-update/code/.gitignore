@@ -1,0 +1,6 @@
+node_modules/
+data/
+.env
+# Point CRM_SEED_PATH / REPS_PATH at these to try the sample against a real
+# tenant without putting your own object IDs into the shipped config.
+config/*.local.json

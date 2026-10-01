@@ -1,0 +1,40 @@
+{
+  "accounts": [
+    { "id": "acct-fabrikam", "name": "Fabrikam", "aliases": ["Fabrikam Inc", "Fabracam", "Fabricam"], "phoneticKey": "FBRKM", "city": "Seattle", "tier": "Strategic", "ownerId": "owner-alex", "teamOwnerIds": ["owner-alex", "owner-jordan"], "keyContactId": "contact-dana" },
+    { "id": "acct-northwind", "name": "Northwind Traders", "aliases": ["Northwind"], "phoneticKey": "NRTHWND", "city": "Portland", "tier": "Enterprise", "ownerId": "owner-jordan", "teamOwnerIds": ["owner-alex", "owner-jordan"], "keyContactId": "contact-marcus" },
+    { "id": "acct-tailspin", "name": "Tailspin Toys", "aliases": ["Tailspin"], "phoneticKey": "TLSPN", "city": "Chicago", "tier": "Commercial", "ownerId": "owner-jordan", "teamOwnerIds": ["owner-jordan"], "keyContactId": "contact-lena" },
+    { "id": "acct-contoso-retail", "name": "Contoso Retail", "aliases": ["Contoso Stores"], "phoneticKey": "CNTSRTL", "city": "Bellevue", "tier": "Enterprise", "ownerId": "owner-alex", "teamOwnerIds": ["owner-alex"], "keyContactId": "contact-omar" },
+    { "id": "acct-adatum", "name": "A. Datum Corporation", "aliases": ["Adatum", "A Datum"], "phoneticKey": "ADTM", "city": "Austin", "tier": "Commercial", "ownerId": "owner-alex", "teamOwnerIds": ["owner-alex"], "keyContactId": "contact-priya" },
+    { "id": "acct-proseware", "name": "Proseware", "aliases": ["Proseware Labs"], "phoneticKey": "PRSW", "city": "Boston", "tier": "Enterprise", "ownerId": "owner-alex", "teamOwnerIds": ["owner-alex"], "keyContactId": "contact-chen" },
+    { "id": "acct-wideworld", "name": "Wide World Importers", "aliases": ["Wide World"], "phoneticKey": "WDWRLD", "city": "San Diego", "tier": "Strategic", "ownerId": "owner-jordan", "teamOwnerIds": ["owner-alex", "owner-jordan"], "keyContactId": "contact-sara" },
+    { "id": "acct-coho", "name": "Coho Winery", "aliases": ["Coho"], "phoneticKey": "CHWN", "city": "Napa", "tier": "Commercial", "ownerId": "owner-alex", "teamOwnerIds": ["owner-alex"], "keyContactId": "contact-noah" }
+  ],
+  "contacts": [
+    { "id": "contact-dana", "accountId": "acct-fabrikam", "name": "Dana Ruiz", "title": "VP of Operations", "phone": "+12065550120", "email": "dana.ruiz@fabrikam.example", "isKey": true },
+    { "id": "contact-elliot", "accountId": "acct-fabrikam", "name": "Elliot Park", "title": "Procurement Lead", "phone": "+12065550121", "email": "elliot.park@fabrikam.example", "isKey": false },
+    { "id": "contact-marcus", "accountId": "acct-northwind", "name": "Marcus Bell", "title": "CIO", "phone": "+15035550110", "email": "marcus.bell@northwind.example", "isKey": true },
+    { "id": "contact-lena", "accountId": "acct-tailspin", "name": "Lena Ortiz", "title": "Finance Director", "phone": "+13125550120", "email": "lena.ortiz@tailspin.example", "isKey": true },
+    { "id": "contact-omar", "accountId": "acct-contoso-retail", "name": "Omar Shah", "title": "Retail Systems VP", "phone": "+14255550140", "email": "omar.shah@contosoretail.example", "isKey": true },
+    { "id": "contact-priya", "accountId": "acct-adatum", "name": "Priya Nair", "title": "COO", "phone": "+15125550130", "email": "priya.nair@adatum.example", "isKey": true },
+    { "id": "contact-chen", "accountId": "acct-proseware", "name": "Chen Liu", "title": "Head of Data", "phone": "+16175550111", "email": "chen.liu@proseware.example", "isKey": true },
+    { "id": "contact-sara", "accountId": "acct-wideworld", "name": "Sara Gomez", "title": "Supply Chain VP", "phone": "+16195550110", "email": "sara.gomez@wideworld.example", "isKey": true },
+    { "id": "contact-noah", "accountId": "acct-coho", "name": "Noah Kim", "title": "General Manager", "phone": "+17075550101", "email": "noah.kim@coho.example", "isKey": true }
+  ],
+  "opportunities": [
+    { "id": "opp-fab-renewal", "accountId": "acct-fabrikam", "name": "Enterprise renewal", "aliases": ["renewal", "Fabrikam renewal"], "stage": "Negotiation", "amount": 250000, "closeDate": "2026-06-30", "nextStep": "Security questionnaire", "isOpen": true },
+    { "id": "opp-fab-analytics", "accountId": "acct-fabrikam", "name": "Analytics expansion", "aliases": ["analytics", "expansion"], "stage": "Proposal", "amount": 80000, "closeDate": "2026-08-18", "nextStep": "Technical validation", "isOpen": true },
+    { "id": "opp-fab-renewal-services", "accountId": "acct-fabrikam", "name": "Renewal services add-on", "aliases": ["services renewal", "add on renewal"], "stage": "Proposal", "amount": 42000, "closeDate": "2026-07-10", "nextStep": "Scope services", "isOpen": true },
+    { "id": "opp-northwind-platform", "accountId": "acct-northwind", "name": "Platform consolidation", "aliases": ["platform"], "stage": "Qualification", "amount": 180000, "closeDate": "2026-09-15", "nextStep": "Architecture review", "isOpen": true },
+    { "id": "opp-tailspin-crm", "accountId": "acct-tailspin", "name": "CRM migration", "aliases": ["migration"], "stage": "Proposal", "amount": 120000, "closeDate": "2026-10-01", "nextStep": "Reference call", "isOpen": true },
+    { "id": "opp-contoso-retail-pos", "accountId": "acct-contoso-retail", "name": "POS analytics", "aliases": ["point of sale"], "stage": "Negotiation", "amount": 310000, "closeDate": "2026-07-31", "nextStep": "Procurement review", "isOpen": true }
+  ],
+  "activities": [
+    { "id": "act-fab-last", "accountId": "acct-fabrikam", "type": "call", "subject": "Pilot rollout", "notes": "Reviewed pilot rollout blockers and security requirements.", "date": "2026-05-02", "contactIds": ["contact-dana"], "createdBy": "owner-alex", "tags": [] },
+    { "id": "act-nw-last", "accountId": "acct-northwind", "type": "meeting", "subject": "Platform roadmap", "notes": "Discussed consolidation milestones.", "date": "2026-05-30", "contactIds": ["contact-marcus"], "createdBy": "owner-jordan", "tags": [] }
+  ],
+  "tasks": [
+    { "id": "task-fab-security", "accountId": "acct-fabrikam", "subject": "send the security questionnaire", "dueDate": "2026-06-10", "ownerId": "owner-alex", "status": "open" },
+    { "id": "task-northwind-diagram", "accountId": "acct-northwind", "subject": "send architecture diagram", "dueDate": "2026-06-12", "ownerId": "owner-alex", "status": "open" }
+  ],
+  "drafts": []
+}

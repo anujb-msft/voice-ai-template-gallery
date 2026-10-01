@@ -66,11 +66,11 @@ The agent is an assistant to the rep, not an autonomous editor. It writes only
 allow-listed fields, only to records the rep can already see, and only after the rep
 confirms the exact change.
 
-The demo data lives in `config/` and `data/`:
+The committed demo fixtures live in `config/`; the runtime SQLite database lives in gitignored `code/data/`:
 
 | File | Contents |
 |---|---|
-| `data/crm-seed.json` | About 8 accounts with aliases, city, tier, and account team, plus their contacts, opportunities, activities, and tasks |
+| `config/crm-seed.json` | About 8 accounts with aliases, city, tier, and account team, plus their contacts, opportunities, activities, and tasks |
 | `config/reps.json` | Demo reps with Entra object ID, Teams user ID, registered mobile, PIN hash, and CRM owner ID |
 | `config/writable-fields.json` | The per-entity allow-list with field types and validation rules |
 | `config/picklists.json` | Opportunity stages, activity types, and account tiers, each with spoken names |

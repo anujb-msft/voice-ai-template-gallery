@@ -1,0 +1,6 @@
+{
+  "sections": ["account", "lastActivity", "openOpportunities", "dueTasks", "keyContact"],
+  "openOpportunityLimit": 3,
+  "amountRounding": "nearest-thousand",
+  "targetSeconds": { "min": 30, "max": 45 }
+}

@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Contoso CRM Voice Demo</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <main>
+    <header>
+      <p class="eyebrow">Demo surface</p>
+      <h1>Customer record lookup & update</h1>
+      <p>Typed transcript simulation drives the same server-owned CRM tools used by Voice Live.</p>
+    </header>
+    <section class="panel controls">
+      <button id="start">Start simulated Alex call</button>
+      <button id="reset">Reset data</button>
+      <span id="status">Idle</span>
+    </section>
+    <section class="grid">
+      <article class="panel">
+        <h2>Transcript</h2>
+        <div id="transcript" class="log"></div>
+        <form id="sayForm">
+          <input id="utterance" placeholder="Brief me on Fabrikam" autocomplete="off" />
+          <button>Send</button>
+        </form>
+      </article>
+      <article class="panel">
+        <h2>State</h2>
+        <pre id="snapshot">{}</pre>
+      </article>
+    </section>
+    <section class="panel">
+      <h2>Stats</h2>
+      <pre id="stats">{}</pre>
+    </section>
+  </main>
+  <script src="/app.js" type="module"></script>
+</body>
+</html>
