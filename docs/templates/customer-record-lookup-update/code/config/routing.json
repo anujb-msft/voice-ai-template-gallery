@@ -1,0 +1,8 @@
+{
+  "salesOperations": {
+    "displayName": "Contoso Sales Operations",
+    "type": "callQueue",
+    "objectId": "00000000-0000-0000-0000-000000000097",
+    "hours": { "alwaysOpen": true, "timeZone": "America/Los_Angeles" }
+  }
+}

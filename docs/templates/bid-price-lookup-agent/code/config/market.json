@@ -1,0 +1,8 @@
+{
+  "timeZone": "America/Chicago",
+  "softStaleMinutes": 20,
+  "hardLimitMinutes": 240,
+  "minutesPerAutomatedCall": 3,
+  "sessionHours": { "days": [1, 2, 3, 4, 5], "open": "08:30", "close": "13:20" },
+  "holidays": ["2026-09-07"]
+}

@@ -1,0 +1,402 @@
+{
+  "topics": [
+    {
+      "id": "it-vpn-connect",
+      "domain": "IT",
+      "examples": [
+        "vpn",
+        "disconnect"
+      ],
+      "keywords": [
+        "vpn",
+        "disconnect",
+        "globalprotect"
+      ],
+      "action": {
+        "type": "answer",
+        "articleId": "it-vpn-001",
+        "fallback": {
+          "type": "ticket",
+          "category": "Network/VPN",
+          "impact": "me"
+        }
+      }
+    },
+    {
+      "id": "it-mfa-reregister",
+      "domain": "IT",
+      "examples": [
+        "mfa",
+        "authenticator"
+      ],
+      "keywords": [
+        "mfa",
+        "authenticator",
+        "new phone",
+        "re-register",
+        "reregister"
+      ],
+      "action": {
+        "type": "handoff",
+        "intent": "mfa_reregister",
+        "fallback": {
+          "type": "ticket",
+          "category": "Identity/MFA",
+          "impact": "me"
+        }
+      }
+    },
+    {
+      "id": "it-account-unlock",
+      "domain": "IT",
+      "examples": [
+        "locked out",
+        "account locked"
+      ],
+      "keywords": [
+        "locked out",
+        "account locked",
+        "unlock",
+        "password reset"
+      ],
+      "action": {
+        "type": "handoff",
+        "intent": "unlock",
+        "fallback": {
+          "type": "ticket",
+          "category": "Identity/Account",
+          "impact": "me"
+        }
+      }
+    },
+    {
+      "id": "it-printer",
+      "domain": "IT",
+      "examples": [
+        "printer",
+        "print"
+      ],
+      "keywords": [
+        "printer",
+        "print",
+        "printing"
+      ],
+      "action": {
+        "type": "answer",
+        "articleId": "it-printer-001",
+        "fallback": {
+          "type": "ticket",
+          "category": "Hardware/Printer",
+          "impact": "me"
+        }
+      }
+    },
+    {
+      "id": "it-laptop-display",
+      "domain": "IT",
+      "examples": [
+        "screen",
+        "display"
+      ],
+      "keywords": [
+        "screen",
+        "display",
+        "flicker",
+        "laptop",
+        "monitor"
+      ],
+      "action": {
+        "type": "ticket",
+        "category": "Hardware/Laptop",
+        "impact": "me"
+      }
+    },
+    {
+      "id": "it-software-access",
+      "domain": "IT",
+      "examples": [
+        "access to",
+        "system account"
+      ],
+      "keywords": [
+        "access to",
+        "system account",
+        "payroll system",
+        "permission",
+        "licensed"
+      ],
+      "action": {
+        "type": "ticket",
+        "category": "Access/Application",
+        "impact": "me"
+      }
+    },
+    {
+      "id": "it-outlook",
+      "domain": "IT",
+      "examples": [
+        "outlook",
+        "email"
+      ],
+      "keywords": [
+        "outlook",
+        "email",
+        "mailbox"
+      ],
+      "action": {
+        "type": "ticket",
+        "category": "Messaging/Outlook",
+        "impact": "me"
+      }
+    },
+    {
+      "id": "it-security-phishing",
+      "domain": "IT",
+      "examples": [
+        "phishing",
+        "clicked a link"
+      ],
+      "keywords": [
+        "phishing",
+        "clicked a link",
+        "suspicious link"
+      ],
+      "action": {
+        "type": "ticket",
+        "category": "Security/phishing_click",
+        "impact": "me",
+        "securityCategory": "phishing_click"
+      }
+    },
+    {
+      "id": "it-security-lost-device",
+      "domain": "IT",
+      "examples": [
+        "lost laptop",
+        "stolen laptop"
+      ],
+      "keywords": [
+        "lost laptop",
+        "stolen laptop",
+        "lost phone",
+        "stolen device"
+      ],
+      "action": {
+        "type": "ticket",
+        "category": "Security/lost_device",
+        "impact": "me",
+        "securityCategory": "lost_device"
+      }
+    },
+    {
+      "id": "it-site-outage",
+      "domain": "IT",
+      "examples": [
+        "site is down",
+        "everyone is blocked"
+      ],
+      "keywords": [
+        "site is down",
+        "everyone is blocked",
+        "office network"
+      ],
+      "action": {
+        "type": "ticket",
+        "category": "Network/Site outage",
+        "impact": "site"
+      }
+    },
+    {
+      "id": "hr-pto-policy",
+      "domain": "HR",
+      "examples": [
+        "pto policy",
+        "vacation policy"
+      ],
+      "keywords": [
+        "pto policy",
+        "vacation policy",
+        "time off policy"
+      ],
+      "action": {
+        "type": "answer",
+        "articleId": "hr-pto-policy-001",
+        "fallback": {
+          "type": "queue",
+          "destination": "hr-shared-services"
+        }
+      }
+    },
+    {
+      "id": "hr-pto-balance",
+      "domain": "HR",
+      "examples": [
+        "pto balance",
+        "how much pto"
+      ],
+      "keywords": [
+        "pto balance",
+        "how much pto",
+        "vacation balance"
+      ],
+      "action": {
+        "type": "personal",
+        "kind": "pto_balance"
+      }
+    },
+    {
+      "id": "hr-benefits-window",
+      "domain": "HR",
+      "examples": [
+        "benefits enrollment",
+        "open enrollment"
+      ],
+      "keywords": [
+        "my benefits window",
+        "benefits window status",
+        "qualifying life event"
+      ],
+      "action": {
+        "type": "personal",
+        "kind": "benefits_window"
+      }
+    },
+    {
+      "id": "hr-pay-calendar",
+      "domain": "HR",
+      "examples": [
+        "pay date",
+        "payday"
+      ],
+      "keywords": [
+        "pay date",
+        "payday",
+        "pay calendar",
+        "next pay"
+      ],
+      "action": {
+        "type": "personal",
+        "kind": "next_pay_date",
+        "destination": "payroll"
+      }
+    },
+    {
+      "id": "hr-manager",
+      "domain": "HR",
+      "examples": [
+        "who is my manager",
+        "manager name"
+      ],
+      "keywords": [
+        "who is my manager",
+        "manager name",
+        "reports to"
+      ],
+      "action": {
+        "type": "personal",
+        "kind": "manager_name"
+      }
+    },
+    {
+      "id": "hr-benefits-general",
+      "domain": "HR",
+      "examples": [
+        "benefits",
+        "medical plan"
+      ],
+      "keywords": [
+        "benefits enrollment",
+        "open enrollment",
+        "benefits",
+        "medical plan",
+        "dental"
+      ],
+      "action": {
+        "type": "answer",
+        "articleId": "hr-benefits-001",
+        "fallback": {
+          "type": "queue",
+          "destination": "hr-shared-services"
+        }
+      }
+    },
+    {
+      "id": "hr-payroll-issue",
+      "domain": "HR",
+      "examples": [
+        "paycheck wrong",
+        "pay dispute"
+      ],
+      "keywords": [
+        "paycheck wrong",
+        "pay dispute",
+        "pay is wrong",
+        "payroll issue"
+      ],
+      "action": {
+        "type": "queue",
+        "destination": "payroll"
+      }
+    },
+    {
+      "id": "hr-manager-guide",
+      "domain": "HR",
+      "examples": [
+        "manager guide",
+        "performance review"
+      ],
+      "keywords": [
+        "manager guide",
+        "performance review",
+        "performance process"
+      ],
+      "action": {
+        "type": "answer",
+        "articleId": "hr-manager-guide-001",
+        "fallback": {
+          "type": "queue",
+          "destination": "hr-shared-services"
+        }
+      }
+    },
+    {
+      "id": "both-new-hire",
+      "domain": "both",
+      "examples": [
+        "new hire",
+        "onboarding"
+      ],
+      "keywords": [
+        "new hire",
+        "onboarding",
+        "laptop and benefits"
+      ],
+      "action": {
+        "type": "answer",
+        "articleId": "hr-onboarding-001",
+        "fallback": {
+          "type": "ticket",
+          "category": "Onboarding",
+          "impact": "me"
+        }
+      }
+    },
+    {
+      "id": "out-expenses",
+      "domain": "unclear",
+      "examples": [
+        "expense report",
+        "travel expense"
+      ],
+      "keywords": [
+        "expense report",
+        "travel expense",
+        "reimbursement"
+      ],
+      "action": {
+        "type": "out_of_scope",
+        "channelText": "Travel and expenses are not handled on this line. Use the Contoso Travel page on the intranet."
+      }
+    }
+  ]
+}

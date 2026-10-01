@@ -1,0 +1,11 @@
+{
+  "leadTimeHours": 48,
+  "leadWindowHours": 8,
+  "callingWindow": { "start": "08:00", "end": "20:00" },
+  "maxAttempts": 3,
+  "minSpacingHours": 4,
+  "cutoffHoursBeforeAppointment": 24,
+  "voicemailOnLastAttempt": true,
+  "maxConcurrent": 2,
+  "nightlyRunLocalTime": "18:00"
+}

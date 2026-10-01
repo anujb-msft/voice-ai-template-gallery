@@ -1,0 +1,10 @@
+{
+  "NEW_PROBLEM": { "spokenName": { "en": "new-problem visit", "es": "cita por un problema nuevo" }, "durationMinutes": 30, "department": "Primary Care", "eligibleProviderRoles": ["PCP"], "prepCode": "BRING_MED_LIST", "accessTargetDays": 14 },
+  "FOLLOW_UP": { "spokenName": { "en": "follow-up visit", "es": "cita de seguimiento" }, "durationMinutes": 15, "department": "Primary Care", "eligibleProviderRoles": ["PCP"], "prepCode": "ARRIVE_15", "accessTargetDays": 14 },
+  "ANNUAL_PHYSICAL": { "spokenName": { "en": "annual physical", "es": "examen físico anual" }, "durationMinutes": 40, "department": "Primary Care", "eligibleProviderRoles": ["PCP"], "prepCode": "ARRIVE_15", "accessTargetDays": 30, "frequencyMonths": 12 },
+  "DERM_SKIN_CHECK": { "spokenName": { "en": "skin check", "es": "revisión de la piel" }, "durationMinutes": 20, "department": "Dermatology", "eligibleProviderRoles": ["Dermatologist"], "prepCode": "NO_LOTION", "accessTargetDays": 21, "requiresReferral": true },
+  "DERM_NEW_PROBLEM": { "spokenName": { "en": "dermatology new-problem visit", "es": "cita nueva de dermatología" }, "durationMinutes": 30, "department": "Dermatology", "eligibleProviderRoles": ["Dermatologist"], "prepCode": "NO_LOTION", "accessTargetDays": 21, "requiresReferral": true },
+  "XRAY": { "spokenName": { "en": "X-ray", "es": "radiografía" }, "durationMinutes": 15, "department": "Imaging", "eligibleProviderRoles": ["Radiologist"], "prepCode": "ARRIVE_15", "accessTargetDays": 14, "requiresOrder": "X-ray" },
+  "ULTRASOUND": { "spokenName": { "en": "ultrasound", "es": "ultrasonido" }, "durationMinutes": 30, "department": "Imaging", "eligibleProviderRoles": ["Radiologist"], "prepCode": "FASTING_8H", "accessTargetDays": 14, "requiresOrder": "Ultrasound" },
+  "MRI": { "spokenName": { "en": "MRI", "es": "resonancia magnética" }, "durationMinutes": 45, "department": "Imaging", "eligibleProviderRoles": ["Radiologist"], "prepCode": "FASTING_8H", "accessTargetDays": 21, "requiresOrder": "MRI" }
+}

@@ -164,6 +164,27 @@ function validateTemplate(template, file, folder) {
   }
 }
 
+/**
+ * Derived from the folder (never declared in template.json) so the gallery's
+ * build prompt can point a coding agent at the template's real source: the
+ * SPEC.md decision record when present, and whether code/ ships a runnable
+ * reference implementation or only an implementation README.
+ */
+function deriveSource(folder) {
+  const base = `templates/${folder}/`;
+  const exists = (relative) => fs.existsSync(path.join(docsDir, base, relative));
+  const runnable = exists("code/package.json");
+  return {
+    spec: exists("SPEC.md") ? `${base}SPEC.md` : null,
+    runnable,
+    code: runnable
+      ? ["package.json", "src/", "test/", "config/", "knowledge/", "DEMO-SCRIPT.md"]
+          .filter((entry) => exists(`code/${entry}`))
+          .map((entry) => `${base}code/${entry}`)
+      : [],
+  };
+}
+
 function main() {
   if (!fs.existsSync(templatesDir)) throw new Error("docs/templates does not exist");
   const templates = fs.readdirSync(templatesDir, { withFileTypes: true })
@@ -178,7 +199,7 @@ function main() {
         fail(file, `invalid JSON (${error.message})`);
       }
       validateTemplate(manifest, file, folder);
-      return manifest;
+      return { ...manifest, source: deriveSource(folder) };
     })
     .sort((left, right) => left.name.localeCompare(right.name));
 

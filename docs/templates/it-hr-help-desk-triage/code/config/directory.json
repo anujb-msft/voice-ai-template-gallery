@@ -1,0 +1,220 @@
+{
+  "employees": [
+    {
+      "workEmail": "sam.rivera@contoso.com",
+      "firstName": "Sam",
+      "displayName": "Sam Rivera",
+      "entraObjectId": "11111111-1111-1111-1111-111111111111",
+      "teamsUserId": "8:orgid:11111111-1111-1111-1111-111111111111",
+      "mobileNumber": "+14255550101",
+      "region": "US",
+      "role": "employee",
+      "manager": "Alex Kim",
+      "devices": [
+        {
+          "type": "Surface Laptop",
+          "assetTag": "LAP-4471",
+          "serialLast4": "4471"
+        }
+      ]
+    },
+    {
+      "workEmail": "maria.lopez@contoso.com",
+      "firstName": "Maria",
+      "displayName": "Maria Lopez",
+      "entraObjectId": "22222222-2222-2222-2222-222222222222",
+      "teamsUserId": "8:orgid:22222222-2222-2222-2222-222222222222",
+      "mobileNumber": "+353871111222",
+      "region": "EU",
+      "role": "manager",
+      "manager": "Priya Shah",
+      "devices": [
+        {
+          "type": "ThinkPad",
+          "assetTag": "LAP-1188",
+          "serialLast4": "1188"
+        }
+      ]
+    },
+    {
+      "workEmail": "li.wei@contoso.com",
+      "firstName": "Li",
+      "displayName": "Li Wei",
+      "entraObjectId": "33333333-3333-3333-3333-333333333333",
+      "teamsUserId": "8:orgid:33333333-3333-3333-3333-333333333333",
+      "mobileNumber": "+6591234567",
+      "region": "APAC",
+      "role": "employee",
+      "manager": "Maria Lopez",
+      "devices": [
+        {
+          "type": "Surface Pro",
+          "assetTag": "TAB-9001",
+          "serialLast4": "9001"
+        }
+      ]
+    },
+    {
+      "workEmail": "alex.kim@contoso.com",
+      "firstName": "Alex",
+      "displayName": "Alex Kim",
+      "entraObjectId": "44444444-4444-4444-4444-444444444444",
+      "teamsUserId": "8:orgid:44444444-4444-4444-4444-444444444444",
+      "mobileNumber": "+14255550104",
+      "region": "US",
+      "role": "manager",
+      "manager": "Nina Patel",
+      "devices": [
+        {
+          "type": "MacBook Pro",
+          "assetTag": "MAC-2050",
+          "serialLast4": "2050"
+        }
+      ]
+    },
+    {
+      "workEmail": "demo1@contoso.com",
+      "firstName": "Demo1",
+      "displayName": "Demo User 1",
+      "entraObjectId": "55555555-5555-5555-5555-555555555501",
+      "teamsUserId": "8:orgid:55555555-5555-5555-5555-555555555501",
+      "mobileNumber": "+14255550201",
+      "region": "US",
+      "role": "employee",
+      "manager": "Sam Rivera",
+      "devices": [
+        {
+          "type": "Surface Laptop",
+          "assetTag": "LAP-3001",
+          "serialLast4": "3001"
+        }
+      ]
+    },
+    {
+      "workEmail": "demo2@contoso.com",
+      "firstName": "Demo2",
+      "displayName": "Demo User 2",
+      "entraObjectId": "55555555-5555-5555-5555-555555555502",
+      "teamsUserId": "8:orgid:55555555-5555-5555-5555-555555555502",
+      "mobileNumber": "+14255550202",
+      "region": "US",
+      "role": "employee",
+      "manager": "Sam Rivera",
+      "devices": [
+        {
+          "type": "Surface Laptop",
+          "assetTag": "LAP-3002",
+          "serialLast4": "3002"
+        }
+      ]
+    },
+    {
+      "workEmail": "demo3@contoso.com",
+      "firstName": "Demo3",
+      "displayName": "Demo User 3",
+      "entraObjectId": "55555555-5555-5555-5555-555555555503",
+      "teamsUserId": "8:orgid:55555555-5555-5555-5555-555555555503",
+      "mobileNumber": "+14255550203",
+      "region": "US",
+      "role": "employee",
+      "manager": "Sam Rivera",
+      "devices": [
+        {
+          "type": "Surface Laptop",
+          "assetTag": "LAP-3003",
+          "serialLast4": "3003"
+        }
+      ]
+    },
+    {
+      "workEmail": "demo4@contoso.com",
+      "firstName": "Demo4",
+      "displayName": "Demo User 4",
+      "entraObjectId": "55555555-5555-5555-5555-555555555504",
+      "teamsUserId": "8:orgid:55555555-5555-5555-5555-555555555504",
+      "mobileNumber": "+14255550204",
+      "region": "US",
+      "role": "employee",
+      "manager": "Sam Rivera",
+      "devices": [
+        {
+          "type": "Surface Laptop",
+          "assetTag": "LAP-3004",
+          "serialLast4": "3004"
+        }
+      ]
+    },
+    {
+      "workEmail": "demo5@contoso.com",
+      "firstName": "Demo5",
+      "displayName": "Demo User 5",
+      "entraObjectId": "55555555-5555-5555-5555-555555555505",
+      "teamsUserId": "8:orgid:55555555-5555-5555-5555-555555555505",
+      "mobileNumber": "+14255550205",
+      "region": "US",
+      "role": "employee",
+      "manager": "Sam Rivera",
+      "devices": [
+        {
+          "type": "Surface Laptop",
+          "assetTag": "LAP-3005",
+          "serialLast4": "3005"
+        }
+      ]
+    },
+    {
+      "workEmail": "demo6@contoso.com",
+      "firstName": "Demo6",
+      "displayName": "Demo User 6",
+      "entraObjectId": "55555555-5555-5555-5555-555555555506",
+      "teamsUserId": "8:orgid:55555555-5555-5555-5555-555555555506",
+      "mobileNumber": "+14255550206",
+      "region": "US",
+      "role": "employee",
+      "manager": "Sam Rivera",
+      "devices": [
+        {
+          "type": "Surface Laptop",
+          "assetTag": "LAP-3006",
+          "serialLast4": "3006"
+        }
+      ]
+    },
+    {
+      "workEmail": "demo7@contoso.com",
+      "firstName": "Demo7",
+      "displayName": "Demo User 7",
+      "entraObjectId": "55555555-5555-5555-5555-555555555507",
+      "teamsUserId": "8:orgid:55555555-5555-5555-5555-555555555507",
+      "mobileNumber": "+14255550207",
+      "region": "US",
+      "role": "employee",
+      "manager": "Sam Rivera",
+      "devices": [
+        {
+          "type": "Surface Laptop",
+          "assetTag": "LAP-3007",
+          "serialLast4": "3007"
+        }
+      ]
+    },
+    {
+      "workEmail": "demo8@contoso.com",
+      "firstName": "Demo8",
+      "displayName": "Demo User 8",
+      "entraObjectId": "55555555-5555-5555-5555-555555555508",
+      "teamsUserId": "8:orgid:55555555-5555-5555-5555-555555555508",
+      "mobileNumber": "+14255550208",
+      "region": "US",
+      "role": "employee",
+      "manager": "Sam Rivera",
+      "devices": [
+        {
+          "type": "Surface Laptop",
+          "assetTag": "LAP-3008",
+          "serialLast4": "3008"
+        }
+      ]
+    }
+  ]
+}

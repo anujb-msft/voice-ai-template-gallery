@@ -1,0 +1,7 @@
+{
+  "referrals": [
+    { "patientId": "P-1002", "department": "Dermatology", "status": "active", "expires": "2026-12-31" },
+    { "patientId": "P-1004", "department": "Dermatology", "status": "expired", "expires": "2026-01-31" },
+    { "patientId": "P-1011", "department": "Dermatology", "status": "active", "expires": "2026-12-31" }
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "ARRIVE_15": {
+    "en": "Please arrive 15 minutes early.",
+    "es": "Por favor llegue 15 minutos antes."
+  },
+  "FASTING_8H": {
+    "en": "Please do not eat or drink anything except water for 8 hours before your appointment, and arrive 15 minutes early.",
+    "es": "Por favor no coma ni beba nada excepto agua durante 8 horas antes de su cita, y llegue 15 minutos antes."
+  },
+  "BRING_MED_LIST": {
+    "en": "Please bring a current list of your medications and arrive 15 minutes early.",
+    "es": "Por favor traiga una lista actual de sus medicamentos y llegue 15 minutos antes."
+  },
+  "NO_LOTION": {
+    "en": "Please do not apply lotion or makeup to the area being checked before your dermatology visit.",
+    "es": "Por favor no aplique loción ni maquillaje en el área que se revisará antes de dermatología."
+  }
+}

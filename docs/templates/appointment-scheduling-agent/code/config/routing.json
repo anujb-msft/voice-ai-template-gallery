@@ -1,0 +1,8 @@
+{
+  "destinations": {
+    "scheduling_team": { "target": "00000000-0000-0000-0000-000000000001", "topic": "Scheduling – caller request", "fields": ["firstName", "verified", "visitType", "eligibility", "heldSlot"] },
+    "nurse_line": { "target": "00000000-0000-0000-0000-000000000002", "topic": "Nurse line – urgent symptom", "fields": ["firstName", "verified", "safety"] },
+    "referral_coordinator": { "target": "00000000-0000-0000-0000-000000000003", "topic": "Scheduling – referral needed", "fields": ["firstName", "department", "ruleId"] },
+    "registration_callback": { "target": "callback", "topic": "Registration callback", "fields": ["callbackNumber", "preferredTime"] }
+  }
+}

@@ -1,0 +1,5 @@
+{
+  "emergency": ["trouble breathing", "can't breathe", "chest pain", "stroke", "suicidal", "unconscious"],
+  "urgent": ["high fever", "fever for three days", "severe pain", "bleeding", "pregnant and pain"],
+  "clinicalReviewRequired": true
+}

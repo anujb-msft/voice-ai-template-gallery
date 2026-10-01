@@ -1,0 +1,32 @@
+{
+  "activity": {
+    "create": {
+      "subject": { "type": "text", "maxLength": 120 },
+      "type": { "type": "picklist", "picklist": "activityType" },
+      "notes": { "type": "text", "maxLength": 1000 },
+      "date": { "type": "date" },
+      "contacts": { "type": "contact-list" }
+    }
+  },
+  "opportunity": {
+    "update": {
+      "stage": { "type": "picklist", "picklist": "opportunityStage" },
+      "amount": { "type": "currency", "min": 0, "max": 10000000 },
+      "closeDate": { "type": "date", "notBefore": "today" },
+      "nextStep": { "type": "text", "maxLength": 200 }
+    }
+  },
+  "task": {
+    "create": {
+      "subject": { "type": "text", "maxLength": 120 },
+      "dueDate": { "type": "date", "withinDays": 90 },
+      "owner": { "type": "fixed", "value": "me" }
+    }
+  },
+  "contact": {
+    "update": {
+      "phone": { "type": "phone" },
+      "email": { "type": "email" }
+    }
+  }
+}

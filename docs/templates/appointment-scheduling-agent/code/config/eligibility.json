@@ -1,0 +1,8 @@
+{
+  "rules": [
+    { "id": "INSURANCE_INACTIVE", "appliesTo": ["*"], "explain": { "en": "Your insurance is not active in our demo record. I can continue if you acknowledge self-pay, or ask scheduling to call you.", "es": "Su seguro no está activo en el registro de demostración. Puedo continuar si acepta pago propio, o pedir que programación le llame." }, "alternatives": ["acknowledge_self_pay", "scheduling_callback"] },
+    { "id": "ANNUAL_TOO_SOON", "appliesTo": ["ANNUAL_PHYSICAL"], "explain": { "en": "I see an annual physical within the last 12 months, so I can't book another annual physical by voice.", "es": "Veo un examen físico anual en los últimos 12 meses, así que no puedo reservar otro por voz." }, "alternatives": ["book_follow_up", "scheduling_callback"] },
+    { "id": "REFERRAL_REQUIRED", "appliesTo": ["DERM_SKIN_CHECK", "DERM_NEW_PROBLEM"], "explain": { "en": "Dermatology visits need a referral from your primary care provider, and I don't see an active one on file.", "es": "Las citas de dermatología requieren una referencia de su médico de atención primaria, y no veo una activa." }, "alternatives": ["book_pcp_visit", "referral_coordinator_callback"] },
+    { "id": "ORDER_REQUIRED", "appliesTo": ["XRAY", "ULTRASOUND", "MRI"], "explain": { "en": "Imaging visits need an active order for that modality, and I don't see one on file.", "es": "Las citas de imágenes requieren una orden activa para esa modalidad, y no veo una." }, "alternatives": ["book_pcp_visit", "scheduling_callback"] }
+  ]
+}

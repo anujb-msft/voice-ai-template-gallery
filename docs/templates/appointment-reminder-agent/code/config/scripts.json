@@ -1,0 +1,24 @@
+{
+  "en": {
+    "opening": "Hi, this is Contoso Health's automated assistant, calling with an appointment reminder. Am I speaking with {firstName}?",
+    "askDob": "Thanks, {firstName}. To protect your privacy, please tell me your date of birth.",
+    "wrongParty": "Thanks. Could you please ask {firstName} to call Contoso Health at {callbackNumber}? Have a good day.",
+    "unverified": "I'm sorry, I wasn't able to confirm that. Please call us at {callbackNumber}.",
+    "voicemail": "This is Contoso Health calling for {firstName} with an appointment reminder. Please call us back at {callbackNumber}. Thank you.",
+    "optOut": "Okay. You won't get any more automated reminder calls from Contoso Health. You can change this anytime through the patient portal or by calling the clinic.",
+    "emergency": "If this is an emergency, please hang up and call 911.",
+    "clinical": "I can't give medical advice, but our nurse line can help. Would you like me to connect you?",
+    "dtmfMenu": "You can also use your keypad. Press 1 to confirm, 2 to cancel, 3 to change the time, 9 to stop reminder calls, or star to repeat."
+  },
+  "es": {
+    "opening": "Hola, soy el asistente automatizado de Contoso Health, llamando con un recordatorio de cita. ¿Hablo con {firstName}?",
+    "askDob": "Gracias, {firstName}. Para proteger su privacidad, dígame su fecha de nacimiento.",
+    "wrongParty": "Gracias. ¿Podría pedirle a {firstName} que llame a Contoso Health al {callbackNumber}? Que tenga buen día.",
+    "unverified": "Lo siento, no pude confirmarlo. Por favor llámenos al {callbackNumber}.",
+    "voicemail": "Contoso Health llama para {firstName} con un recordatorio de cita. Por favor devuélvanos la llamada al {callbackNumber}. Gracias.",
+    "optOut": "De acuerdo. No recibirá más llamadas automáticas de recordatorio de Contoso Health. Puede cambiar esto en el portal del paciente o llamando a la clínica.",
+    "emergency": "Si esto es una emergencia, cuelgue y llame al 911.",
+    "clinical": "No puedo dar consejos médicos, pero nuestra línea de enfermería puede ayudar. ¿Quiere que le conecte?",
+    "dtmfMenu": "También puede usar el teclado. Presione 1 para confirmar, 2 para cancelar, 3 para cambiar la hora, 9 para dejar de recibir llamadas, o asterisco para repetir."
+  }
+}

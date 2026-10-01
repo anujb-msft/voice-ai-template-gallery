@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Contoso Grain Co-op — Bid Line</title>
+<link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+<header class="top">
+  <div class="brand"><span class="logo"></span><strong>Contoso Grain Co-op</strong><span class="pill">Bid line demo</span></div>
+  <div class="top-right"><span class="mode" id="mode">checking…</span><button class="ghost" id="statsBtn">Refresh metrics</button></div>
+</header>
+<main class="grid">
+  <section class="card call">
+    <div class="card-head"><h2>Typed call simulation</h2><span class="state-chip" id="stateChip" data-state="idle">no call</span></div>
+    <button class="primary" id="newCall">Answer demo call</button>
+    <div class="budget" id="budgetWrap" hidden><div class="budget-bar"><span id="budgetFill"></span></div><span class="budget-label" id="budgetLabel"></span></div>
+    <ol class="transcript" id="transcript"><li class="empty">Start a call, then type “what’s corn at Riverside”, “all locations for corn”, or “I want to sell”.</li></ol>
+    <form class="say" id="sayForm"><input id="sayInput" placeholder="Caller says…" disabled /><button class="primary" id="sayBtn" disabled>Say</button></form>
+    <div class="controls"><button class="ghost" data-dtmf="*" disabled>DTMF *</button><button class="ghost" data-dtmf="0" disabled>DTMF 0</button><button class="ghost" id="silence" disabled>Silence</button><button class="ghost danger" id="hangup" disabled>Hang up</button></div>
+  </section>
+  <section class="card decision">
+    <div class="card-head"><h2>Current quote</h2></div>
+    <dl class="facts">
+      <div><dt>Location</dt><dd id="factLocation">—</dd></div>
+      <div><dt>Commodity</dt><dd id="factCommodity">—</dd></div>
+      <div><dt>Freshness</dt><dd id="factFreshness">—</dd></div>
+      <div><dt>Reference</dt><dd id="factReference">—</dd></div>
+      <div><dt>Basis</dt><dd id="factBasis">—</dd></div>
+    </dl>
+    <h3 class="sub-head">Bid board</h3>
+    <div class="board-actions"><button class="ghost" id="staleBtn">Make stale</button><button class="ghost danger" id="feedDownBtn">Feed down</button></div>
+    <ul class="routes" id="bidBoard"></ul>
+  </section>
+  <section class="card teams">
+    <div class="card-head"><h2>Teams handoff preview</h2><span class="tag">mock</span></div>
+    <div class="toast" id="toast" hidden><p class="topic" id="toastTopic">—</p><p class="context" id="toastContext"></p></div>
+    <p class="empty" id="toastEmpty">No transfer yet.</p>
+    <h3 class="sub-head">VoIP headers</h3><pre class="headers" id="headers">—</pre>
+  </section>
+  <section class="card trail"><div class="card-head"><h2>Audit trail</h2></div><ol class="events" id="events"><li class="empty">Nothing yet.</li></ol></section>
+</main>
+<footer class="metrics" id="metrics"></footer>
+<script src="/app.js" type="module"></script>
+</body>
+</html>

@@ -1,0 +1,12 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Appointment Scheduling Agent</title><link rel="stylesheet" href="/styles.css"></head>
+<body>
+  <header><h1>Contoso Health appointment scheduling agent</h1><p>Demo presenter console: simulated call, live state, provider grid, and race control.</p></header>
+  <main>
+    <section class="panel"><h2>Controls</h2><button id="reset">Reset data</button><button id="simulate">Simulate booking call</button><button id="compete">Simulate competing caller</button><button id="refresh">Refresh</button><input id="say" placeholder="Type caller utterance"><button id="send">Send</button></section>
+    <section class="panel"><h2>Health</h2><pre id="health"></pre></section>
+    <section class="panel"><h2>Provider schedule grid</h2><table><thead><tr><th>Type</th><th>Provider</th><th>When</th><th>Location</th><th>Status</th></tr></thead><tbody id="grid"></tbody></table></section>
+    <section class="panel wide"><h2>Live call</h2><pre id="call"></pre></section>
+  </main><script src="/app.js"></script>
+</body></html>

@@ -1,0 +1,10 @@
+{
+  "eligibleItems": ["mattress", "sofa", "chair", "table", "dresser"],
+  "ineligibleItems": ["paint", "oil", "battery", "refrigerator", "construction debris"],
+  "maxItemsPerCall": 3,
+  "calendar": {
+    "A": ["2026-10-03", "2026-10-10"],
+    "B": ["2026-10-04", "2026-10-11"],
+    "C": ["2026-10-05", "2026-10-12"]
+  }
+}

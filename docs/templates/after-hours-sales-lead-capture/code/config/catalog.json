@@ -1,0 +1,7 @@
+{
+  "lines": [
+    { "id": "fasteners", "name": "Industrial fasteners", "aliases": ["fastener", "fasteners", "bolts", "bolt", "screws", "nuts", "washers"], "skuFamilies": ["hex bolts", "machine screws", "lock nuts", "flat washers"], "minimumOrderQuantity": 5000, "typicalLeadTime": "3–7 business days" },
+    { "id": "fittings", "name": "Pipe and hose fittings", "aliases": ["fitting", "fittings", "couplers", "valves", "hose"], "skuFamilies": ["brass fittings", "stainless couplers", "hose barbs", "ball valves"], "minimumOrderQuantity": 250, "typicalLeadTime": "5–10 business days" },
+    { "id": "packaging", "name": "Packaging supplies", "aliases": ["packaging", "boxes", "cartons", "tape", "pallet wrap", "wrap"], "skuFamilies": ["corrugated cartons", "poly mailers", "pallet wrap", "packing tape"], "minimumOrderQuantity": 1000, "typicalLeadTime": "2–5 business days" }
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "schedulingAgent": {
+    "displayName": "Appointment scheduling agent",
+    "target": "",
+    "callContextFields": ["intent", "appointmentId", "patientRef", "verified", "sessionId"]
+  },
+  "frontDesk": { "displayName": "Clinic front desk", "target": "+12065550100" },
+  "nurseLine": { "displayName": "Nurse line", "target": "+12065550111" }
+}

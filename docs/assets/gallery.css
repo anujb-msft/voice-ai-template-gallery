@@ -1954,6 +1954,34 @@ body {
   color: #d7d2c8;
 }
 
+.copilot-app-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  margin-top: 10px;
+  padding: 10px 16px;
+  border: 1px solid #e8bd69;
+  background: transparent;
+  color: #f4eee2;
+  font-family: var(--sans);
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: 0.16em;
+  text-decoration: none;
+  text-transform: uppercase;
+}
+
+.copilot-app-button:hover,
+.copilot-app-button:focus-visible {
+  background: #e8bd69;
+  color: #211b10;
+}
+
+.copilot-app-button[hidden] {
+  display: none;
+}
+
 /*
  * "Repository" implementation resource: styled and ready, but #repoAction is
  * left empty here because the GitHub repo URL is per-template data that only

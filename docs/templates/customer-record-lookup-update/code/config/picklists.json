@@ -1,0 +1,21 @@
+{
+  "opportunityStage": [
+    { "value": "Prospecting", "spoken": "Prospecting" },
+    { "value": "Qualification", "spoken": "Qualification" },
+    { "value": "Proposal", "spoken": "Proposal" },
+    { "value": "Negotiation", "spoken": "Negotiation" },
+    { "value": "Closed Won", "spoken": "Closed Won" },
+    { "value": "Closed Lost", "spoken": "Closed Lost" }
+  ],
+  "activityType": [
+    { "value": "call", "spoken": "call" },
+    { "value": "meeting", "spoken": "meeting" },
+    { "value": "email", "spoken": "email" },
+    { "value": "note", "spoken": "note" }
+  ],
+  "accountTier": [
+    { "value": "Strategic", "spoken": "Strategic tier" },
+    { "value": "Enterprise", "spoken": "Enterprise tier" },
+    { "value": "Commercial", "spoken": "Commercial tier" }
+  ]
+}

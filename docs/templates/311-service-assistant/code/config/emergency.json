@@ -1,0 +1,9 @@
+{
+  "categories": [
+    { "id": "fire", "redirect": "911", "phrases": { "en": ["fire", "flames", "smoke in the building"], "es": ["incendio", "fuego", "llamas"] } },
+    { "id": "gas", "redirect": "gas utility at 555-0109", "phrases": { "en": ["gas smell", "smell gas", "gas leak"], "es": ["olor a gas", "fuga de gas"] } },
+    { "id": "crime", "redirect": "911", "phrases": { "en": ["crime in progress", "being robbed", "break in happening"], "es": ["crimen en progreso", "robo en progreso"] } },
+    { "id": "power-line", "redirect": "911", "phrases": { "en": ["downed power line", "wire down", "power line down"], "es": ["cable eléctrico caído", "línea eléctrica caída"] } },
+    { "id": "medical", "redirect": "911", "phrases": { "en": ["medical emergency", "heart attack", "can't breathe", "cannot breathe"], "es": ["emergencia médica", "ataque al corazón", "no puede respirar"] } }
+  ]
+}

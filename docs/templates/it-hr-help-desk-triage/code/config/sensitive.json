@@ -1,0 +1,49 @@
+{
+  "acknowledgement": {
+    "en": "That is something our HR team should handle directly. I will connect you to a confidential HR line.",
+    "es": "Eso es algo que nuestro equipo de Recursos Humanos debe atender directamente. Le conectar\u00e9 con una l\u00ednea confidencial de Recursos Humanos."
+  },
+  "afterHours": {
+    "en": "Our confidential HR line is closed right now. You can reach the Contoso ethics hotline any time at the number I will send you, or I can ask HR to call you back next business day."
+  },
+  "safety": {
+    "en": "If you are in danger or thinking about harming yourself, please call your local emergency number or a crisis line now. You can also call the Contoso EAP at 1-800-555-0100. This is not a crisis line."
+  },
+  "phrases": [
+    "harassment",
+    "discrimination",
+    "medical leave",
+    "accommodation",
+    "accommodations",
+    "termination",
+    "fired me",
+    "pay dispute",
+    "hostile",
+    "retaliation",
+    "ethics",
+    "comments about me",
+    "bullying",
+    "sexual",
+    "pregnant",
+    "violence at work",
+    "harassing",
+    "harassed"
+  ],
+  "riskOfHarm": [
+    "hurt myself",
+    "harm myself",
+    "suicide",
+    "kill myself",
+    "in danger",
+    "unsafe right now"
+  ],
+  "categories": [
+    "harassment",
+    "discrimination",
+    "medical_leave",
+    "accommodation",
+    "termination",
+    "pay_dispute",
+    "employee_relations"
+  ]
+}

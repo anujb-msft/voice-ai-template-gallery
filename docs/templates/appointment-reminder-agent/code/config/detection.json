@@ -1,0 +1,10 @@
+{
+  "voicemailGreetingMs": 4500,
+  "beepTokens": ["beep", "tone"],
+  "voicemailPhrases": {
+    "en": ["leave a message", "after the tone", "at the beep", "can't take your call", "not available"],
+    "es": ["deje un mensaje", "después del tono", "no puedo contestar", "no está disponible"]
+  },
+  "emergencyPhrases": ["chest pain", "trouble breathing", "can't breathe", "stroke", "suicide", "unconscious"],
+  "clinicalQuestionPhrases": ["fever", "should i still come", "medicine", "symptom", "pain", "rash", "sick"]
+}

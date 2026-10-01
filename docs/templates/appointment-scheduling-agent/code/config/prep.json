@@ -1,0 +1,6 @@
+{
+  "ARRIVE_15": { "en": "Please arrive 15 minutes early.", "es": "Llegue 15 minutos antes." },
+  "BRING_MED_LIST": { "en": "Please arrive 15 minutes early and bring a list of your medications.", "es": "Llegue 15 minutos antes y traiga una lista de sus medicamentos." },
+  "NO_LOTION": { "en": "Please do not apply lotion before the visit.", "es": "No use loción antes de la cita." },
+  "FASTING_8H": { "en": "Please follow the fasting instructions in your portal.", "es": "Siga las instrucciones de ayuno en su portal." }
+}

@@ -1,0 +1,31 @@
+{
+  "organization": "Contoso Health",
+  "locations": {
+    "seattle-northgate": {
+      "displayName": "Northgate clinic",
+      "timeZone": "America/Los_Angeles",
+      "callbackNumber": "206-555-0100",
+      "frontDesk": { "hours": { "start": "07:00", "end": "18:00" }, "target": "+12065550100" },
+      "nurseLine": { "hours": { "start": "08:00", "end": "17:00" }, "target": "+12065550111" },
+      "afterHoursNurseAdviceNumber": "206-555-0199",
+      "holidays": ["2026-05-25"],
+      "lateCancellation": {
+        "en": "Because this appointment starts in less than 24 hours, a late-cancellation note may be added to your account.",
+        "es": "Como esta cita comienza en menos de 24 horas, es posible que se agregue una nota de cancelación tardía a su cuenta."
+      }
+    },
+    "phoenix-downtown": {
+      "displayName": "Downtown Phoenix clinic",
+      "timeZone": "America/Phoenix",
+      "callbackNumber": "602-555-0100",
+      "frontDesk": { "hours": { "start": "07:00", "end": "18:00" }, "target": "+16025550100" },
+      "nurseLine": { "hours": { "start": "08:00", "end": "17:00" }, "target": "+16025550111" },
+      "afterHoursNurseAdviceNumber": "602-555-0199",
+      "holidays": ["2026-05-25"],
+      "lateCancellation": {
+        "en": "Because this appointment starts in less than 24 hours, a late-cancellation note may be added to your account.",
+        "es": "Como esta cita comienza en menos de 24 horas, es posible que se agregue una nota de cancelación tardía a su cuenta."
+      }
+    }
+  }
+}

@@ -80,7 +80,8 @@
       },
     },
     copilot: {
-      label: "GitHub Copilot CLI",
+      label: "GitHub Copilot",
+      app: true,
       build: function (brief) {
         return "copilot -p " + JSON.stringify(brief);
       },
@@ -216,30 +217,124 @@
   }
 
   /**
-   * Kept intentionally short: the business and technical fields already
-   * appear in full in the business-case and technical-fit cards next to
-   * this command, so the prompt only needs to state the action, the
-   * workflow to build, and the opening line an agent should implement.
+   * A docs-relative template path as an agent-readable reference: an
+   * absolute GitHub URL when the repository is configured, otherwise the
+   * repository-relative path (docs/...).
+   */
+  function sourceRef(docsPath) {
+    if (!REPO) return "docs/" + docsPath;
+    var kind = /\/$/.test(docsPath) ? "tree" : "blob";
+    return (
+      "https://github.com/" + REPO.owner + "/" + REPO.name + "/" + kind + "/" + (REPO.branch || "main") + "/docs/" + docsPath
+    );
+  }
+
+  /** The template's source and artifacts, most authoritative first. */
+  function sourceArtifacts(template) {
+    var paths = template.paths || {};
+    var source = template.source || {};
+    var entries = [];
+    function add(label, docsPath) {
+      if (docsPath) entries.push({ label: label, ref: sourceRef(docsPath) });
+    }
+    add("Template folder", paths.page);
+    add("Spec (decisions of record)", source.spec);
+    add("Overview", paths.readme);
+    add("Implementation guide", paths.codeReadme);
+    add("Environment variables", paths.codeEnvironment);
+    (source.code || []).forEach(function (docsPath) {
+      add("Reference implementation", docsPath);
+    });
+    add("Architecture diagram", paths.architecture);
+    add("Demo transcript", paths.transcript);
+    add("Slide outline", paths.slidesReadme);
+    add("Manifest", paths.manifest);
+    return entries;
+  }
+
+  /**
+   * Points the agent at the template's own source (spec, guides, runnable
+   * code, and artifacts) instead of restating it; the business and
+   * technical fields also appear in full in the cards next to this command.
    */
   function implementationBrief(template) {
     var brief = decisionBriefOf(template);
+    var source = template.source || {};
+    var artifacts = sourceArtifacts(template);
+    var readFirst = source.spec
+      ? "Read the spec first and treat its decisions as requirements; where the spec is silent, follow the implementation guide."
+      : "Read the overview and implementation guide first and follow their decisions.";
+    var codeNote = source.runnable
+      ? "- Start from the runnable reference implementation; keep its offline mode and tests passing.\n"
+      : "- Follow the conventions of the runnable reference templates in this gallery.\n";
     return (
       'Implement a proof-of-concept for the "' +
       template.name +
       '" voice agent (' +
       template.language +
-      ") in this repository.\n\n" +
+      ").\n\n" +
       "Goal: " +
       brief.application +
       "\nBuild scope: " +
       brief.build +
       '\nOpening line: "' +
       template.prompt +
-      '"\n\nRequirements:\n' +
+      '"\n\n' +
+      (artifacts.length
+        ? "Template source and artifacts:\n" +
+          artifacts
+            .map(function (entry) {
+              return "- " + entry.label + ": " + entry.ref;
+            })
+            .join("\n") +
+          "\n\n" +
+          readFirst +
+          "\n\n"
+        : "") +
+      "Requirements:\n" +
       "- Reuse the existing stack's components, conventions, and build system.\n" +
+      codeNote +
       "- Cover listening, thinking, speaking, confirmation, transfer, and failure states.\n" +
       "- Use synthetic data and document the identity, consent, retention, audit, and abuse controls required for production.\n" +
       "- Test with representative calls and run existing checks before sharing the result."
+    );
+  }
+
+  var COPILOT_LAUNCHER = "https://github.com/copilot/app/launch?open=";
+  /** Stay well under common server request-line limits for the launcher. */
+  var COPILOT_LINK_LIMIT = 7000;
+
+  /**
+   * GitHub Copilot app deep link that starts a plan-mode session on this
+   * gallery's repository with the build prompt prefilled. Returns null when
+   * no repository is configured (local builds), where the caller copies the
+   * prompt and opens the app's New view instead. The app always confirms
+   * before creating the session.
+   */
+  function copilotAppLink(template, brief) {
+    if (!REPO) return null;
+    function launch(prompt) {
+      var appLink =
+        "ghapp://session/new?repo=" +
+        encodeURIComponent(REPO.owner + "/" + REPO.name) +
+        "&branch=" +
+        encodeURIComponent(REPO.branch || "main") +
+        "&mode=plan&prompt=" +
+        encodeURIComponent(prompt);
+      return COPILOT_LAUNCHER + encodeURIComponent(appLink);
+    }
+    var link = launch(brief);
+    if (link.length <= COPILOT_LINK_LIMIT) return link;
+    var source = template.source || {};
+    var paths = template.paths || {};
+    return launch(
+      'Implement a proof-of-concept for the "' +
+        template.name +
+        '" voice agent. Read ' +
+        sourceRef(source.spec || paths.readme || paths.page) +
+        " and the rest of " +
+        sourceRef(paths.page) +
+        " (implementation guide, environment variables, architecture, and demo transcript) first, then follow its decisions."
     );
   }
 
@@ -876,9 +971,16 @@
 
   function renderCommand() {
     if (!active) return;
-    var agent = AGENTS[agentSelect.value] || AGENTS.claude;
+    var agent = AGENTS[agentSelect.value] || AGENTS.copilot;
+    var brief = implementationBrief(active);
     $("#commandLabel").textContent = agent.label;
-    $("#commandText").textContent = agent.build(implementationBrief(active));
+    $("#commandText").textContent = agent.build(brief);
+    var appButton = $("#openCopilotApp");
+    appButton.hidden = !agent.app;
+    if (agent.app) {
+      appButton.href = copilotAppLink(active, brief) || "ghapp://";
+      appButton.dataset.local = REPO ? "" : "true";
+    }
   }
 
   /**
@@ -1049,6 +1151,19 @@
       .catch(function (error) {
         showToast("Copy blocked \u2014 select the command manually.");
         if (window.console && window.console.warn) window.console.warn(error);
+      });
+  });
+
+  // Without a configured repository the link only opens the app's New view,
+  // so hand the prompt over via the clipboard.
+  $("#openCopilotApp").addEventListener("click", function () {
+    if (!active || this.dataset.local !== "true") return;
+    copyText(implementationBrief(active))
+      .then(function () {
+        showToast("Prompt copied \u2014 paste it into the new Copilot session");
+      })
+      .catch(function () {
+        showToast("Copy blocked \u2014 copy the prompt from the command block.");
       });
   });
 
