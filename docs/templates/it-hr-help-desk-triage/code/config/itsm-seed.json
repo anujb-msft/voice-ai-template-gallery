@@ -1,0 +1,35 @@
+{
+  "tickets": [
+    {
+      "number": "INC-004700",
+      "kind": "incident",
+      "requester": "system",
+      "category": "Messaging/Outlook",
+      "priority": "P1",
+      "summary": "Major incident: Outlook unavailable",
+      "status": "Monitoring",
+      "lastUpdate": "Engineers are applying a service-side mitigation."
+    },
+    {
+      "number": "INC-004610",
+      "kind": "incident",
+      "requester": "sam.rivera@contoso.com",
+      "category": "Hardware/Printer",
+      "priority": "P3",
+      "summary": "Printer on 4th floor jams",
+      "status": "In progress",
+      "lastUpdate": "Field services ordered a replacement tray."
+    },
+    {
+      "number": "REQ-001205",
+      "kind": "request",
+      "requester": "maria.lopez@contoso.com",
+      "category": "Access/Application",
+      "priority": "P4",
+      "summary": "Add Visio license",
+      "status": "Waiting approval",
+      "lastUpdate": "Waiting on manager approval."
+    }
+  ],
+  "hrCases": []
+}

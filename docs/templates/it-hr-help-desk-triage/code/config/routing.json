@@ -1,0 +1,192 @@
+{
+  "organization": "Contoso",
+  "fallbackDestination": "it-service-desk",
+  "destinations": [
+    {
+      "id": "it-service-desk",
+      "label": "IT service desk",
+      "dtmf": "0",
+      "description": "General IT help, requests and non-critical incidents",
+      "target": {
+        "type": "callQueue",
+        "displayName": "Contoso IT Service Desk",
+        "objectId": "00000000-0000-0000-0000-000000000101"
+      },
+      "hours": {
+        "timeZone": "America/Los_Angeles",
+        "days": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "open": "08:00",
+        "close": "18:00"
+      },
+      "holidays": [
+        "2026-05-25"
+      ],
+      "callContextFields": [
+        "verifiedName",
+        "ticketNumber",
+        "priority",
+        "topic",
+        "matchedAsset",
+        "tried"
+      ]
+    },
+    {
+      "id": "it-on-call",
+      "label": "IT on-call",
+      "description": "P1 site outages and security incidents",
+      "target": {
+        "type": "callQueue",
+        "displayName": "Contoso IT On-call",
+        "objectId": "00000000-0000-0000-0000-000000000102"
+      },
+      "hours": {
+        "timeZone": "UTC",
+        "days": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "open": "00:00",
+        "close": "24:00"
+      },
+      "holidays": [],
+      "callContextFields": [
+        "verifiedName",
+        "ticketNumber",
+        "priority",
+        "topic",
+        "matchedAsset",
+        "tried"
+      ]
+    },
+    {
+      "id": "hr-shared-services",
+      "label": "HR shared services",
+      "description": "Routine leave, benefits, manager and policy questions",
+      "target": {
+        "type": "callQueue",
+        "displayName": "Contoso HR Shared Services",
+        "objectId": "00000000-0000-0000-0000-000000000103"
+      },
+      "hours": {
+        "timeZone": "America/Los_Angeles",
+        "days": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "open": "09:00",
+        "close": "17:00"
+      },
+      "holidays": [
+        "2026-05-25"
+      ],
+      "callContextFields": [
+        "verifiedName",
+        "topic",
+        "articleCited"
+      ]
+    },
+    {
+      "id": "confidential-hr",
+      "label": "Confidential HR",
+      "description": "Protected restricted HR queue",
+      "target": {
+        "type": "callQueue",
+        "displayName": "Contoso Confidential HR",
+        "objectId": "00000000-0000-0000-0000-000000000104"
+      },
+      "hours": {
+        "timeZone": "America/Los_Angeles",
+        "days": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "open": "09:00",
+        "close": "17:00"
+      },
+      "holidays": [
+        "2026-05-25"
+      ],
+      "callContextFields": [
+        "confidentialLabel",
+        "verifiedNameIfConsented"
+      ]
+    },
+    {
+      "id": "payroll",
+      "label": "Payroll",
+      "description": "Payroll-calendar and pay-date questions",
+      "target": {
+        "type": "callQueue",
+        "displayName": "Contoso Payroll",
+        "objectId": "00000000-0000-0000-0000-000000000105"
+      },
+      "hours": {
+        "timeZone": "America/Los_Angeles",
+        "days": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "open": "09:00",
+        "close": "17:00"
+      },
+      "holidays": [
+        "2026-05-25"
+      ],
+      "callContextFields": [
+        "verifiedName",
+        "topic",
+        "articleCited"
+      ]
+    },
+    {
+      "id": "password-reset-agent",
+      "label": "Password reset assistant",
+      "description": "Account unlock and MFA re-registration sample resource account",
+      "target": {
+        "type": "callQueue",
+        "displayName": "Contoso Password Reset Assistant",
+        "objectId": "00000000-0000-0000-0000-000000000106"
+      },
+      "hours": {
+        "timeZone": "UTC",
+        "days": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "open": "00:00",
+        "close": "24:00"
+      },
+      "holidays": [],
+      "callContextFields": [
+        "intent",
+        "employeeHint",
+        "sessionId"
+      ]
+    }
+  ]
+}

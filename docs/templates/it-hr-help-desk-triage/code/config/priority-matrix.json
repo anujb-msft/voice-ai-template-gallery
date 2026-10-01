@@ -1,0 +1,22 @@
+{
+  "matrix": {
+    "me": {
+      "not_blocked": "P4",
+      "blocked": "P2"
+    },
+    "team": {
+      "not_blocked": "P3",
+      "blocked": "P2"
+    },
+    "site": {
+      "not_blocked": "P2",
+      "blocked": "P1"
+    }
+  },
+  "securityIncidentCategories": [
+    "phishing_click",
+    "lost_device",
+    "stolen_device",
+    "suspected_compromise"
+  ]
+}

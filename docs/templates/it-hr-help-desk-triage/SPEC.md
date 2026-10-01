@@ -70,7 +70,7 @@ that asks nothing, stores nothing, and passes nothing but the words "Confidentia
 a restricted queue. The agent never becomes the place where an employee's HR concern is
 recorded.
 
-The demo data lives in `config/`, `kb/`, and `data/`:
+The demo data lives in `config/` and `kb/` (runtime SQLite files are created under gitignored `code/data/`):
 
 | File | Contents |
 |---|---|
@@ -80,9 +80,9 @@ The demo data lives in `config/`, `kb/`, and `data/`:
 | `config/outages.json` | Active major incidents with a spoken banner, the affected service keywords, and a parent incident number |
 | `config/routing.json` | The five destinations with Teams targets, hours, holiday calendars, and the `CallContext` fields each one receives, plus the password-reset agent's resource account |
 | `kb/it/*.md`, `kb/hr/*.md` | About 10 IT and 10 HR articles in English, some in Spanish, with one stale article and one managers-only article |
-| `data/directory.json` | About 12 demo employees with Entra object ID, Teams user ID, mobile number, region, manager, role, and devices |
-| `data/hris.json` | PTO balance, pay calendar, and benefits enrollment window per demo employee |
-| `data/itsm-seed.json` | Existing tickets for status checks and the parent incident for the outage banner |
+| `config/directory.json` | About 12 demo employees with Entra object ID, Teams user ID, mobile number, region, manager, role, and devices |
+| `config/hris.json` | PTO balance, pay calendar, and benefits enrollment window per demo employee |
+| `config/itsm-seed.json` | Existing tickets for status checks and the parent incident for the outage banner |
 
 An example taxonomy entry and knowledge article header:
 
@@ -117,7 +117,7 @@ An article is spoken only when it is fresh (the date is on or before `reviewBy`,
    is a Teams Phone resource account linked to ACS through Teams Phone extensibility. The
    documented ACS number fallback only changes provisioning.
 2. Event Grid delivers `IncomingCall`. On a Teams call, the server resolves the caller's
-   Teams user ID to an employee in `data/directory.json`. A PSTN caller is anonymous
+   Teams user ID to an employee in `config/directory.json`. A PSTN caller is anonymous
    until they need a verified action.
 3. The server answers through Call Automation, starts bidirectional media streaming, and
    opens a Voice Live session. The agent says: **"Hi Sam, this is the Contoso IT and HR

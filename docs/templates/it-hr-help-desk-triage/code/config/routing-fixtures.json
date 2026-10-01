@@ -1,0 +1,350 @@
+{
+  "minimumAccuracy": 0.9,
+  "items": [
+    {
+      "utterance": "vpn disconnect globalprotect",
+      "topicId": "it-vpn-connect",
+      "sensitive": false
+    },
+    {
+      "utterance": "VPN will not connect from home",
+      "topicId": "it-vpn-connect",
+      "sensitive": false
+    },
+    {
+      "utterance": "my vpn keeps disconnecting",
+      "topicId": "it-vpn-connect",
+      "sensitive": false
+    },
+    {
+      "utterance": "globalprotect cannot connect",
+      "topicId": "it-vpn-connect",
+      "sensitive": false
+    },
+    {
+      "utterance": "mfa authenticator new phone",
+      "topicId": "it-mfa-reregister",
+      "sensitive": false
+    },
+    {
+      "utterance": "authenticator re-register mfa",
+      "topicId": "it-mfa-reregister",
+      "sensitive": false
+    },
+    {
+      "utterance": "need mfa on a new phone",
+      "topicId": "it-mfa-reregister",
+      "sensitive": false
+    },
+    {
+      "utterance": "locked out account unlock",
+      "topicId": "it-account-unlock",
+      "sensitive": false
+    },
+    {
+      "utterance": "account locked password reset",
+      "topicId": "it-account-unlock",
+      "sensitive": false
+    },
+    {
+      "utterance": "I am locked out of my account",
+      "topicId": "it-account-unlock",
+      "sensitive": false
+    },
+    {
+      "utterance": "printer print printing",
+      "topicId": "it-printer",
+      "sensitive": false
+    },
+    {
+      "utterance": "printer will not print",
+      "topicId": "it-printer",
+      "sensitive": false
+    },
+    {
+      "utterance": "printing is broken on my printer",
+      "topicId": "it-printer",
+      "sensitive": false
+    },
+    {
+      "utterance": "laptop screen display flicker",
+      "topicId": "it-laptop-display",
+      "sensitive": false
+    },
+    {
+      "utterance": "my laptop display is flickering",
+      "topicId": "it-laptop-display",
+      "sensitive": false
+    },
+    {
+      "utterance": "screen flicker laptop cannot work",
+      "topicId": "it-laptop-display",
+      "sensitive": false
+    },
+    {
+      "utterance": "access to system account permission",
+      "topicId": "it-software-access",
+      "sensitive": false
+    },
+    {
+      "utterance": "need access to payroll system account",
+      "topicId": "it-software-access",
+      "sensitive": false
+    },
+    {
+      "utterance": "application permission access request",
+      "topicId": "it-software-access",
+      "sensitive": false
+    },
+    {
+      "utterance": "outlook email mailbox",
+      "topicId": "it-outlook",
+      "sensitive": false
+    },
+    {
+      "utterance": "outlook will not open",
+      "topicId": "it-outlook",
+      "sensitive": false
+    },
+    {
+      "utterance": "email mailbox is down",
+      "topicId": "it-outlook",
+      "sensitive": false
+    },
+    {
+      "utterance": "phishing clicked a link suspicious link",
+      "topicId": "it-security-phishing",
+      "sensitive": false
+    },
+    {
+      "utterance": "I clicked a phishing link",
+      "topicId": "it-security-phishing",
+      "sensitive": false
+    },
+    {
+      "utterance": "suspicious link phishing email",
+      "topicId": "it-security-phishing",
+      "sensitive": false
+    },
+    {
+      "utterance": "lost laptop stolen device",
+      "topicId": "it-security-lost-device",
+      "sensitive": false
+    },
+    {
+      "utterance": "lost phone stolen device",
+      "topicId": "it-security-lost-device",
+      "sensitive": false
+    },
+    {
+      "utterance": "my stolen laptop is missing",
+      "topicId": "it-security-lost-device",
+      "sensitive": false
+    },
+    {
+      "utterance": "site is down everyone blocked office network",
+      "topicId": "it-site-outage",
+      "sensitive": false
+    },
+    {
+      "utterance": "everyone in the office network is down",
+      "topicId": "it-site-outage",
+      "sensitive": false
+    },
+    {
+      "utterance": "all users site outage",
+      "topicId": "it-site-outage",
+      "sensitive": false
+    },
+    {
+      "utterance": "pto policy vacation policy",
+      "topicId": "hr-pto-policy",
+      "sensitive": false
+    },
+    {
+      "utterance": "time off policy question",
+      "topicId": "hr-pto-policy",
+      "sensitive": false
+    },
+    {
+      "utterance": "what is the pto policy",
+      "topicId": "hr-pto-policy",
+      "sensitive": false
+    },
+    {
+      "utterance": "pto balance how much pto",
+      "topicId": "hr-pto-balance",
+      "sensitive": false
+    },
+    {
+      "utterance": "vacation balance pto balance",
+      "topicId": "hr-pto-balance",
+      "sensitive": false
+    },
+    {
+      "utterance": "how much pto do I have",
+      "topicId": "hr-pto-balance",
+      "sensitive": false
+    },
+    {
+      "utterance": "my benefits window",
+      "topicId": "hr-benefits-window",
+      "sensitive": false
+    },
+    {
+      "utterance": "benefits window status",
+      "topicId": "hr-benefits-window",
+      "sensitive": false
+    },
+    {
+      "utterance": "qualifying life event benefits window",
+      "topicId": "hr-benefits-window",
+      "sensitive": false
+    },
+    {
+      "utterance": "pay date payday pay calendar",
+      "topicId": "hr-pay-calendar",
+      "sensitive": false
+    },
+    {
+      "utterance": "next pay date pay calendar",
+      "topicId": "hr-pay-calendar",
+      "sensitive": false
+    },
+    {
+      "utterance": "when is payday",
+      "topicId": "hr-pay-calendar",
+      "sensitive": false
+    },
+    {
+      "utterance": "who is my manager manager name",
+      "topicId": "hr-manager",
+      "sensitive": false
+    },
+    {
+      "utterance": "manager name reports to",
+      "topicId": "hr-manager",
+      "sensitive": false
+    },
+    {
+      "utterance": "who do I report to manager name",
+      "topicId": "hr-manager",
+      "sensitive": false
+    },
+    {
+      "utterance": "benefits enrollment dates",
+      "topicId": "hr-benefits-general",
+      "sensitive": false
+    },
+    {
+      "utterance": "open enrollment benefits",
+      "topicId": "hr-benefits-general",
+      "sensitive": false
+    },
+    {
+      "utterance": "medical plan dental benefits",
+      "topicId": "hr-benefits-general",
+      "sensitive": false
+    },
+    {
+      "utterance": "paycheck wrong payroll issue",
+      "topicId": "hr-payroll-issue",
+      "sensitive": false
+    },
+    {
+      "utterance": "pay is wrong payroll issue",
+      "topicId": "hr-payroll-issue",
+      "sensitive": false
+    },
+    {
+      "utterance": "payroll issue paycheck wrong",
+      "topicId": "hr-payroll-issue",
+      "sensitive": false
+    },
+    {
+      "utterance": "manager guide performance review",
+      "topicId": "hr-manager-guide",
+      "sensitive": false
+    },
+    {
+      "utterance": "performance process manager guide",
+      "topicId": "hr-manager-guide",
+      "sensitive": false
+    },
+    {
+      "utterance": "manager guide for performance review",
+      "topicId": "hr-manager-guide",
+      "sensitive": false
+    },
+    {
+      "utterance": "new hire laptop and benefits onboarding",
+      "topicId": "both-new-hire",
+      "sensitive": false
+    },
+    {
+      "utterance": "new hire onboarding laptop benefits",
+      "topicId": "both-new-hire",
+      "sensitive": false
+    },
+    {
+      "utterance": "onboarding laptop and benefits",
+      "topicId": "both-new-hire",
+      "sensitive": false
+    },
+    {
+      "utterance": "expense report travel expense",
+      "topicId": "out-expenses",
+      "sensitive": false
+    },
+    {
+      "utterance": "travel expense reimbursement",
+      "topicId": "out-expenses",
+      "sensitive": false
+    },
+    {
+      "utterance": "who handles expense report",
+      "topicId": "out-expenses",
+      "sensitive": false
+    },
+    {
+      "utterance": "my manager is harassing me",
+      "topicId": null,
+      "sensitive": true
+    },
+    {
+      "utterance": "I need an accommodation",
+      "topicId": null,
+      "sensitive": true
+    },
+    {
+      "utterance": "I want to report discrimination",
+      "topicId": null,
+      "sensitive": true
+    },
+    {
+      "utterance": "I might hurt myself",
+      "topicId": null,
+      "sensitive": true
+    },
+    {
+      "utterance": "medical leave confidential",
+      "topicId": null,
+      "sensitive": true
+    },
+    {
+      "utterance": "termination retaliation issue",
+      "topicId": null,
+      "sensitive": true
+    },
+    {
+      "utterance": "sexual harassment at work",
+      "topicId": null,
+      "sensitive": true
+    },
+    {
+      "utterance": "pay dispute with manager",
+      "topicId": null,
+      "sensitive": true
+    }
+  ]
+}

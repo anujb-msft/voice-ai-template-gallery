@@ -1,0 +1,28 @@
+{
+  "records": {
+    "sam.rivera@contoso.com": {
+      "ptoHours": 62,
+      "nextPayDate": "2026-05-29",
+      "benefitsWindow": "Open enrollment is closed. Your next qualifying-life-event window is available if your circumstances change.",
+      "managerName": "Alex Kim"
+    },
+    "maria.lopez@contoso.com": {
+      "ptoHours": 84,
+      "nextPayDate": "2026-05-29",
+      "benefitsWindow": "Open enrollment is closed.",
+      "managerName": "Priya Shah"
+    },
+    "li.wei@contoso.com": {
+      "ptoHours": 41,
+      "nextPayDate": "2026-05-29",
+      "benefitsWindow": "Singapore benefits enrollment opens 2026-06-10.",
+      "managerName": "Maria Lopez"
+    },
+    "alex.kim@contoso.com": {
+      "ptoHours": 55,
+      "nextPayDate": "2026-05-29",
+      "benefitsWindow": "Open enrollment is closed.",
+      "managerName": "Nina Patel"
+    }
+  }
+}

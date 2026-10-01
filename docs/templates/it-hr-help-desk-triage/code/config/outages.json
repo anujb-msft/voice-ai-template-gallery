@@ -1,0 +1,18 @@
+{
+  "incidents": [
+    {
+      "id": "MI-2026-0501",
+      "parentIncident": "INC-004700",
+      "service": "Outlook",
+      "activeFrom": "2026-05-01T00:00:00Z",
+      "activeUntil": "2026-12-31T23:59:59Z",
+      "banner": "Heads up: we know Outlook is down right now and the team is on it.",
+      "keywords": [
+        "outlook",
+        "email",
+        "mailbox",
+        "exchange"
+      ]
+    }
+  ]
+}
