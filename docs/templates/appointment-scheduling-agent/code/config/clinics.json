@@ -1,0 +1,6 @@
+{
+  "locations": {
+    "seattle-northgate": { "displayName": "Northgate clinic", "timeZone": "America/Los_Angeles", "callbackNumber": "206-555-0100", "holidays": ["2026-05-25"], "lateCancellation": { "en": "This is within 24 hours, so a late-cancellation note may apply.", "es": "Es dentro de 24 horas, así que puede aplicar una nota por cancelación tardía." }, "frontDesk": { "hours": { "start": "07:00", "end": "18:00" } }, "nurseLine": { "target": "+12065550199", "hours": { "start": "07:00", "end": "18:00" } }, "afterHoursNurseAdviceNumber": "206-555-0199" },
+    "phoenix-downtown": { "displayName": "Downtown Phoenix clinic", "timeZone": "America/Phoenix", "callbackNumber": "602-555-0100", "holidays": ["2026-05-25"], "lateCancellation": { "en": "This is within 24 hours, so a late-cancellation note may apply.", "es": "Es dentro de 24 horas, así que puede aplicar una nota por cancelación tardía." }, "frontDesk": { "hours": { "start": "07:00", "end": "18:00" } }, "nurseLine": { "target": "+16025550199", "hours": { "start": "07:00", "end": "18:00" } }, "afterHoursNurseAdviceNumber": "602-555-0199" }
+  }
+}

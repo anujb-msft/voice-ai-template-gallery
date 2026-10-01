@@ -1,0 +1,8 @@
+{
+  "orders": [
+    { "patientId": "P-1007", "modality": "MRI", "status": "active", "expires": "2026-12-31" },
+    { "patientId": "P-1007", "modality": "X-ray", "status": "active", "expires": "2026-12-31" },
+    { "patientId": "P-1006", "modality": "Ultrasound", "status": "active", "expires": "2026-12-31" },
+    { "patientId": "P-1012", "modality": "MRI", "status": "active", "expires": "2026-12-31" }
+  ]
+}

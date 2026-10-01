@@ -68,7 +68,7 @@ books it after a read-back. Anything it shouldn't decide goes to the right perso
 symptoms to a nurse, missing referrals to the referral coordinator, new patients to
 registration, and anything else to the scheduling team.
 
-The demo data lives in `config/` and `data/`. Files marked "shared" are the same files
+The demo data lives in `config/` and `fixtures/`. Files marked "shared" are the same files
 the reminder sample uses:
 
 | File | Contents |
@@ -80,10 +80,9 @@ the reminder sample uses:
 | `config/prep.json` | Shared. Prep codes mapped to spoken instructions per locale |
 | `config/safety.json` | Emergency and urgent-symptom phrase lists per locale, marked as needing clinical review |
 | `config/routing.json` | The scheduling team queue, nurse line, referral coordinator, registration callback queue, and the `CallContext` fields each one receives |
-| `data/patients.json` | Shared. Demo patients with date of birth, phones, time zone, `preferredLanguage`, primary care provider, insurance status, consents (`voice`, `sms`), proxies, and flags |
-| `data/referrals.json` | Referrals by patient, with department, status, and expiry date |
-| `data/orders.json` | Imaging orders by patient, with modality, status, and expiry date |
-| `fixtures/appointments-seed.json` | Shared. Booked and past appointments for the demo weeks |
+| `fixtures/appointments-seed.json` | Shared. Demo patients, providers, booked appointments, and past appointments for the demo weeks |
+| `config/referrals.json` | Referrals by patient, with department, status, and expiry date |
+| `config/orders.json` | Imaging orders by patient, with modality, status, and expiry date |
 
 An example eligibility rule and the outcome the model sees:
 
