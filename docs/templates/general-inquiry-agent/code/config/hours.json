@@ -1,0 +1,13 @@
+{
+  "organization": "City of Contoso",
+  "timeZone": "America/Los_Angeles",
+  "queue": {
+    "displayName": "Contoso information desk",
+    "objectId": "00000000-0000-0000-0000-000000000092",
+    "type": "queue"
+  },
+  "staffedHours": [
+    { "days": [1, 2, 3, 4, 5], "open": "08:00", "close": "17:00" }
+  ],
+  "afterHoursMessage": "Our information desk is open weekdays from 8 to 5. Please call back then, or visit contoso.gov."
+}

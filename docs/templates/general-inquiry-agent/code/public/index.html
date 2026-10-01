@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>General Inquiry Agent Demo</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <header>
+    <div>
+      <p class="eyebrow">Demo surface · City of Contoso</p>
+      <h1>General Inquiry Agent</h1>
+    </div>
+    <span id="mode" class="pill">loading</span>
+  </header>
+
+  <main class="grid">
+    <section class="panel controls">
+      <h2>Offline typed call</h2>
+      <p>This console drives the same state machine and retrieval tools as a live call. Real transfers are simulated unless Azure config is present.</p>
+      <button id="newCall">Start call</button>
+      <form id="sayForm">
+        <input id="sayInput" placeholder="Type caller utterance…" disabled />
+        <button id="sayBtn" disabled>Send</button>
+      </form>
+      <div class="buttons">
+        <button id="silence" disabled>No input</button>
+        <button data-digit="0" id="dtmf0" disabled>DTMF 0</button>
+        <button id="hangup" disabled>Hang up</button>
+      </div>
+      <div class="facts">
+        <div><b id="stateChip">idle</b><span>State</span></div>
+        <div><b id="topic">—</b><span>Topic</span></div>
+        <div><b id="answers">0</b><span>Citations</span></div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Transcript</h2>
+      <ol id="transcript" class="transcript"><li class="empty">Start a call to begin.</li></ol>
+    </section>
+
+    <section class="panel wide">
+      <h2>Retrieval and citations</h2>
+      <div id="searches" class="cards"><p class="empty">No searches yet.</p></div>
+    </section>
+
+    <section class="panel">
+      <h2>Handoff context</h2>
+      <div id="handoff" class="handoff empty">No transfer yet.</div>
+    </section>
+
+    <section class="panel">
+      <h2>Events</h2>
+      <ol id="events" class="events"><li class="empty">No events yet.</li></ol>
+    </section>
+
+    <section class="panel wide">
+      <h2>Stats</h2>
+      <button id="statsBtn">Refresh</button>
+      <div id="metrics" class="metrics"></div>
+    </section>
+  </main>
+  <script src="/app.js" type="module"></script>
+</body>
+</html>
