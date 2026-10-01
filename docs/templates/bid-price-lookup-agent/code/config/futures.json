@@ -1,0 +1,12 @@
+{
+  "asOf": "2026-09-08T15:42:00Z",
+  "sessionState": "open",
+  "contracts": [
+    { "symbol": "ZCZ26", "commodity": "corn", "month": "December", "last": 4.47, "settle": 4.43, "asOf": "2026-09-08T15:42:00Z" },
+    { "symbol": "ZCH27", "commodity": "corn", "month": "March", "last": 4.61, "settle": 4.57, "asOf": "2026-09-08T15:40:00Z" },
+    { "symbol": "ZSX26", "commodity": "soybeans", "month": "November", "last": 10.29, "settle": 10.23, "asOf": "2026-09-08T15:41:00Z" },
+    { "symbol": "ZSF27", "commodity": "soybeans", "month": "January", "last": 10.45, "settle": 10.39, "asOf": "2026-09-08T15:39:00Z" },
+    { "symbol": "ZWU26", "commodity": "wheat", "month": "September", "last": 5.72, "settle": 5.66, "asOf": "2026-09-08T15:37:00Z" },
+    { "symbol": "ZWZ26", "commodity": "wheat", "month": "December", "last": 5.93, "settle": 5.88, "asOf": "2026-09-08T15:36:00Z" }
+  ]
+}

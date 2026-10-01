@@ -1,0 +1,26 @@
+{
+  "updatedAt": "2026-09-08T06:30:00-05:00",
+  "bids": [
+    { "location": "riverside", "commodity": "corn", "delivery": "2026-11", "reference": "ZCZ26", "basisCents": -35 },
+    { "location": "riverside", "commodity": "corn", "delivery": "2026-12", "reference": "ZCZ26", "basisCents": -33 },
+    { "location": "riverside", "commodity": "corn", "delivery": "2027-01", "reference": "ZCH27", "basisCents": -28 },
+    { "location": "riverbend", "commodity": "corn", "delivery": "2026-11", "reference": "ZCZ26", "basisCents": -31 },
+    { "location": "fairview", "commodity": "corn", "delivery": "2026-11", "reference": "ZCZ26", "basisCents": -37 },
+    { "location": "prairie-center", "commodity": "corn", "delivery": "2026-11", "reference": "ZCZ26", "basisCents": -29 },
+    { "location": "lake-mills", "commodity": "corn", "delivery": "2026-11", "reference": "ZCZ26", "basisCents": -34 },
+
+    { "location": "riverside", "commodity": "soybeans", "delivery": "2026-11", "reference": "ZSX26", "basisCents": -18 },
+    { "location": "riverside", "commodity": "soybeans", "delivery": "2027-01", "reference": "ZSF27", "basisCents": -16 },
+    { "location": "riverbend", "commodity": "soybeans", "delivery": "2026-11", "reference": "ZSX26", "basisCents": -15 },
+    { "location": "fairview", "commodity": "soybeans", "delivery": "2026-11", "reference": "ZSX26", "basisCents": -21 },
+    { "location": "prairie-center", "commodity": "soybeans", "delivery": "2026-11", "reference": "ZSX26", "basisCents": -13 },
+    { "location": "lake-mills", "commodity": "soybeans", "delivery": "2026-11", "reference": "ZSX26", "basisCents": -17 },
+
+    { "location": "riverside", "commodity": "wheat", "delivery": "2026-09", "reference": "ZWU26", "basisCents": -52 },
+    { "location": "riverside", "commodity": "wheat", "delivery": "2026-12", "reference": "ZWZ26", "basisCents": -49 },
+    { "location": "riverbend", "commodity": "wheat", "delivery": "2026-09", "reference": "ZWU26", "basisCents": -50 },
+    { "location": "fairview", "commodity": "wheat", "delivery": "2026-09", "reference": "ZWU26", "basisCents": -55 },
+    { "location": "prairie-center", "commodity": "wheat", "delivery": "2026-09", "reference": "ZWU26", "basisCents": -47 },
+    { "location": "lake-mills", "commodity": "wheat", "delivery": "2026-09", "reference": "ZWU26", "basisCents": -51 }
+  ]
+}

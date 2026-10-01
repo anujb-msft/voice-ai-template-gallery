@@ -1,0 +1,54 @@
+{
+  "organization": "Contoso Grain Co-op",
+  "defaultLocationId": "riverside",
+  "locations": [
+    {
+      "id": "riverside",
+      "displayName": "Riverside",
+      "aliases": ["riverside", "river side", "north elevator", "north", "riverside elevator"],
+      "timeZone": "America/Chicago",
+      "hours": { "days": [1, 2, 3, 4, 5], "open": "08:00", "close": "17:00" },
+      "merchandiser": {
+        "displayName": "Riverside merchandiser",
+        "type": "user",
+        "objectId": "00000000-0000-0000-0000-000000000094"
+      }
+    },
+    {
+      "id": "riverbend",
+      "displayName": "Riverbend",
+      "aliases": ["riverbend", "river bend", "east elevator", "east"],
+      "timeZone": "America/Chicago",
+      "hours": { "days": [1, 2, 3, 4, 5], "open": "08:00", "close": "17:00" },
+      "merchandiser": {
+        "displayName": "Riverbend merchandiser queue",
+        "type": "callQueue",
+        "objectId": "00000000-0000-0000-0000-000000000095"
+      }
+    },
+    {
+      "id": "fairview",
+      "displayName": "Fairview",
+      "aliases": ["fairview", "fair view", "south elevator", "south"],
+      "timeZone": "America/Chicago",
+      "hours": { "days": [1, 2, 3, 4, 5], "open": "08:00", "close": "17:00" },
+      "merchandiser": { "displayName": "Fairview merchandiser", "type": "user", "objectId": "00000000-0000-0000-0000-000000000096" }
+    },
+    {
+      "id": "prairie-center",
+      "displayName": "Prairie Center",
+      "aliases": ["prairie center", "prairie", "west elevator", "west"],
+      "timeZone": "America/Chicago",
+      "hours": { "days": [1, 2, 3, 4, 5], "open": "08:00", "close": "17:00" },
+      "merchandiser": { "displayName": "Prairie Center merchandiser", "type": "user", "objectId": "00000000-0000-0000-0000-000000000097" }
+    },
+    {
+      "id": "lake-mills",
+      "displayName": "Lake Mills",
+      "aliases": ["lake mills", "lake", "mill", "mills"],
+      "timeZone": "America/Chicago",
+      "hours": { "days": [1, 2, 3, 4, 5], "open": "08:00", "close": "17:00" },
+      "merchandiser": { "displayName": "Lake Mills merchandiser", "type": "callQueue", "objectId": "00000000-0000-0000-0000-000000000098" }
+    }
+  ]
+}
