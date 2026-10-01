@@ -83,7 +83,7 @@ the reminder sample uses:
 | `data/patients.json` | Shared. Demo patients with date of birth, phones, time zone, `preferredLanguage`, primary care provider, insurance status, consents (`voice`, `sms`), proxies, and flags |
 | `data/referrals.json` | Referrals by patient, with department, status, and expiry date |
 | `data/orders.json` | Imaging orders by patient, with modality, status, and expiry date |
-| `data/appointments-seed.json` | Shared. Booked and past appointments for the demo weeks |
+| `fixtures/appointments-seed.json` | Shared. Booked and past appointments for the demo weeks |
 
 An example eligibility rule and the outcome the model sees:
 
