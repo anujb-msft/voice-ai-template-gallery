@@ -114,12 +114,12 @@
   }
 
   /**
-   * A template ships runnable code when its manifest declares
-   * `paths.codePackage` (the imported package manifest). Folders that only
-   * carry documentation omit that path and stay pending.
+   * A template ships runnable code when the generator finds
+   * `code/package.json` in its folder (`source.runnable`). The older
+   * `paths.codePackage` manifest entry still counts.
    */
   function codeDeliverable() {
-    var shipsCode = !!(template.paths && template.paths.codePackage);
+    var shipsCode = !!((template.source && template.source.runnable) || (template.paths && template.paths.codePackage));
     return deliverableRow({
       title: "Runnable implementation",
       pending: !shipsCode,

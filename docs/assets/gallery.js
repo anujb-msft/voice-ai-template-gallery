@@ -50,8 +50,8 @@
   };
 
   function legacyKeyOf(template) {
-    if (VISUAL_SCENES[template.id]) return template.id;
-    return LEGACY_KEY_BY_ID[template.id] || template.id;
+    var key = VISUAL_SCENES[template.id] ? template.id : (LEGACY_KEY_BY_ID[template.id] || template.id);
+    return VISUAL_SCENES[key] ? key : "intent-routing";
   }
 
   function decisionBriefOf(template) {
@@ -497,7 +497,7 @@
       '<svg class="visual-glyph" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M7.6 4.5c-1.7 0-3.1 1.4-3.1 3.1 0 7.3 5.9 13.2 13.2 13.2 1.7 0 3.1-1.4 3.1-3.1v-2c0-.7-.5-1.3-1.1-1.5l-2.8-.8a1.7 1.7 0 0 0-1.7.4l-.9 1a11 11 0 0 1-5-5l1-.9a1.7 1.7 0 0 0 .4-1.7l-.8-2.8a1.6 1.6 0 0 0-1.5-1.1H7.6Z"/><path d="M15.2 4.8c1.9.4 3.4 1.9 3.8 3.8M17 2.7c3 .6 5.4 3 6 6" opacity="0.85"/></svg>'
   };
 
-  // Each entry drives the "Agent Visual System" illustration in styles.css
+  // Each entry drives the "Agent Visual System" illustration in gallery.css
   // (`.agent-visual` / `.visual-scene[data-scene]`). `dataScene` must match one
   // of the data-scene selectors defined there; `content` is the literal markup
   // rendered inside that scene's grid using its component vocabulary
