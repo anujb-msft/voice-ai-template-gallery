@@ -317,6 +317,6 @@ Primary measures are containment, request completion, and time to resolution.
 - [Voice Live API overview](https://learn.microsoft.com/azure/ai-services/speech-service/voice-live)
 - [Voice Live API how-to — endpoint, api-version, and Entra auth](https://learn.microsoft.com/azure/ai-services/speech-service/voice-live-how-to)
 - [Voice Live language support](https://learn.microsoft.com/azure/ai-services/speech-service/voice-live-language-support)
-- [Call Automation transfer to a participant](https://learn.microsoft.com/azure/communication-services/how-tos/call-automation/transfer-call)
+- [Call Automation transfer to a participant](https://learn.microsoft.com/azure/communication-services/how-tos/call-automation/actions-for-call-control#transfer-a-participant-in-a-call)
 - [Send an SMS message with Azure Communication Services](https://learn.microsoft.com/azure/communication-services/quickstarts/sms/send)
 - [Azure Maps search (geocoding)](https://learn.microsoft.com/azure/azure-maps/how-to-search-for-address)

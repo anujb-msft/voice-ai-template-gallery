@@ -365,7 +365,7 @@ Primary measures are Tier 1 deflection, routing accuracy, and resolution time.
 - [Voice Live API overview](https://learn.microsoft.com/azure/ai-services/speech-service/voice-live)
 - [Voice Live API how-to — endpoint, api-version, and Entra auth](https://learn.microsoft.com/azure/ai-services/speech-service/voice-live-how-to)
 - [Voice Live language support](https://learn.microsoft.com/azure/ai-services/speech-service/voice-live-language-support)
-- [Call Automation transfer to a participant](https://learn.microsoft.com/azure/communication-services/how-tos/call-automation/transfer-call)
+- [Call Automation transfer to a participant](https://learn.microsoft.com/azure/communication-services/how-tos/call-automation/actions-for-call-control#transfer-a-participant-in-a-call)
 - [Plan Teams auto attendants and call queues](https://learn.microsoft.com/microsoftteams/plan-auto-attendant-call-queue)
 - [Create a Teams call queue](https://learn.microsoft.com/microsoftteams/create-a-phone-system-call-queue)
 - [Set up holidays in Teams](https://learn.microsoft.com/microsoftteams/set-up-holidays-in-teams)
