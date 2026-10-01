@@ -1,0 +1,9 @@
+{
+  "manager": { "displayName": "Jordan Lee", "email": "jordan.lee@contoso.example", "teamsUserId": "00000000-0000-0000-0000-0000000000aa" },
+  "reps": [
+    { "id": "ava", "displayName": "Ava Chen", "email": "ava.chen@contoso.example", "teamsUserId": "00000000-0000-0000-0000-0000000000a1", "active": true },
+    { "id": "ben", "displayName": "Ben Ortiz", "email": "ben.ortiz@contoso.example", "teamsUserId": "00000000-0000-0000-0000-0000000000b2", "active": true },
+    { "id": "chloe", "displayName": "Chloe Singh", "email": "chloe.singh@contoso.example", "teamsUserId": "00000000-0000-0000-0000-0000000000c3", "active": false },
+    { "id": "dana", "displayName": "Dana Brooks", "email": "dana.brooks@contoso.example", "teamsUserId": "00000000-0000-0000-0000-0000000000d4", "active": true }
+  ]
+}

@@ -1,0 +1,8 @@
+import { spawn } from "node:child_process";
+import { WebSocket } from "ws";
+const PORT=8193;
+const server=spawn(process.execPath,["src/server.mjs"],{env:{...process.env,PORT:String(PORT),HOST:"127.0.0.1",DB_PATH:":memory:",ACS_ENDPOINT:"",ACS_CONNECTION_STRING:"",VOICE_LIVE_ENDPOINT:""},stdio:["ignore","pipe","pipe"]});
+let out=""; server.stdout.on("data",d=>out+=d); server.stderr.on("data",d=>out+=d); const stop=()=>server.kill(); process.on("exit",stop);
+async function wait(){const end=Date.now()+20000;while(Date.now()<end){try{const r=await fetch(`http://127.0.0.1:${PORT}/health`);if(r.ok)return;}catch{} await new Promise(r=>setTimeout(r,250));}throw new Error(`server did not start\n${out}`)}
+function upgrades(path){return new Promise((resolve)=>{const ws=new WebSocket(`ws://127.0.0.1:${PORT}${path}`);const done=(v)=>{try{ws.close()}catch{} resolve(v)};ws.on("open",()=>done(true));ws.on("unexpected-response",()=>done(false));ws.on("error",()=>done(false));setTimeout(()=>done(false),5000);});}
+await wait(); let failed=false; for(const path of ["/ws/hub","/ws/media"]){const ok=await upgrades(path); console.log(`${ok?"ok":"FAIL"} ${path}`); if(!ok) failed=true;} const sim=await fetch(`http://127.0.0.1:${PORT}/api/simulate`,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({transcript:["This is Dana from Northwind in CA, I'm procurement director","We need 12000 hex bolts this week. Call 425-555-0193 and email dana@northwind.example"]})}).then(r=>r.json()); console.log(`${sim.snapshot?.savedLeadId?"ok":"FAIL"} offline lead ${sim.snapshot?.savedLeadId??""}`); if(!sim.snapshot?.savedLeadId) failed=true; stop(); if(failed){console.error(out); process.exit(1);} console.log("smoke ok");

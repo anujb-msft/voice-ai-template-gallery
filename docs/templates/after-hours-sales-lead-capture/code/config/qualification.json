@@ -1,0 +1,7 @@
+{
+  "timeline": { "within30Days": 3, "within90Days": 2, "later": 0, "unknown": 0 },
+  "quantity": { "atOrAboveMoq": 2, "belowMoq": 0, "unknown": 1 },
+  "productInterest": { "catalogLine": 1, "other": 0 },
+  "role": { "decisionMaker": 2, "influencer": 1, "unknown": 0 },
+  "thresholds": { "hot": 6, "warm": 3 }
+}

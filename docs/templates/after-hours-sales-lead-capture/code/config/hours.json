@@ -1,0 +1,21 @@
+{
+  "organization": "Contoso Industrial Supply",
+  "timeZone": "America/Los_Angeles",
+  "salesQueue": {
+    "type": "callQueue",
+    "displayName": "Contoso Industrial Supply Sales Queue",
+    "objectId": "00000000-0000-0000-0000-000000000093"
+  },
+  "weeklyHours": [
+    { "day": 1, "open": "08:00", "close": "18:00" },
+    { "day": 2, "open": "08:00", "close": "18:00" },
+    { "day": 3, "open": "08:00", "close": "18:00" },
+    { "day": 4, "open": "08:00", "close": "18:00" },
+    { "day": 5, "open": "08:00", "close": "18:00" }
+  ],
+  "holidays": ["2026-09-07", "2026-11-26", "2026-12-25"],
+  "support": {
+    "phone": "+1 800 555 0199",
+    "hours": "Monday through Friday, 7 AM to 5 PM Pacific"
+  }
+}
