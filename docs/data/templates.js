@@ -331,7 +331,7 @@ window.VOICE_AI_TEMPLATES = [
       ]
     },
     "source": {
-      "spec": null,
+      "spec": "templates/appointment-scheduling-agent/SPEC.md",
       "runnable": false,
       "code": []
     }

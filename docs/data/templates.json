@@ -330,7 +330,7 @@
       ]
     },
     "source": {
-      "spec": null,
+      "spec": "templates/appointment-scheduling-agent/SPEC.md",
       "runnable": false,
       "code": []
     }
