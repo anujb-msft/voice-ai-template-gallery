@@ -1,0 +1,7 @@
+[
+  { "name": "Oak Avenue", "aliases": ["Oak", "Oke Avenue"], "intersections": [{ "with": "5th Street", "lat": 47.6112, "lon": -122.3363, "zone": "B" }, { "with": "Main Street", "lat": 47.6115, "lon": -122.3352, "zone": "B" }] },
+  { "name": "5th Street", "aliases": ["Fifth Street", "5th"], "intersections": [{ "with": "Oak Avenue", "lat": 47.6112, "lon": -122.3363, "zone": "B" }, { "with": "Maple Street", "lat": 47.6102, "lon": -122.3356, "zone": "A" }] },
+  { "name": "Maple Street", "aliases": ["Maple"], "intersections": [{ "with": "5th Street", "lat": 47.6102, "lon": -122.3356, "zone": "A" }] },
+  { "name": "Main Street", "aliases": ["Main"], "intersections": [{ "with": "Oak Avenue", "lat": 47.6115, "lon": -122.3352, "zone": "B" }, { "with": "Pine Road", "lat": 47.6201, "lon": -122.3398, "zone": "A" }] },
+  { "name": "Pine Road", "aliases": ["Pine"], "intersections": [{ "with": "Main Street", "lat": 47.6201, "lon": -122.3398, "zone": "A" }] }
+]

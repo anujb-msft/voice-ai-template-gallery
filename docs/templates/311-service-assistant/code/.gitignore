@@ -1,0 +1,6 @@
+node_modules/
+data/
+.env
+# Point fixture path environment variables at *.local.json files to try real
+# tenant object IDs or city data without committing them.
+config/*.local.json

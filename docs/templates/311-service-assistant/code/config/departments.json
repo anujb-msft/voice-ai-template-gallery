@@ -1,0 +1,51 @@
+[
+  {
+    "id": "public-works",
+    "displayName": "Public Works",
+    "teamsQueue": { "type": "queue", "objectId": "00000000-0000-0000-0000-000000000311", "displayName": "Public Works Queue" },
+    "hours": { "days": [1,2,3,4,5], "open": "08:00", "close": "17:00", "timeZone": "America/Los_Angeles" },
+    "requestTypes": ["pothole", "streetlight-out"]
+  },
+  {
+    "id": "sanitation",
+    "displayName": "Sanitation",
+    "teamsQueue": { "type": "queue", "objectId": "00000000-0000-0000-0000-000000000312", "displayName": "Sanitation Queue" },
+    "hours": { "days": [1,2,3,4,5], "open": "07:00", "close": "16:00", "timeZone": "America/Los_Angeles" },
+    "requestTypes": ["missed-trash", "bulk-pickup"]
+  },
+  {
+    "id": "parking-enforcement",
+    "displayName": "Parking Enforcement",
+    "teamsQueue": { "type": "queue", "objectId": "00000000-0000-0000-0000-000000000313", "displayName": "Parking Enforcement Queue" },
+    "hours": { "days": [1,2,3,4,5], "open": "08:00", "close": "18:00", "timeZone": "America/Los_Angeles" },
+    "requestTypes": ["abandoned-vehicle"]
+  },
+  {
+    "id": "code-enforcement",
+    "displayName": "Code Enforcement",
+    "teamsQueue": { "type": "queue", "objectId": "00000000-0000-0000-0000-000000000314", "displayName": "Code Enforcement Queue" },
+    "hours": { "days": [1,2,3,4,5], "open": "08:30", "close": "17:00", "timeZone": "America/Los_Angeles" },
+    "requestTypes": ["graffiti", "noise-complaint"]
+  },
+  {
+    "id": "clerk",
+    "displayName": "City Clerk",
+    "teamsQueue": { "type": "queue", "objectId": "00000000-0000-0000-0000-000000000315", "displayName": "Clerk Queue" },
+    "hours": { "days": [1,2,3,4,5], "open": "09:00", "close": "16:00", "timeZone": "America/Los_Angeles" },
+    "requestTypes": ["permits", "licenses"]
+  },
+  {
+    "id": "311-live",
+    "displayName": "311 Live Agent",
+    "teamsQueue": { "type": "queue", "objectId": "00000000-0000-0000-0000-000000000316", "displayName": "311 Live Agent Queue" },
+    "hours": { "days": [1,2,3,4,5], "open": "07:00", "close": "19:00", "timeZone": "America/Los_Angeles" },
+    "requestTypes": []
+  },
+  {
+    "id": "relay",
+    "displayName": "Relay Services",
+    "teamsQueue": { "type": "queue", "objectId": "00000000-0000-0000-0000-000000000317", "displayName": "Relay Queue" },
+    "hours": { "days": [0,1,2,3,4,5,6], "open": "00:00", "close": "23:59", "timeZone": "America/Los_Angeles" },
+    "requestTypes": []
+  }
+]

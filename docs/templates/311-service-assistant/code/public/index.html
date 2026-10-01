@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>311 Service Assistant demo</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <header><h1>City of Contoso 311 Service Assistant</h1><p>Demo surface — not a production 311 system.</p></header>
+  <main>
+    <section class="panel controls">
+      <button id="start">Start simulated call</button>
+      <input id="utterance" placeholder="Type caller utterance" />
+      <button id="say">Send</button>
+      <button data-dtmf="0">DTMF 0</button>
+      <button data-dtmf="*">Repeat *</button>
+    </section>
+    <section class="grid">
+      <div class="panel"><h2>Call state</h2><pre id="state">No call yet.</pre></div>
+      <div class="panel"><h2>Transcript</h2><ol id="transcript"></ol></div>
+      <div class="panel"><h2>Open case board</h2><div id="cases"></div></div>
+      <div class="panel"><h2>Metrics</h2><pre id="stats"></pre></div>
+    </section>
+  </main>
+  <script type="module" src="/app.js"></script>
+</body>
+</html>

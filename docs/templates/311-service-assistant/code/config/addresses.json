@@ -1,0 +1,7 @@
+[
+  { "address": "1200 Maple Street", "street": "Maple Street", "zone": "A", "lat": 47.6100, "lon": -122.3350 },
+  { "address": "88 Oak Avenue", "street": "Oak Avenue", "zone": "B", "lat": 47.6110, "lon": -122.3360 },
+  { "address": "200 Pine Road", "street": "Pine Road", "zone": "A", "lat": 47.6200, "lon": -122.3400 },
+  { "address": "10 Cedar Lane", "street": "Cedar Lane", "zone": "C", "lat": 47.6000, "lon": -122.3300 },
+  { "address": "50 Library Plaza", "street": "Library Plaza", "zone": "B", "lat": 47.6120, "lon": -122.3370 }
+]

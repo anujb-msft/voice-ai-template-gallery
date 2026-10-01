@@ -1,0 +1,71 @@
+[
+  {
+    "id": "pothole",
+    "names": { "en": ["pothole", "hole in the road"], "es": ["bache", "hoyo"] },
+    "department": "public-works",
+    "required": ["location", "size"],
+    "optional": ["inTravelLane", "landmark"],
+    "fields": {
+      "size": { "type": "enum", "values": ["small", "medium", "large"] },
+      "inTravelLane": { "type": "boolean" }
+    },
+    "priorityWhen": { "size": "large", "inTravelLane": true },
+    "duplicate": { "radiusM": 50, "windowDays": 7 }
+  },
+  {
+    "id": "streetlight-out",
+    "names": { "en": ["streetlight out", "street light out", "light is out"], "es": ["luz de la calle", "farola apagada"] },
+    "department": "public-works",
+    "required": ["location", "poleNumber"],
+    "optional": ["landmark"],
+    "fields": { "poleNumber": { "type": "string" } },
+    "priorityWhen": {},
+    "duplicate": { "radiusM": 50, "windowDays": 7 }
+  },
+  {
+    "id": "missed-trash",
+    "names": { "en": ["missed trash", "trash was not picked up", "garbage pickup missed"], "es": ["basura no recogida", "no recogieron la basura"] },
+    "department": "sanitation",
+    "required": ["location", "pickupType"],
+    "optional": ["cartOutBy"],
+    "fields": {
+      "pickupType": { "type": "enum", "values": ["trash", "recycling", "yard waste"] },
+      "cartOutBy": { "type": "string" }
+    },
+    "priorityWhen": {},
+    "duplicate": { "radiusM": 50, "windowDays": 7 }
+  },
+  {
+    "id": "graffiti",
+    "names": { "en": ["graffiti", "tagging"], "es": ["grafiti", "pintada"] },
+    "department": "code-enforcement",
+    "required": ["location", "surface"],
+    "optional": ["offensive"],
+    "fields": {
+      "surface": { "type": "enum", "values": ["building", "sign", "sidewalk", "wall", "other"] },
+      "offensive": { "type": "boolean" }
+    },
+    "priorityWhen": { "offensive": true },
+    "duplicate": { "radiusM": 50, "windowDays": 7 }
+  },
+  {
+    "id": "abandoned-vehicle",
+    "names": { "en": ["abandoned vehicle", "abandoned car", "car has not moved"], "es": ["vehículo abandonado", "auto abandonado"] },
+    "department": "parking-enforcement",
+    "required": ["location", "vehicleDescription"],
+    "optional": ["plate"],
+    "fields": { "vehicleDescription": { "type": "string" }, "plate": { "type": "string" } },
+    "priorityWhen": {},
+    "duplicate": { "radiusM": 50, "windowDays": 7 }
+  },
+  {
+    "id": "noise-complaint",
+    "names": { "en": ["noise complaint", "loud music", "construction noise"], "es": ["queja de ruido", "música alta", "ruido"] },
+    "department": "code-enforcement",
+    "required": ["location", "noiseType"],
+    "optional": ["timeObserved"],
+    "fields": { "noiseType": { "type": "string" }, "timeObserved": { "type": "string" } },
+    "priorityWhen": {},
+    "duplicate": { "radiusM": 50, "windowDays": 7 }
+  }
+]
