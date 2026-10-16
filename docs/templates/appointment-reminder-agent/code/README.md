@@ -33,6 +33,10 @@ Live dialing is blocked by defaults: enable the campaign only after ACS, Event G
 
 `src/flow.mjs` is the unit-testable state machine and imports no Azure or Express modules. `src/schedule-store.mjs` owns the shared SQLite schema and idempotent seed from `fixtures/appointments-seed.json`. `src/server.mjs` hosts Express, health/stats endpoints, Event Grid callbacks, offline simulation, and the local WebSocket console. `src/voice/*` bridges ACS PCM16 24 kHz media to Voice Live direct model mode and maps model tool calls to server-owned flow methods.
 
+`src/campaign.mjs` places the calls for `POST /api/campaign/run`. Each call is placed with a call invite from `src/call-invite.mjs`: the patient's number as `targetParticipant` and `ACS_CALLER_ID` as `sourceCallIdNumber`. If ACS rejects a placement, that call ends with outcome `create_call_failed` and the run carries on with the next row. The response lists `launched` call IDs and `failed` rows (`callId`, `appointmentId`, `error`), and a rejected call is no longer counted in `callsInFlight`. No attempt is recorded for it because the patient was not dialed.
+
+Transfers carry the Teams handoff fields as VoIP headers. Call Automation rejects header keys containing "." or "_", so `CallDetails.SessionId`, `CallDetails.CallTopic`, and `CallDetails.CallContext` go on the wire as `CallDetails-SessionId`, `CallDetails-CallTopic`, and `CallDetails-CallContext` (`voipKey` in `src/handoff.mjs`). The appointment scheduling agent reads the same keys.
+
 ## Tests and checks
 
 `npm test` runs `node:test` with no cloud credentials. `npm run check` syntax-checks source, scripts, and tests. `npm run smoke` checks the local WebSocket hub when the server is running.
