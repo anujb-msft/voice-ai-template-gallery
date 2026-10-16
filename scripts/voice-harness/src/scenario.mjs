@@ -108,7 +108,9 @@ export class ScenarioContext {
 
   /**
    * Listens to the agent. With a pattern, keeps listening across turns (e.g.
-   * past "one moment") until what it heard matches, then checks it.
+   * past "one moment") until what it heard matches, then checks it. After the
+   * call ends it still takes the turns heard before the hangup but not yet
+   * listened to, so a goodbye said just before the agent hung up counts.
    */
   async hear(expect, opts = {}) {
     if (expect && !(expect instanceof RegExp)) [opts, expect] = [expect, null];
@@ -118,7 +120,8 @@ export class ScenarioContext {
     if (!expect) return leg.hear({ timeoutMs, gapMs });
     const until = Date.now() + timeoutMs;
     let heard = sinceCaller ? leg.reply.join(" ") : "";
-    while (!(heard && expect.test(heard)) && Date.now() < until && !leg.ended) {
+    // An ended leg returns "" once nothing it heard is left, which ends the loop.
+    while (!(heard && expect.test(heard)) && Date.now() < until) {
       const text = await leg.hear({ timeoutMs: until - Date.now(), gapMs });
       if (!text) break;
       if (sinceCaller) heard = leg.reply.join(" ");
@@ -126,7 +129,8 @@ export class ScenarioContext {
     }
     const ok = expect.test(heard);
     const unheard = !ok && opening;
-    this.check(`agent said ${expect}`, ok, `${heard || "(nothing)"}${unheard ? `; ${UNHEARD}` : ""}`, {
+    const ended = !ok && leg.ended ? "; the call had ended" : "";
+    this.check(`agent said ${expect}`, ok, `${heard || "(nothing)"}${ended}${unheard ? `; ${UNHEARD}` : ""}`, {
       soft: soft || unheard,
       fatal,
     });

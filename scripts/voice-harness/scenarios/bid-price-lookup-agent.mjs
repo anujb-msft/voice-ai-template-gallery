@@ -2,17 +2,18 @@
 // (corn at Riverside, "and beans?", all locations, an advice question, * to repeat, a sell request, a feed
 // outage, goodbye) and the SPEC.md freshness and after-hours rules.
 //
-// The server clock is DEMO_NOW and stays frozen for the whole run (server.mjs:31). Tuesday 2026-09-08 at
+// The server clock is DEMO_NOW and stays frozen for the whole run (the flow's now() in server.mjs). Tuesday 2026-09-08 at
 // 15:42Z is 10:42 in Chicago: the futures session is open, the shipped fixtures make Riverside corn a live
 // $4.12, and the merchandisers are in (08:00-17:00 Chicago, Monday-Friday). At 23:30Z (18:30 in Chicago) the
 // market is closed, so quotes are "as of the last close", and the merchandisers are out, so a transfer
 // request closes the call instead. Price files point at the shipped fixtures.
 //
-// The merchandisers are placeholder Teams users, so an in-hours transfer can never reach a person. The flow
-// starts the ACS transfer without awaiting or catching it (flow.mjs:131), so a rejected request ends the
-// server process. Each in-hours transfer therefore runs on its own server (its own suite) and is checked
-// from what the server published on the hub before the dispatch failed. The demo feed switches get their
-// own suites too: make-stale cannot be undone.
+// The merchandisers are placeholder Teams users, so an in-hours transfer can never reach a person: ACS
+// accepts the request, then reports CallTransferFailed (480). The flow never re-dispatches (flow.mjs
+// #closeAfterFailedTransfer): the caller hears that the merchandiser can't be reached and when to call
+// back, the call ends with outcome transfer_failed:<reason>, and the server hangs up. Each in-hours
+// transfer has its own suite, so the scenarios that place a real ACS transfer request can be run on their
+// own. The demo feed switches get their own suites too: make-stale cannot be undone.
 
 const MARKET_OPEN = "2026-09-08T15:42:00Z";
 const AFTER_HOURS = "2026-09-08T23:30:00Z";
@@ -66,14 +67,14 @@ function heardSoFar(t) {
   return t.legs.map((l) => l.transcript()).join(" \n");
 }
 
-/** Soft check that the agent said `pattern` since `mark` (a heardSoFar length), listening on if not heard yet. */
+/** Soft check that the agent said `pattern` since `mark` (a heardSoFar length), listening on if not heard yet (on an ended call, to what it said before hanging up). */
 async function heardSince(t, mark, pattern, { timeoutMs = 20000 } = {}) {
   if (pattern.test(heardSoFar(t).slice(mark))) {
     t.check(`agent said ${pattern}`, true, null, { soft: true });
     return;
   }
-  if (!t.leg || t.leg.ended) {
-    t.check(`agent said ${pattern}`, false, "the call had ended", { soft: true });
+  if (!t.leg) {
+    t.check(`agent said ${pattern}`, false, "no call", { soft: true });
     return;
   }
   await t.hear(pattern, { timeoutMs, soft: true });
@@ -198,7 +199,7 @@ const marketOpenScenarios = [
       const mark = await t.eventMark();
       await t.say("Can you give me corn at all your locations?");
       await t.waitForEvent("tool", { detail: "list_bids", since: mark, timeoutMs: 25000, soft: true });
-      // list_bids records one quote per location it reads (flow.mjs:102); the shipped sheet has five corn locations.
+      // list_bids records one quote per location it reads (flow.mjs listBids); the shipped sheet has five corn locations.
       const until = Date.now() + 25000;
       let quotes = await quotesFor(t, "corn");
       while (new Set(quotes.map((q) => q.locationId)).size < 5 && Date.now() < until) {
@@ -225,7 +226,7 @@ const marketOpenScenarios = [
       const starMark = await t.eventMark();
       await t.dtmf("*");
       await t.pause(6000);
-      // server.mjs:84 maps only the tones zero-nine, so ACS's "asterisk" reaches flow.dtmf as an unmapped digit.
+      // server.mjs TONE_DIGITS maps only the tones zero-nine, so ACS's "asterisk" reaches flow.dtmf as an unmapped digit.
       // A repeat_last tool call means the model repeated it, not the keypad mapping.
       const byModel = await t.hasEvent("tool", { detail: "repeat_last", since: starMark });
       const starRepeats = agentLines(t, phrase) - beforeStar;
@@ -242,7 +243,7 @@ const marketOpenScenarios = [
     },
   },
   {
-    // Last in its suite: a transfer here would be in hours, and a failed dispatch ends the server.
+    // In merchandiser hours, so a transfer the caller did not ask for would really be placed.
     name: "advice-refusal",
     title: "Asked whether to sell, the agent refuses to advise or predict, points to the merchandiser, and starts no transfer",
     timeoutMs: 150000,
@@ -261,7 +262,7 @@ const marketOpenScenarios = [
   },
 ];
 
-/** Waits for the after-hours close: merchandiser hours and a call-back line instead of a transfer (flow.mjs:121-125). */
+/** Waits for the after-hours close: merchandiser hours and a call-back line instead of a transfer (flow.mjs transferToMerchandiser). */
 async function expectAfterHoursClose(t, outcome) {
   await t.waitForState(outcome, { field: "outcome", timeoutMs: 15000 });
   await t.waitForState("ended", { timeoutMs: 3000 });
@@ -322,7 +323,7 @@ const afterHoursScenarios = [
       await answered(t);
       await askQuote(t, "What's corn at Lake Mills?", "corn", null, null, { fatal: false });
       await t.pause(25000);
-      // flow.mjs:161 noInput() reprompts, then ends the call, but only /api/simulate/:id/silence calls it;
+      // flow.mjs noInput() reprompts, then ends the call, but only /api/simulate/:id/silence calls it;
       // the live bridge has no silence timer.
       await t.waitForEvent("no_input", { timeoutMs: 5000, fatal: false });
       await waitForHub(t, "the server reprompted the caller", "transcript", (p) => p.role === "agent" && /didn't catch that/.test(p.text), {
@@ -336,7 +337,7 @@ const afterHoursScenarios = [
   {
     name: "call-budget-expires",
     title: "When the 3-minute call budget runs out the server logs budget_expired and closes the call",
-    skip: "cannot elapse live: DEMO_NOW freezes the server clock (server.mjs:31), so flow.mjs #budgetExpired never trips",
+    skip: "cannot elapse live: DEMO_NOW freezes the server clock (the flow's now() in server.mjs), so flow.mjs #budgetExpired never trips",
     async run() {},
   },
   {
@@ -368,8 +369,9 @@ const afterHoursScenarios = [
 
 /**
  * In merchandiser hours a transfer is started for real: the state moves to transferring, the transfer is
- * audited with its reason, and the agent gets the location's connecting line. Read from the hub, which the
- * probe has already captured, so a server that dies on the failed dispatch still shows what it decided.
+ * audited with its reason, and the agent gets the location's connecting line. Read from the hub: the
+ * placeholder merchandiser's failure can end the call within a second or two, before a snapshot poll would
+ * see the transferring state.
  */
 async function expectTransferStarted(t, locationName, reason) {
   const started = await waitForHub(t, "a transfer to the merchandiser was started", "event", (p) => p.kind === "transfer_started", { timeoutMs: 25000 });
@@ -386,15 +388,35 @@ async function expectTransferStarted(t, locationName, reason) {
   return started;
 }
 
-/** The placeholder merchandiser cannot take the call; the failed dispatch must not take the server down. */
-async function expectServerSurvives(t) {
-  await t.pause(5000);
-  const alive = await serverAlive(t);
-  t.check("the server survives the failed transfer dispatch", alive, null, { fatal: false });
-  if (alive) {
-    // dispatchTransfer audits transfer_succeeded as soon as ACS accepts the request; CallTransferFailed is not handled.
-    t.check("no success is audited for the placeholder merchandiser", !(await t.hasEvent("transfer_succeeded")), null, { soft: true });
-  }
+/**
+ * The placeholder merchandiser cannot take the call: ACS accepts the request (its VoIP header keys are
+ * valid), then Teams reports CallTransferFailed (480). The flow never re-dispatches (flow.mjs
+ * #closeAfterFailedTransfer): the agent is given the can't-reach line with the merchandiser's hours, the
+ * call ends with outcome `outcome`, and the server hangs up once the model calls end_call, or after its
+ * 20-second backstop (server.mjs closeAfterFailedTransfer). `mark` is the heardSoFar length before the
+ * caller's request.
+ */
+async function expectFailedTransferCloses(t, { locationName, locationId, outcome, mark }) {
+  await t.waitForEvent("transfer_requested", { detail: locationId, timeoutMs: 15000, fatal: false });
+  const failed = await t.waitForEvent("transfer_failed", { timeoutMs: 45000 });
+  t.check("ACS accepted the VoIP header keys", !/invalid key/i.test(failed?.detail ?? ""), failed?.detail ?? null, { fatal: false });
+  const sorry = `Sorry, I can't reach the ${locationName} merchandiser right now. `;
+  await waitForHub(
+    t,
+    `the agent was given the can't-reach line with the ${locationName} hours`,
+    "transcript",
+    (p) => p.role === "agent" && p.text.startsWith(sorry) && CALL_BACK.test(p.text),
+    { timeoutMs: 5000 },
+  );
+  await t.waitForEvent("state", { detail: /transferring → ended$/, timeoutMs: 5000 });
+  await t.waitForState(outcome, { field: "outcome", timeoutMs: 5000 });
+  await heardSince(t, mark, /can.?t reach|call back/i, { timeoutMs: 20000 });
+  await t.waitForHangup({ timeoutMs: 35000, fatal: false });
+  const events = await t.events().catch(() => []);
+  const started = events.filter((e) => e.kind === "transfer_started").length;
+  t.check("the transfer was dispatched exactly once", started === 1, `${started} transfer_started event(s)`, { fatal: false });
+  t.check("no success is audited for the placeholder merchandiser", !events.some((e) => e.kind === "transfer_succeeded"), null, { fatal: false });
+  t.check("the server is still running after the failed transfer", await serverAlive(t), null, { fatal: false });
   if (t.leg && !t.leg.ended) await t.hangup();
 }
 
@@ -434,15 +456,16 @@ export default [
       },
     },
   ]),
-  // One in-hours transfer per server: the unawaited dispatch (flow.mjs:131) can end the process.
   suite("bid-price-lookup-agent-sell", "Bid price lookup (sell request in merchandiser hours)", 43, MARKET_OPEN, [
     {
       name: "sell-request-transfers",
-      title: "In merchandiser hours a sell request starts a blind transfer to the location's merchandiser with the last quote as context",
-      timeoutMs: 120000,
+      title:
+        "In merchandiser hours a sell request starts a blind transfer to the location's merchandiser with the last quote as context; when the placeholder merchandiser can't be reached, the caller gets the hours and the call closes",
+      timeoutMs: 150000,
       async run(t) {
         await answered(t);
         await askQuote(t, "What's corn at Riverside?", "corn", "riverside", "live", { fatal: false });
+        const mark = heardSoFar(t).length;
         await t.say("Okay. I want to sell ten thousand bushels.");
         await t.converse({
           until: (_heard, tt) => Boolean(tt.leg?.ended) || tt.hubMessages("event").some((m) => m.payload?.kind === "transfer_started"),
@@ -457,7 +480,7 @@ export default [
         await expectTransferStarted(t, "Riverside", /sell/i);
         const snap = await t.snapshot().catch(() => null);
         if (snap) {
-          // handoffContext (flow.mjs:196-206): CallTopic "Sell <commodity> – <location>", CallContext opens with the last quote.
+          // flow.mjs handoffContext: CallTopic "Sell <commodity> – <location>", CallContext opens with the last quote.
           const handoff = snap.handoff ?? {};
           t.check("the handoff topic names the sale and location", String(handoff.callTopic).startsWith("Sell corn") && String(handoff.callTopic).endsWith("Riverside"), handoff.callTopic, {
             fatal: false,
@@ -465,17 +488,18 @@ export default [
           t.check("the handoff carries the last quote", String(handoff.callContext).startsWith("Last quote: Corn at Riverside"), null, { fatal: false });
           t.check("the handoff targets the Riverside merchandiser", handoff.locationId === "riverside", handoff.locationId, { fatal: false });
         } else {
-          t.check("the handoff was readable before the server stopped", false, "no snapshot", { soft: true });
+          t.check("the handoff was readable from the call record", false, "no snapshot", { soft: true });
         }
-        await expectServerSurvives(t);
+        await expectFailedTransferCloses(t, { locationName: "Riverside", locationId: "riverside", outcome: /^transfer_failed:.*sell/i, mark });
       },
     },
   ]),
   suite("bid-price-lookup-agent-feed-down", "Bid price lookup (feed down in merchandiser hours)", 44, MARKET_OPEN, [
     {
       name: "feed-down-transfers-in-hours",
-      title: "With the price feed down in merchandiser hours no price is read and the call is transferred to the location's merchandiser",
-      timeoutMs: 120000,
+      title:
+        "With the price feed down in merchandiser hours no price is read and a transfer to the location's merchandiser starts; when the placeholder merchandiser can't be reached, the caller gets the hours and the call closes",
+      timeoutMs: 150000,
       async run(t) {
         const down = await t.api.post("/api/demo/feed-down", { down: true });
         t.check("the demo feed switch is accepted", down.ok, String(down.status));
@@ -488,7 +512,7 @@ export default [
           await heardSince(t, mark, /unavailable|connect|merchandiser/i, { timeoutMs: 15000 });
           const heard = heardSoFar(t).slice(mark);
           t.check("no price was spoken during the outage", !PRICE.test(heard), heard.match(PRICE)?.[0], { soft: true });
-          await expectServerSurvives(t);
+          await expectFailedTransferCloses(t, { locationName: "Prairie Center", locationId: "prairie-center", outcome: "transfer_failed:feed_outage", mark });
         } finally {
           await t.api.post("/api/demo/feed-down", { down: false }).catch(() => null);
         }

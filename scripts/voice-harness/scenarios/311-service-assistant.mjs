@@ -9,13 +9,14 @@
 //
 // What the caller hears is the model's paraphrase: call-bridge.mjs:23 passes only
 // "Speak this exact line." to Voice Live and drops the line flow.#say composed
-// (flow.mjs:340). Exact server wording is therefore checked on the hub's
+// (flow.mjs:368). Exact server wording is therefore checked on the hub's
 // "transcript" messages (what the server decided to say), the audio only softly.
 //
-// In business hours, keypad 0 (server.mjs:86, not awaited) and a priority pothole
-// (flow.mjs:203, a Promise spread into an object) start a Teams transfer whose
-// rejection nothing handles; the shipped queues are fictional, so ACS refuses
-// them. Those two beats run in their own suites so a crash cannot take others down.
+// In business hours, keypad 0 and a priority pothole start a Teams transfer. The
+// shipped queues are fictional: ACS accepts the request, Teams then reports
+// CallTransferFailed, and the template apologises and goes back to listening
+// (expectTransferFallback). Those two beats keep their own suites, so a
+// regression that crashes the process cannot take the others down.
 
 const BUSINESS_HOURS = "2026-09-30T10:00:00-07:00"; // Wednesday: Public Works, Sanitation and the 311 queue are open
 const AFTER_HOURS = "2026-09-30T21:00:00-07:00"; // Wednesday evening: everything but Relay is closed
@@ -97,6 +98,23 @@ const serverSaid = (t, pattern, opts = {}) =>
 
 async function alive(t) {
   return (await t.probe.health()) !== null;
+}
+
+/**
+ * After transfer_started: the shipped Teams queues are fictional, so ACS accepts the
+ * request (its VoIP header keys are valid), Teams then reports CallTransferFailed
+ * (480), and the template apologises once and goes back to listening.
+ */
+async function expectTransferFallback(t, { department, apology }) {
+  await hubEvent(t, "transfer_requested", { detail: department, timeoutMs: 15000, fatal: false });
+  const failed = await hubEvent(t, "transfer_failed", { timeoutMs: 45000 });
+  t.check("ACS accepted the VoIP header keys", !/invalid key/i.test(failed?.detail ?? ""), failed?.detail ?? null);
+  await hubEvent(t, "state", { detail: /transferring → listening$/, timeoutMs: 5000 });
+  await serverSaid(t, apology);
+  t.check("the template is still running after the transfer failed", await alive(t));
+  await t.expectNoEvent("transfer_succeeded");
+  const snap = await t.snapshot().catch(() => null);
+  t.check("the call was not marked transferred", snap?.state !== "transferred", snap?.state);
 }
 
 /** The pinned clock and TZ decide every hours check; /health reports what the template thinks is open. */
@@ -205,8 +223,8 @@ export default [
           await t.waitForState("emergency:gas", { field: "outcome" });
           await serverSaid(t, /gas emergency.*555-0109/i);
           await t.hear(/gas|utility|555|0109|hang up|911/i, { timeoutMs: 20000, soft: true });
-          // The redirect ends the call record, but the model can still call its transfer tool, and
-          // flow.transfer() (flow.mjs:277) has no terminal-state guard: ended → transferring.
+          // The redirect ends the call record. The model may still call its transfer tool, but
+          // flow.transfer() refuses a finished call (flow.mjs:279), so nothing reaches ACS.
           await t.expectNoEvent("transfer_started", { fatal: false });
           await t.waitForState("ended", { fatal: false });
           await t.expectNoEvent("case_created");
@@ -377,7 +395,7 @@ export default [
       },
       {
         name: "ask-for-person",
-        title: "Asking for a person in hours starts a transfer; when ACS refuses the fictional queue the template keeps running",
+        title: "Asking for a person in hours starts a transfer; when the fictional queue fails the agent apologises and keeps listening",
         async run(t) {
           await expectHours(t, true);
           await answered(t);
@@ -393,13 +411,9 @@ export default [
           await t.waitForEvent("transfer_started", { timeoutMs: 5000 });
           await t.waitForEvent("state", { detail: /→ transferring$/ });
           await serverSaid(t, /^I'm connecting you with .+ now\.$/);
-          await t.pause(8000);
-          // A model-invoked transfer goes through call-bridge's try/catch (call-bridge.mjs:55-57), so a refusal must not crash it.
-          t.check("the template is still running after ACS refused the transfer", await alive(t));
-          // Nothing handles a refused or failed transfer, so the record should stay "transferring", never "transferred".
-          const snap = await t.snapshot().catch(() => null);
-          t.check("the call is not marked transferred", snap?.state !== "transferred", snap?.state, { soft: true });
-          await t.replied(/sorry|unable|can't|couldn't|not able|try again|later/i, { timeoutMs: 15000, soft: true });
+          // The model picks the department, so neither its id nor its name is fixed.
+          await expectTransferFallback(t, { apology: /^I'm sorry, I can't connect you with .+ right now\. I can file a case for you now, or you can call back later during business hours\.$/ });
+          await t.hear(/sorry|unable|can't|couldn't|not able|try again|later|file a case/i, { timeoutMs: 15000, soft: true });
         },
       },
       {
@@ -418,8 +432,8 @@ export default [
           await t.dtmf("*");
           const until = Date.now() + 10000;
           while (repeats() <= before && Date.now() < until) await t.pause(400);
-          // Expected to fail until fixed: ACS reports the tone as "asterisk" and server.mjs:96 maps only zero-nine,
-          // so "*" never reaches flow.repeatLast (flow.mjs:315) and is logged as dtmf_ignored instead.
+          // Expected to fail until fixed: ACS reports the tone as "asterisk" and server.mjs:109 maps only zero-nine,
+          // so "*" never reaches flow.repeatLast (flow.mjs:348) and is logged as dtmf_ignored instead.
           const ignored = await t.hasEvent("dtmf_ignored", { detail: "asterisk" });
           t.check("* repeats the last line", repeats() > before, ignored ? 'logged as dtmf_ignored "asterisk"' : last);
         },
@@ -464,7 +478,7 @@ export default [
           await expectHours(t, false);
           await answered(t);
           await t.dtmf("0");
-          // flow.mjs:280-285: a closed department returns synchronously, so nothing reaches ACS.
+          // flow.mjs:282-287: a closed department returns synchronously, so nothing reaches ACS.
           await t.waitForEvent("transfer_after_hours", { detail: "311-live", timeoutMs: 15000 });
           await serverSaid(t, /^311 Live Agent will follow up on the next business day\.$/);
           await t.expectNoEvent("transfer_started");
@@ -485,7 +499,7 @@ export default [
     scenarios: [
       {
         name: "priority-pothole-transfer",
-        title: "A large pothole in the travel lane in hours is filed and handed to Public Works; the template survives ACS refusing the fictional queue",
+        title: "A large pothole in the travel lane in hours is filed and handed to Public Works; when the fictional queue fails the agent reads back the case",
         async run(t) {
           await expectHours(t, true);
           await closeOpenPotholes(t);
@@ -501,11 +515,11 @@ export default [
           if (!filed) return;
           await hubEvent(t, "transfer_started", { detail: "priority", timeoutMs: 10000 });
           await serverSaid(t, /^I'm connecting you with Public Works now\.$/);
-          await t.pause(8000);
-          // Expected to fail until fixed: submitRequest spreads the transfer Promise into its result (flow.mjs:203),
-          // so ACS refusing the fictional queue is an unhandled rejection that ends the Node process.
-          t.check("the template is still running after ACS refused the transfer", await alive(t));
-          await t.waitForState("transferring", { soft: true });
+          // A case was filed on this call, so the apology reads its number back instead of offering to file one.
+          await expectTransferFallback(t, {
+            department: "public-works",
+            apology: /^I'm sorry, I can't connect you with Public Works right now\. Your case number is .+, and the city will follow up\. Is there anything else\?$/,
+          });
         },
       },
     ],
@@ -521,18 +535,17 @@ export default [
     scenarios: [
       {
         name: "keypad-zero-transfer",
-        title: "Keypad 0 in hours starts the transfer to the 311 Live Agent queue; the template survives ACS refusing the fictional queue",
+        title: "Keypad 0 in hours starts the transfer to the 311 Live Agent queue; when the fictional queue fails the agent offers to file a case",
         async run(t) {
           await expectHours(t, true);
           await answered(t);
           await t.dtmf("0");
           await hubEvent(t, "transfer_started", { detail: "dtmf_0", timeoutMs: 15000 });
           await serverSaid(t, /^I'm connecting you with 311 Live Agent now\.$/);
-          await t.pause(8000);
-          // Expected to fail until fixed: server.mjs:86 neither awaits nor catches flow.dtmf, so ACS refusing
-          // the fictional queue is an unhandled rejection that ends the Node process.
-          t.check("the template is still running after ACS refused the transfer", await alive(t));
-          await t.waitForState("transferring", { soft: true });
+          await expectTransferFallback(t, {
+            department: "311-live",
+            apology: /^I'm sorry, I can't connect you with 311 Live Agent right now\. I can file a case for you now, or you can call back later during business hours\.$/,
+          });
         },
       },
     ],

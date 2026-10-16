@@ -13,13 +13,18 @@
 // is its own suite (fresh runtime dir, fresh database) and pages exactly once
 // per tick. The demo clock is frozen at DEMO_NOW until a scenario advances it.
 //
-// Known template bugs (see report): createCall in src/voice/acs.mjs:37/47 uses the
-// wrong argument shape, so the tick that should place the page answers 500 and
-// nothing rings; page legs never start DTMF recognition (src/server.mjs:78 passes
-// no targetPhone for them and src/voice/acs.mjs:59 then returns early). Server
-// lines never reach the model: src/flow.mjs #speak only records them for the
-// dashboard and nothing requests a response when a call starts, so the agent
-// says nothing until it hears the caller, and the caller-ID question is never asked.
+// A page ACS refuses is recorded as page_failed and rescheduled like a no-answer,
+// so a clock tick never answers 500.
+//
+// Known template bugs (see report): page legs never start DTMF recognition
+// (src/server.mjs:78 passes no targetPhone for them and src/voice/acs.mjs:59 then
+// returns early). Server lines never reach the model: src/flow.mjs #speak only
+// records them for the dashboard and nothing requests a response when a call
+// starts, so the agent says nothing until it hears the caller, and the caller-ID
+// question is never asked. The tenant status call never rings: the SQLite store
+// keeps only callback_masked (src/db.mjs), so createStatusCall
+// (src/voice/acs.mjs:46) finds no number and skips, yet flow.#statusCall still
+// records tenant_status_call. Scenarios expecting that call fail until it is fixed.
 
 const DEMO_NOW = "2026-09-30T23:42:00-07:00";
 

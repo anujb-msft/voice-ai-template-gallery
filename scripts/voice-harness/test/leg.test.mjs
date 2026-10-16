@@ -26,3 +26,13 @@ test("the agent's reply is what it began saying after the caller's last line or 
   assert.equal(await leg.hear({ gapMs: 0 }), "Or two for support. Billing. What's your account number?");
   assert.deepEqual(leg.reply, ["Billing. What's your account number?"]);
 });
+
+test("after the call ends, the leg still hands over what it heard but nobody listened to yet", async () => {
+  const leg = new Leg({ id: "leg-2", client: null, direction: "outbound", remote: "+15550100" });
+  leg.utterances.push(utterance("I'll end the call now. Goodbye.", 0));
+  leg.ended = true;
+  assert.equal(await leg.hear({ timeoutMs: 5000 }), "I'll end the call now. Goodbye.");
+  const started = Date.now();
+  assert.equal(await leg.hear({ timeoutMs: 5000 }), "", "then nothing");
+  assert.ok(Date.now() - started < 1000, "without waiting out the timeout");
+});

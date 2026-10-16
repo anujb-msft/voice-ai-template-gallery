@@ -75,12 +75,17 @@ export default [
           await routeTo(t, "I was charged twice on my invoice.", "billing", "billing");
           await t.waitForState("transferring");
           await t.waitForEvent("transfer_started", { detail: "billing", timeoutMs: TRANSFER_DELAY_MS + 15000 });
-          // The fictional queue cannot answer, so the documented ladder must run:
-          // one retry, one diversion to Reception, then an honest apology.
-          await t.waitForEvent("transfer_failed", { timeoutMs: 45000 });
+          // ACS accepts the request (valid VoIP header keys); the fictional queue then fails, so the
+          // documented ladder must run: one retry, one diversion to Reception, then an honest apology.
+          await t.waitForEvent("transfer_requested", { detail: "billing", timeoutMs: 15000, fatal: false });
+          const failed = await t.waitForEvent("transfer_failed", { timeoutMs: 45000 });
+          t.check("ACS accepted the VoIP header keys", !/invalid key/i.test(failed?.detail ?? ""), failed?.detail ?? null, { fatal: false });
           await t.waitForEvent("transfer_retry", { detail: "billing", timeoutMs: 45000 });
           await t.waitForEvent("transfer_diverted", { detail: "reception", timeoutMs: 45000 });
-          await t.waitForState("fallback", { timeoutMs: 60000 });
+          // The model ends the call as soon as it has apologised, so FALLBACK can last under a
+          // second: check the recorded transition (flow.mjs #setState), not the live state.
+          await t.waitForEvent("state", { detail: /→ fallback$/, timeoutMs: 60000 });
+          await t.expectNoEvent("transfer_succeeded");
           await t.hear(/can't connect|cannot connect|unable to connect|try (us )?again|call back/i, {
             timeoutMs: 25000,
             soft: true,

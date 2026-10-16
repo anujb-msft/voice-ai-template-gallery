@@ -12,10 +12,9 @@
 // clones of Jordan's MRI as separate patients P-9101.. at later times inside the
 // 44-52 h lead window; the next run calls the next one.
 //
-// Known template bug: src/voice/acs.mjs:11 passes `{ phoneNumber }` as the call
-// target, which @azure/communication-call-automation createCall cannot read, so
-// POST /api/campaign/run currently answers 500 and nothing rings. `launch`
-// records that as a failure and drains the harness's answer waiter.
+// A placement ACS refuses comes back in POST /api/campaign/run's `failed` list
+// rather than as a 500; `launch` records anything other than exactly one launched
+// call as a failure and drains the harness's answer waiter.
 
 const DEMO_NOW = "2026-05-19T10:00:00-07:00";
 const DOB = "March twelfth, nineteen eighty-four";
@@ -110,7 +109,8 @@ async function verify(t) {
     timeoutMs: 80000,
   });
   await t.waitForState("true", { field: (s) => String(Boolean(s?.verified)), timeoutMs: 10000 });
-  await t.hear(/make it|appointment|MRI|imaging|May|Northgate/i, { timeoutMs: 20000, soft: true });
+  // converse() stops on the turn that verified, which is usually the appointment line itself.
+  await t.replied(/make it|appointment|MRI|imaging|May|Northgate/i, { timeoutMs: 20000, soft: true });
 }
 
 const agentSaid = (t) => t.legs.map((l) => l.transcript()).join(" ");
@@ -158,9 +158,18 @@ export default {
         t.check("no appointment details before verification", !PHI.test(agentSaid(t)), agentSaid(t).slice(0, 300));
         await verify(t);
         await t.say("Yes, I'll be there.");
-        await t.waitForState("confirmed", { timeoutMs: 30000 });
+        // The server only confirms when the tool's confirmation text reads as a yes; if the model
+        // paraphrases it, the server refuses and the agent asks again, so answer once more.
+        await t.converse({
+          until: async () => (await t.snapshot().catch(() => null))?.state === "confirmed",
+          replies: [[/confirm|yes|make it|attend/i, "Yes."]],
+          maxTurns: 3,
+          timeoutMs: 60000,
+        });
+        await t.waitForState("confirmed", { timeoutMs: 15000 });
         await t.waitForState("confirmed", { field: "outcome" });
-        await t.hear(/confirmed|fast|eight hours|see you/i, { timeoutMs: 20000, soft: true });
+        await t.expectNoEvent("tool_rejected", { detail: /needs_explicit_yes/, soft: true });
+        await t.replied(/confirmed|fast|eight hours|see you/i, { timeoutMs: 20000, soft: true });
       },
     },
     {
@@ -199,12 +208,21 @@ export default {
           timeoutMs: 60000,
         });
         await t.waitForState("cancel_confirm", { timeoutMs: 10000 });
-        await t.hear(/should i cancel|cancel/i, { timeoutMs: 20000, soft: true });
+        await t.replied(/should i cancel|cancel/i, { timeoutMs: 20000, soft: true });
         // The proposal alone must not write: no outcome of any kind before the caller's yes.
         await t.expectNoEvent("outcome");
         await t.say("Yes, please cancel it.");
+        // As with confirming: the server only cancels when the tool's confirmation text reads as a
+        // yes; if the model paraphrases it, the server refuses and the agent asks again, so answer once more.
+        await t.converse({
+          until: async () => (await t.snapshot().catch(() => null))?.state === "cancelled",
+          replies: [[/cancel|yes|sure|proceed|explicit|confirm/i, "Yes."]],
+          maxTurns: 3,
+          timeoutMs: 60000,
+        });
         await t.waitForState("cancelled", { timeoutMs: 30000 });
         await t.waitForState("cancelled", { field: "outcome" });
+        await t.expectNoEvent("tool_rejected", { detail: /needs_explicit_yes/, soft: true });
       },
     },
     {

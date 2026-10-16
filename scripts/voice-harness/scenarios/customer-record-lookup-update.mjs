@@ -2,32 +2,32 @@
 // rep, calling the CRM assistant hands-free from a registered mobile, following
 // DEMO-SCRIPT.md beats 1-10 over a real phone call.
 //
-// Identity. A registered mobile has to pass a PIN (flow.mjs:96-101, SPEC.md:19).
+// Identity. A registered mobile has to pass a PIN (flow.mjs:99-104, SPEC.md:19).
 // The suite writes its own reps.json: rep-alex's registeredMobile is the harness
 // number and its pinHash is "sha256:" + sha256(PIN) for a PIN chosen here, computed
 // exactly as providers/crm.mjs:58-60 does (the shipped hash is the test PIN 246810,
-// test/flow.test.mjs:45, whose 0 would be a keypad transfer). A live caller has no
+// test/flow.test.mjs:46, whose 0 would be a keypad transfer). A live caller has no
 // way to enter it: keypad digits other than 0 and * are "unmapped_digit"
-// (flow.mjs:296-300), the model has no PIN tool and is told never to ask for one
+// (flow.mjs:299-303), the model has no PIN tool and is told never to ask for one
 // (agent.mjs:1-17, :39), and submitPin is only reached from the presenter console's
 // handler (offline.mjs:15). So scenarios type the PIN the way the console does,
-// POST /api/simulate/:id/say on the live call's id (server.mjs:99-103); the hash is
+// POST /api/simulate/:id/say on the live call's id (server.mjs:112-116); the hash is
 // still checked. "pin-keypad" records that the phone path does not work.
 //
 // Each suite gets a fresh SQLite CRM seeded from the shipped crm-seed.json, and
-// beforeEach resets it (POST /api/crm/reset, server.mjs:110) so scenarios stay
+// beforeEach resets it (POST /api/crm/reset, server.mjs:123) so scenarios stay
 // independent. DEMO_NOW pins "today" to Wednesday 10 June 2026 (README.md:43) and TZ
 // pins the weekday maths (flow.mjs parseRelativeDate), so "Friday" is 12 June.
 //
 // Server-owned wording is checked on the hub's agent transcripts: flow.#remember and
-// #speak publish the exact line before the model voices it (flow.mjs:405-406); what
+// #speak publish the exact line before the model voices it (flow.mjs:460-461); what
 // the caller hears is the model's rendering, checked softly.
 //
-// Transfers: the Sales Operations queue is a placeholder (config/routing.json), so
-// ACS refuses it. A transfer the model asks for is caught (voice-live.mjs #dispatchTool),
-// but keypad 0 is not awaited (server.mjs:73-74) and flow.transfer has no catch
-// (flow.mjs:336), so a refusal there is an unhandled rejection that can end the
-// process: that beat runs in its own suite.
+// Transfers: the Sales Operations queue is a placeholder (config/routing.json). ACS
+// accepts the request, Teams then reports CallTransferFailed, and the template
+// apologises once and returns a verified rep to where they were (flow.mjs
+// #transferFallback). Keypad 0 keeps its own suite, so a regression that crashes
+// the process cannot take the others down.
 
 const PIN = "135724"; // no 0 (keypad transfer) and no * (repeat), so it could also be keyed
 const WRONG_PIN = "975312";
@@ -252,7 +252,7 @@ export default [
           await t.hear(/0120|zero one two zero|one two zero|5550120|555/i, { timeoutMs: 25000, soft: true });
           await letFinish(t);
 
-          // SPEC.md:54: * repeats the last server phrase (flow.mjs:294-298).
+          // SPEC.md:54: * repeats the last server phrase (flow.mjs:297-301).
           const last = (await t.snapshot())?.lastPhrase ?? "";
           const before = agentLines(t).filter((line) => line === last).length;
           await t.dtmf("*");
@@ -271,7 +271,7 @@ export default [
             const spoke = await t.hear({ timeoutMs: 6000 });
             t.check("the agent stayed silent while paused", !spoke, spoke, { soft: true });
             await t.say("Continue.");
-            // The state machine has PAUSED -> LISTENING on "continue" (flow.mjs:293), but agent.mjs has no continue tool.
+            // The state machine has PAUSED -> LISTENING on "continue" (flow.mjs:296), but agent.mjs has no continue tool.
             await t.waitForState("listening", { timeoutMs: 15000, fatal: false });
           }
           t.check("the call is still up", await alive(t));
@@ -421,19 +421,19 @@ export default [
           await t.waitForEvent("draft_resumed", { since: markResume, timeoutMs: 25000 });
           const readBack = await serverSaid(t, /^Here's what I have: /);
           // Expected to fail sometimes: propose_update parses the model's paraphrase of the dictation, and only a
-          // literal "remind me to ..." becomes a task (flow.mjs:441), so "Reminder to send ..." loses it silently.
+          // literal "remind me to ..." becomes a task (flow.mjs:496), so "Reminder to send ..." loses it silently.
           t.check("the resumed read-back still carries the contract task", /task for you, send the contract, due June 12/.test(readBack?.text ?? ""), readBack?.text ?? "(no read-back)", { fatal: false });
           await t.hear(/contract|task|meeting|save/i, { timeoutMs: 30000, soft: true });
           await letFinish(t);
           const markCommit = await t.eventMark();
           await t.say("Yes, save it.");
-          // Expected to fail today: the resumed proposal keeps the first call's callId (flow.mjs:282, db.mjs:214),
-          // so #proposalFor throws "proposal belongs to another call" (flow.mjs:397).
+          // Expected to fail today: the resumed proposal keeps the first call's callId (flow.mjs:285, db.mjs:214),
+          // so #proposalFor throws "proposal belongs to another call" (flow.mjs:430).
           await t.waitForEvent("commit", { since: markCommit, timeoutMs: 25000, fatal: false });
           await letFinish(t, 10000);
           const secondId = t.id;
           await t.nextCall();
-          // The same throw in endCall's saveDraft (flow.mjs:353) leaves the call un-ended after hangup.
+          // The same throw in endCall's saveDraft (flow.mjs:387) leaves the call un-ended after hangup.
           let ended = false;
           for (let i = 0; i < 30 && !ended; i++) {
             ended = (await t.probe.record(secondId).catch(() => null))?.state === "ended";
@@ -530,7 +530,7 @@ export default [
           await t.expectNoEvent("find_account");
           await t.expectNoEvent("briefing");
           t.check("no Fabrikam data was spoken", !saidOnHub(t, /strategic tier|enterprise renewal|dana ruiz|250 thousand/i), null);
-          // SPEC.md:101-102 says the call ends; refuse() never hangs up (flow.mjs:125-130), only a model end_call would.
+          // SPEC.md:101-102 says the call ends; refuse() never hangs up (flow.mjs:128-133), only a model end_call would.
           await t.waitForHangup({ timeoutMs: 20000, fatal: false });
         },
       },
@@ -570,7 +570,7 @@ export default [
   {
     id: "customer-record-lookup-update-keypad-transfer",
     template,
-    title: "Customer record lookup & update (keypad 0 transfer; own process, may crash it)",
+    title: "Customer record lookup & update (keypad 0 transfer, own process)",
     direction: "inbound",
     order: 32,
     probe,
@@ -579,22 +579,33 @@ export default [
     scenarios: [
       {
         name: "keypad-zero-transfer",
-        title: "Keypad 0 starts a transfer to Sales Operations with a clean handoff and the template survives ACS refusing the fictional queue",
+        title: "Keypad 0 starts a transfer to Sales Operations with a clean handoff; when the fictional queue fails the rep hears one apology and carries on",
         timeoutMs: 180000,
         async run(t) {
           const id = await identify(t);
           await openFabrikam(t, "Fabrikam, please.");
           await letFinish(t);
           await t.dtmf("0");
-          // Read from the hub: an unhandled transfer rejection (server.mjs:73-74, flow.mjs:336) can kill the process.
+          // Read from the hub, which still holds the events if a regression kills the process.
           await hubEvent(t, "transfer", { detail: "dtmf_zero", timeoutMs: 15000 });
-          const state = await onHub(t, "state", "state is transferring (hub)", (s) => /^transferr(ing|ed)$/.test(s.state ?? ""), {
+          const state = await onHub(t, "state", "state is transferring (hub)", (s) => s.state === "transferring", {
             timeoutMs: 10000,
             show: (s) => s.state,
           });
           checkHandoff(t, state?.handoff, id);
-          await t.pause(8000);
-          t.check("the template is still up after the keypad transfer attempt", await alive(t), "an unhandled rejection ends the process", { fatal: false });
+          const into = await hubEvent(t, "state", { detail: / → transferring$/, timeoutMs: 5000 });
+          const before = String(into?.detail ?? "").split(" → ")[0];
+          // ACS accepts the request (valid VoIP header keys); the placeholder queue then fails.
+          await hubEvent(t, "transfer_requested", { detail: "sales-operations", timeoutMs: 15000, fatal: false });
+          const failed = await hubEvent(t, "transfer_failed", { timeoutMs: 45000 });
+          t.check("ACS accepted the VoIP header keys", !/invalid key/i.test(failed?.detail ?? ""), failed?.detail ?? null);
+          await hubEvent(t, "state", { detail: `transferring → ${before}`, timeoutMs: 5000 });
+          await serverSaid(t, /^I'm sorry, no one in sales operations is available right now\. You can carry on with me, or hang up and try again later\.$/);
+          t.check("the template is still running after the transfer failed", await alive(t));
+          await t.expectNoEvent("transfer_succeeded");
+          const dispatched = t.hubMessages("event").filter((m) => m.payload.kind === "transfer").length;
+          t.check("the transfer was not retried", dispatched === 1, `${dispatched} transfer event(s)`);
+          await t.hear(/sorry|no one|available|carry on|try again|later/i, { timeoutMs: 15000, soft: true });
         },
       },
     ],

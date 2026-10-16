@@ -120,6 +120,23 @@ test("hear(pattern) records what it did hear when the agent never says it", asyn
   assert.equal(t.checks.at(-1).detail, "(nothing)");
 });
 
+test("hear(pattern) still takes the turns an ended call left unheard", async () => {
+  const { t } = context({ turns: ["Sorry, I can't advise on that.", "Goodbye."] });
+  t.leg.ended = true;
+  assert.equal(await t.hear(/goodbye/i), "Sorry, I can't advise on that. Goodbye.", "a goodbye said just before the hangup counts");
+  assert.equal(t.checks.at(-1).ok, true);
+
+  const left = context({ turns: ["Sorry, I can't."] }).t;
+  left.leg.ended = true;
+  await left.hear(/call you back/i, { soft: true });
+  assert.deepEqual(left.checks.at(-1), {
+    name: "agent said /call you back/i",
+    ok: false,
+    soft: true,
+    detail: "Sorry, I can't.; the call had ended",
+  });
+});
+
 test("replied(pattern) checks the agent's reply to the caller's last line, even turns converse already heard", async () => {
   const { t } = context({ turns: ["Which appointment?", "This is within 24 hours. Should I cancel it?", "Cancelled. Goodbye."] });
   await t.converse({ until: /24 hours/i, replies: [[/which/i, "Tomorrow's follow-up."]] });

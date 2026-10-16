@@ -8,8 +8,9 @@
 // 19:00 is not. Content, hours and retrieval policy point at the shipped files and defaults.
 //
 // The information desk is the shipped placeholder Teams queue, so a live transfer can never ring a
-// person: every staffed dispatch exercises the documented failure handling instead (an apology, then
-// the call is closed with outcome transfer_failed).
+// person: ACS accepts the request, Teams then reports CallTransferFailed, and every staffed dispatch
+// exercises the documented failure handling instead (one apology, then the call is closed with
+// outcome transfer_failed).
 
 const STAFFED = "2026-09-30T10:00:00-07:00";
 const AFTER_HOURS = "2026-09-30T19:00:00-07:00";
@@ -149,11 +150,14 @@ async function expectHandoff(t, started, reason) {
 
 /**
  * The placeholder information desk cannot answer, so the documented failure handling must run:
- * transfer_failed, the scripted apology, and the call closed with outcome transfer_failed.
+ * transfer_requested (ACS accepted the request), transfer_failed (Teams could not place it), the
+ * scripted apology, and the call closed with outcome transfer_failed.
  * `mark` is the heardSoFar length before the caller asked for a person.
  */
 async function expectTransferFailure(t, mark) {
-  await t.waitForEvent("transfer_failed", { timeoutMs: 30000 });
+  await t.waitForEvent("transfer_requested", { detail: "Contoso information desk", timeoutMs: 15000, fatal: false });
+  const failed = await t.waitForEvent("transfer_failed", { timeoutMs: 45000 });
+  t.check("ACS accepted the VoIP header keys", !/invalid key/i.test(failed?.detail ?? ""), failed?.detail ?? null, { fatal: false });
   await waitForHub(
     t,
     "the agent was given the scripted apology",
@@ -164,13 +168,15 @@ async function expectTransferFailure(t, mark) {
   await t.waitForState("closed", { timeoutMs: 10000 });
   await t.waitForState("transfer_failed", { field: "outcome", timeoutMs: 5000 });
   await heardSince(t, mark, APOLOGY_HEARD, { timeoutMs: 20000 });
-  // An asynchronous CallTransferFailed makes the server dispatch again (server.mjs CallTransferFailed
-  // handler); a call that has already failed and closed must not be transferred a second time.
+  // Nothing re-dispatches after CallTransferFailed: a call that has failed and closed must not be
+  // transferred a second time.
   await t.pause(5000);
-  const dispatched = (await t.events().catch(() => [])).filter((e) => e.kind === "transfer_started").length;
+  const events = await t.events().catch(() => []);
+  const dispatched = events.filter((e) => e.kind === "transfer_started").length;
   t.check("the transfer was dispatched exactly once", dispatched === 1, `${dispatched} transfer_started event(s)`, {
     fatal: false,
   });
+  t.check("no transfer was reported as succeeded", !events.some((e) => e.kind === "transfer_succeeded"), null, { fatal: false });
 }
 
 export default [

@@ -10,8 +10,9 @@
 // and outbox read at the start of each call.
 //
 // The sales queue is the shipped placeholder Teams queue, so the in-hours transfer can never ring a
-// person. That suite checks the routing decision and handoff the server publishes, and whether the server
-// survives the failed dispatch.
+// person: ACS accepts the request, then reports CallTransferFailed (480). That suite checks the routing
+// decision and handoff the server publishes, then the documented fallback: the server starts media, and
+// the agent apologises once and captures the lead.
 
 const AFTER_HOURS = "2026-09-30T19:30:00-07:00";
 const HOLIDAY = "2026-11-26T10:00:00-08:00";
@@ -46,6 +47,9 @@ const QUOTED =
 const SCORE_OR_OWNER = /\b(hot|warm|cold) lead\b|\blead score\b|\b(ava|chloe|jordan|ortiz|brooks)\b/i;
 const CONFIRM_Q =
   /\b(is that|is this|did i get (that|it|this)|have i got (that|it|this)|does that sound)\b[^.?!]*\b(right|correct|ok(ay)?)\b|\b(correct|right)\s*\?/i;
+/** flow.mjs TRANSFER_FAILED_LINE: the agent's one-time opening when the in-hours transfer fails. */
+const TRANSFER_FAILED_LINE =
+  "Sorry, I can't connect you with our sales team right now. I'm an automated assistant, and I can take your details and have the right person call you back. What are you looking for today?";
 
 const SAM = {
   name: "Sam Patel",
@@ -97,14 +101,14 @@ function heardSoFar(t) {
   return t.legs.map((l) => l.transcript()).join(" \n");
 }
 
-/** Soft check that the agent said `pattern` since `mark` (a heardSoFar length), listening on if not heard yet. */
+/** Soft check that the agent said `pattern` since `mark` (a heardSoFar length), listening on if not heard yet (on an ended call, to what it said before hanging up). */
 async function heardSince(t, mark, pattern, { timeoutMs = 20000 } = {}) {
   if (pattern.test(heardSoFar(t).slice(mark))) {
     t.check(`agent said ${pattern}`, true, null, { soft: true });
     return;
   }
-  if (!t.leg || t.leg.ended) {
-    t.check(`agent said ${pattern}`, false, "the call had ended", { soft: true });
+  if (!t.leg) {
+    t.check(`agent said ${pattern}`, false, "no call", { soft: true });
     return;
   }
   await t.hear(pattern, { timeoutMs, soft: true });
@@ -545,8 +549,7 @@ export default [
     ],
   },
   {
-    // One scenario per server: a rejected transfer request is an unhandled rejection in flow.mjs
-    // (#transferSales never awaits or catches dispatchPromise), which ends the process on Node 15+.
+    // Its own server: DEMO_NOW pins the clock for the whole run, and this suite needs it in sales hours.
     id: "after-hours-sales-lead-capture-in-hours",
     template: "after-hours-sales-lead-capture",
     title: "After-hours sales lead capture (in hours)",
@@ -557,13 +560,14 @@ export default [
     scenarios: [
       {
         name: "in-hours-routes-to-sales",
-        title: "In hours the call is answered without media and blind-transferred to the sales queue with its handoff context, never starting lead capture",
-        timeoutMs: 90000,
+        title:
+          "In hours the call is answered without media and blind-transferred to the sales queue with its handoff context; when the placeholder queue fails, the agent apologises once and captures the lead",
+        timeoutMs: 150000,
         async run(t) {
           await t.dial();
           await t.callId({ timeoutMs: 30000 });
-          // Read from the hub, which the probe has already captured, so a server that dies on the failed
-          // transfer still shows what it decided first.
+          // Read from the hub: the placeholder queue's failure can move the call on within a second or two,
+          // before a snapshot poll would see routing or transferring.
           const isState = (p, re) => p.kind === "state" && re.test(p.detail);
           await waitForHub(t, "the call is routed (ringing -> routing)", "event", (p) => isState(p, /ringing\s*→\s*routing/), { timeoutMs: 20000 });
           await waitForHub(t, "in hours it goes straight to transferring", "event", (p) => isState(p, /routing\s*→\s*transferring/), {
@@ -587,20 +591,47 @@ export default [
             (p) => p.role === "agent" && /Connecting you with our sales team now/.test(p.text),
             { timeoutMs: 5000 },
           );
-          const capture = t.hubMessages("event").some((m) => m.payload?.kind === "state" && /greeting|discovery/.test(m.payload.detail));
-          t.check("lead capture never starts in hours", !capture);
-          // SPEC experience decision 10 promises a spoken "connecting you", but in hours the call is answered
-          // with media off and nothing is played, so the caller hears silence.
-          if (t.leg && !t.leg.ended) await t.hear(/connect/i, { timeoutMs: 10000, fatal: false });
-          else t.check("agent said /connect/i", false, "the call had ended", { fatal: false });
-          // The placeholder queue cannot take the call; the dispatch must fail without taking the line down.
-          await t.pause(5000);
-          t.check("the server survives the failed transfer dispatch", await serverAlive(t), null, { fatal: false });
-          const claimed = t.hubMessages("event").some((m) => m.payload?.kind === "transfer_succeeded");
-          // dispatchTransfer records transfer_succeeded as soon as ACS accepts the request, and CallTransferFailed
-          // is only logged, so an accepted request to the placeholder queue is audited as a success.
-          t.check("no success is audited for the unprovisioned placeholder queue", !claimed, null, { soft: true });
+          // SPEC call flow step 2: the transfer is requested once; when it fails the server starts media and
+          // the agent takes the call with a one-time apology. Nothing is retried.
+          await t.waitForEvent("transfer_requested", { detail: "sales", timeoutMs: 15000, fatal: false });
+          const failed = await t.waitForEvent("transfer_failed", { timeoutMs: 45000 });
+          t.check("ACS accepted the VoIP header keys", !/invalid key/i.test(failed?.detail ?? ""), failed?.detail ?? null, { fatal: false });
+          await t.waitForEvent("state", { detail: /transferring → greeting$/, timeoutMs: 5000 });
+          await t.waitForEvent("state", { detail: /greeting → discovery$/, timeoutMs: 30000 });
+          await waitForHub(t, "the agent was given the one-time apology", "transcript", (p) => p.role === "agent" && p.text === TRANSFER_FAILED_LINE, {
+            timeoutMs: 5000,
+          });
+          await t.hear(/can.?t connect|right person|call you back|looking for/i, { timeoutMs: 25000, fatal: false });
+          const snap = await t.snapshot().catch(() => null);
+          t.check("the call record shows the transfer-failed fallback", snap?.fallback === "transfer_failed", snap?.fallback ?? null, { fatal: false });
+          // SPEC experience decision 10 promises a spoken "connecting you with our sales team now", but in hours
+          // the call is answered with media off, so that line is only published: the caller hears nothing
+          // until the transfer has failed.
+          t.check("the caller heard \"connecting you\" before the transfer", /\bconnecting you\b/i.test(heardSoFar(t)), heardSoFar(t).slice(0, 120) || "(nothing)", {
+            fatal: false,
+          });
+          const events = await t.events().catch(() => []);
+          const count = (kind) => events.filter((e) => e.kind === kind).length;
+          t.check(
+            "the transfer was requested at most once and failed once (no retry)",
+            count("transfer_requested") <= 1 && count("transfer_failed") === 1,
+            `${count("transfer_requested")} requested, ${count("transfer_failed")} failed`,
+            { fatal: false },
+          );
+          const failedAt = events.findIndex((e) => e.kind === "transfer_failed");
+          const captureAt = events.findIndex((e) => e.kind === "state" && /→ (greeting|discovery)$/.test(e.detail));
+          t.check("lead capture starts only after the transfer failed", failedAt >= 0 && captureAt > failedAt, `transfer_failed at ${failedAt}, capture at ${captureAt}`, {
+            fatal: false,
+          });
+          // The agent carries on as it would after hours, without apologising again.
+          await t.say("I'm looking for brass fittings, about five hundred pieces.");
+          await t.hear(/name|company|reach|phone|number|email|when|timeline|quantity|how many/i, { timeoutMs: 20000, soft: true });
+          const apologies = heardSoFar(t).match(/can.?t connect you/gi)?.length ?? 0;
+          t.check("the apology was heard once", apologies === 1, `${apologies} time(s)`, { soft: true });
+          t.check("the server is still running after the failed transfer", await serverAlive(t), null, { fatal: false });
+          await t.expectNoEvent("transfer_succeeded", { fatal: false });
           await t.hangup();
+          await t.waitForState("caller_hung_up", { field: "outcome", timeoutMs: 15000 });
         },
       },
       {
