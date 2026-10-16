@@ -1,6 +1,7 @@
 import { CallAutomationClient } from "@azure/communication-call-automation";
 import { DefaultAzureCredential } from "@azure/identity";
 import { config } from "../config.mjs";
+import { buildCallInvite } from "../call-invite.mjs";
 
 const log = (...a) => console.log(new Date().toISOString(), "[acs]", ...a);
 let client;
@@ -34,9 +35,8 @@ export async function createPageCall({ incidentId, contact, briefKind = "page" }
   const base = config.publicBaseUrl;
   const wss = base.replace(/^https:/, "wss:");
   const q = encodeURIComponent(incidentId);
-  const result = await acsClient().createCall(phone(contact.mobile), `${base}/api/calls/callback?call=${q}&leg=page`, {
+  const result = await acsClient().createCall(buildCallInvite({ to: contact.mobile, from: config.acs.outboundCallerId }), `${base}/api/calls/callback?call=${q}&leg=page`, {
     operationContext: `${briefKind}:${incidentId}:${contact.id}`,
-    sourceCallerIdNumber: phone(config.acs.outboundCallerId),
     mediaStreamingOptions: { transportType: "websocket", transportUrl: `${wss}/ws/media?call=${q}&leg=page`, contentType: "audio", audioChannelType: "mixed", startMediaStreaming: true, enableBidirectional: true, audioFormat: "pcm24KMono" },
   });
   return { callConnectionId: result.callConnectionProperties?.callConnectionId ?? null };
@@ -44,14 +44,14 @@ export async function createPageCall({ incidentId, contact, briefKind = "page" }
 
 export async function createStatusCall({ incident, message }) {
   if (!incident.callbackNumber) return { skipped: true };
-  const result = await acsClient().createCall(phone(incident.callbackNumber), `${config.publicBaseUrl}/api/calls/callback?call=${encodeURIComponent(incident.id)}&leg=status`, { operationContext: `status:${incident.id}`, sourceCallerIdNumber: phone(config.acs.outboundCallerId) });
+  const result = await acsClient().createCall(buildCallInvite({ to: incident.callbackNumber, from: config.acs.outboundCallerId }), `${config.publicBaseUrl}/api/calls/callback?call=${encodeURIComponent(incident.id)}&leg=status`, { operationContext: `status:${incident.id}` });
   log("status call", incident.id, message);
   return { callConnectionId: result.callConnectionProperties?.callConnectionId ?? null };
 }
 
 export async function addTenantParticipant({ callConnectionId, incident }) {
   if (!callConnectionId || !incident.callbackNumber) throw new Error("bridge requires active page call and tenant callback");
-  await acsClient().getCallConnection(callConnectionId).addParticipant(phone(incident.callbackNumber), { operationContext: `bridge:${incident.id}` });
+  await acsClient().getCallConnection(callConnectionId).addParticipant(buildCallInvite({ to: incident.callbackNumber, from: config.acs.outboundCallerId }), { operationContext: `bridge:${incident.id}` });
   return { ok: true };
 }
 

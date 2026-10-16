@@ -81,6 +81,15 @@ Tenant PSTN / Teams Phone resource account
 
 `src/flow.mjs` owns the state machine and imports no Azure or Express code. Voice, server, database, notification, and dialer dependencies are injected so tests run with no cloud credentials.
 
+Page, status, and bridge calls are placed with a call invite from `src/call-invite.mjs`: the callee as `targetParticipant` and `ACS_OUTBOUND_CALLER_ID` as `sourceCallIdNumber`. A failed placement never leaves a scheduler job `running` and never fails a scheduler pass, so `/api/simulate/clock/advance` still returns 200 and lists the failure in `processed`:
+
+| Failure | Audit events (source) | What happens next |
+|---|---|---|
+| Page call rejected | `page_attempt` ending `:failed`, then `page_failed` (`pager`) | Job `done`. The next attempt is scheduled as for a no-answer: same level after the severity gap, then the next level. |
+| Tenant status call rejected | `status_call_failed` (`system`) | An acknowledged incident still closes, and the unacknowledged alert still completes. |
+| Technician card or ops alert post fails | `notification_failed` (`system`) | The page call is still placed, and the alert still completes. |
+| Any other error inside a job | `job_failed` (`scheduler`) | Job `failed`. The 20-minute unacknowledged alert job is the backstop. |
+
 ## Tests
 
 ```bash
@@ -89,7 +98,7 @@ npm run check   # syntax checks all modules/scripts/tests
 npm run smoke   # starts a temporary server and validates WebSocket upgrades
 ```
 
-Coverage includes roster matching, unknown/invalid unit validation, triage variants, duplicates, escalation, acknowledgement, voicemail privacy, bridge requests, scheduler restart persistence, handoff payloads, stats, and prompt-injection note sanitization.
+Coverage includes roster matching, unknown/invalid unit validation, triage variants, duplicates, escalation, acknowledgement, voicemail privacy, bridge requests, scheduler restart persistence, call invites, placement failures (rejected page and status calls, failed Teams posts), handoff payloads, stats, and prompt-injection note sanitization.
 
 ## Security notes before production
 

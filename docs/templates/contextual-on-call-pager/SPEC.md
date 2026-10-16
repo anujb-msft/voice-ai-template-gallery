@@ -119,9 +119,10 @@ An example escalation policy:
    said water is coming through the kitchen ceiling. Press 1 or say 'I've got it' to
    accept."** The tech can ask questions about the ticket, press `*` to repeat, `2` to
    decline, or `3` to be connected to the tenant.
-9. If there is no acknowledgement, the scheduler retries and escalates by the policy. An
-   answering machine hears only **"Contoso maintenance has an urgent page for you. Please
-   call the maintenance line."**
+9. If there is no acknowledgement, the scheduler retries and escalates by the policy. A
+   page call that cannot be placed counts as an unanswered attempt and is retried or
+   escalated the same way. An answering machine hears only **"Contoso maintenance has an
+   urgent page for you. Please call the maintenance line."**
 10. On acknowledgement, the server records the time and places a status call to the
     tenant: **"A technician has your request and will call you shortly."** If no one has
     acknowledged after 20 minutes, the ops channel is alerted and the tenant gets a
@@ -172,6 +173,16 @@ The scheduler is a SQLite job table polled every few seconds. Each job has an in
 a level, an attempt number, and a due time. Jobs are idempotent, so a restart or a
 duplicate callback never places a second call for the same attempt. An acknowledgement
 cancels every pending job for the incident.
+
+A claimed job never stays `running`. When ACS rejects a page call, the attempt is
+recorded with outcome `failed` and a `page_failed` event, the job is marked `done`, and
+the next attempt is scheduled exactly as for a no-answer: the same level after the
+severity gap, then the next level. A tenant status call or Teams post that fails is
+logged as `status_call_failed` or `notification_failed`. The incident still closes after
+an acknowledgement, and the unacknowledged alert is still raised. Any other error inside
+a job marks that job `failed` with a `job_failed` event, and the separate 20-minute alert
+job remains the backstop. A scheduler pass always completes, so one failed placement
+never fails the request or clock tick that ran it.
 
 ## Teams handoff contract
 
@@ -225,7 +236,8 @@ the Teams provisioning snippet, the config fixtures, and the call fixtures.
   answer then accept on the second, a primary decline, escalation to secondary and then to
   the property manager, the unacknowledged alert, an answering machine, a rotation
   override, a holiday rotation, a bridge to the tenant, a scheduler restart mid-escalation,
-  and a prompt-injection attempt in the tenant's note.
+  a page or status call that ACS rejects, and a prompt-injection attempt in the tenant's
+  note.
 - Severity is computed only by the server. Emergencies always hear the 911 instruction
   before any other question.
 - Answering machines never hear the property, unit, or issue.
