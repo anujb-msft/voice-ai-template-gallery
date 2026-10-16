@@ -44,6 +44,13 @@ export class VoiceLiveSession {
     this.pending = [];
     this.activeResponse = false;
     this.pendingResponse = false;
+    this.lines = [];
+    this.toolCalls = 0;
+    this.responseSeq = 0;
+    this.lastCreate = null;
+    this.linesAsItems = false;
+    this.requeued = new Set();
+    this.deferredItems = [];
   }
 
   async connect() {
@@ -95,7 +102,7 @@ export class VoiceLiveSession {
       });
     });
 
-    this.ws.on("message", (raw) => this.#handleEvent(raw));
+    this.ws.on("message", (raw) => this.receive(raw).catch((e) => log("event handling failed", e)));
     this.ws.on("close", (code) => {
       log("closed", code);
       this.closed = true;
@@ -114,11 +121,67 @@ export class VoiceLiveSession {
    * `conversation_already_has_active_response`.
    */
   #requestResponse() {
-    if (this.activeResponse) this.pendingResponse = true;
-    else {
-      this.activeResponse = true;
-      this.#send({ type: "response.create" });
+    if (this.activeResponse) {
+      this.pendingResponse = true;
+      return;
     }
+    this.activeResponse = true;
+    this.pendingResponse = false;
+    const queued = this.lines.splice(0);
+    const lines = queued.join("\n");
+    const event_id = `response-${++this.responseSeq}`;
+    if (lines && this.linesAsItems) {
+      this.#send({ type: "conversation.item.create", item: { type: "message", role: "system", content: [{ type: "input_text", text: lines }] } });
+    }
+    // Server lines ride on this one response as per-response instructions, so they never
+    // linger in the session prompt and get spoken again on a later turn.
+    const viaInstructions = Boolean(lines) && !this.linesAsItems;
+    this.lastCreate = { event_id, lines: viaInstructions ? queued : [] };
+    this.#send({
+      type: "response.create",
+      event_id,
+      ...(viaInstructions && { response: { instructions: `${this.baseInstructions}\n\n${lines}` } }),
+    });
+  }
+
+  /**
+   * A response that only calls tools never speaks the server lines it carried, and the
+   * next response doesn't know about them, so they go back on the queue, once. A
+   * cancelled response is the caller talking over the agent, so its lines are dropped.
+   */
+  #settleLines(msg) {
+    const sent = this.lastCreate;
+    // Only the response our last response.create started carried those lines.
+    if (!sent || sent.responseId === undefined) return;
+    if (sent.responseId !== null && sent.responseId !== msg.response?.id) return;
+    this.lastCreate = null;
+    const output = msg.response?.output;
+    const toolOnly =
+      msg.type === "response.done" &&
+      msg.response?.status === "completed" &&
+      Array.isArray(output) &&
+      output.some((item) => item?.type === "function_call") &&
+      !output.some((item) => item?.type === "message");
+    if (!toolOnly) {
+      for (const line of sent.lines) this.requeued.delete(line);
+      return;
+    }
+    const retry = [];
+    for (const line of sent.lines) {
+      // A line already had its second chance: drop it, so a model that keeps calling tools can't loop on it.
+      if (this.requeued.delete(line) || this.lines.includes(line)) continue;
+      this.requeued.add(line);
+      retry.push(line);
+    }
+    if (!retry.length) return;
+    this.lines.unshift(...retry);
+    this.pendingResponse = true;
+    log(`re-queued ${retry.length} server line(s) that a tool-only response didn't speak`);
+  }
+
+  /** Handle one Voice Live server event: the socket's message handler, and how tests drive a session. */
+  receive(raw) {
+    return this.#handleEvent(raw);
   }
 
   async #handleEvent(raw) {
@@ -132,15 +195,17 @@ export class VoiceLiveSession {
     switch (msg.type) {
       case "response.created":
         this.activeResponse = true;
+        // Remember which response our last response.create started, to check what it said when it's done.
+        if (this.lastCreate && this.lastCreate.responseId === undefined) this.lastCreate.responseId = msg.response?.id ?? null;
+        if (this.lines.length) this.pendingResponse = true;
         break;
 
       case "response.done":
       case "response.cancelled":
         this.activeResponse = false;
-        if (this.pendingResponse) {
-          this.pendingResponse = false;
-          this.#requestResponse();
-        }
+        this.#settleLines(msg);
+        // While a tool runs, its output requests the next response, which carries any queued lines.
+        if (this.pendingResponse && !this.toolCalls) this.#requestResponse();
         break;
 
       case "response.audio.delta":
@@ -163,10 +228,27 @@ export class VoiceLiveSession {
         await this.#dispatchTool(msg);
         break;
 
-      case "error":
+      case "error": {
         log("ERROR", JSON.stringify(msg.error));
+        const refused = this.lastCreate;
+        if (refused && msg.error?.event_id === refused.event_id) {
+          // Our response.create was refused: keep its server lines for the next response.
+          this.lastCreate = null;
+          this.lines.unshift(...refused.lines.filter((line) => !this.lines.includes(line)));
+          if (msg.error.code === "conversation_already_has_active_response") {
+            if (this.activeResponse) this.pendingResponse = true;
+            else setTimeout(() => this.#requestResponse(), 250);
+          } else {
+            this.activeResponse = false;
+            if (refused.lines.length && !this.linesAsItems) {
+              this.linesAsItems = true;
+              this.#requestResponse();
+            }
+          }
+        }
         this.onEvent({ kind: "error", error: msg.error });
         break;
+      }
     }
   }
 
@@ -180,31 +262,43 @@ export class VoiceLiveSession {
     log("tool", msg.name, JSON.stringify(args));
 
     let result;
+    this.toolCalls += 1;
     try {
       result = await this.onToolCall(msg.name, args);
     } catch (e) {
       result = { error: e.message };
+    } finally {
+      this.toolCalls -= 1;
     }
 
     this.#send({
       type: "conversation.item.create",
       item: { type: "function_call_output", call_id: msg.call_id, output: JSON.stringify(result ?? {}) },
     });
+    if (!this.toolCalls) for (const event of this.deferredItems.splice(0)) this.#send(event);
     this.#requestResponse();
   }
 
-  /** Replace the standing instructions for the current step, then let the agent speak. */
-  instruct(text) {
-    this.#send({ type: "session.update", session: { instructions: `${this.baseInstructions}\n\n${text}` } });
-    this.#requestResponse();
+  /**
+   * Queue a server line (a directive plus the exact words) and let the agent speak it.
+   * Lines raised while a tool call is running ride the response that follows its output.
+   */
+  instruct(instructions, text) {
+    const line = [instructions, text && JSON.stringify(text)].filter(Boolean).join(" ");
+    if (!line) return;
+    if (!this.lines.includes(line)) this.lines.push(line);
+    if (!this.toolCalls) this.#requestResponse();
   }
 
   /** Inject an out-of-band fact mid-call without necessarily prompting speech. */
   nudge(text, { speak = true } = {}) {
-    this.#send({
-      type: "conversation.item.create",
-      item: { type: "message", role: "system", content: [{ type: "input_text", text }] },
-    });
+    const event = { type: "conversation.item.create", item: { type: "message", role: "system", content: [{ type: "input_text", text }] } };
+    // A tool's output has to follow its call, so a note raised while a tool runs goes in after that output.
+    if (this.toolCalls) {
+      this.deferredItems.push(event);
+      return;
+    }
+    this.#send(event);
     if (speak) this.#requestResponse();
   }
 
@@ -214,6 +308,15 @@ export class VoiceLiveSession {
     if (!this.activeResponse) return;
     this.activeResponse = false;
     this.#send({ type: "response.cancel" });
+  }
+
+  /** The server is taking over this turn: drop queued lines and stop the agent. */
+  interrupt() {
+    this.lines = [];
+    this.requeued.clear();
+    // The lines the current response carried are dropped too, even if it turns out to have only called tools.
+    if (this.lastCreate) this.lastCreate.lines = [];
+    this.cancelResponse();
   }
 
   /** Feed caller audio straight through: base64 PCM16 24 kHz mono from ACS. */

@@ -53,7 +53,7 @@ review.
 | 5 | Safety | Any risk-of-harm phrase triggers the crisis-line and emergency message before anything else, then the confidential HR offer. This is not a crisis line |
 | 6 | Call cap | 6 minutes, configurable, with a wrap-up at 5:00 that files a ticket for anything still open (if the caller is verified) or offers a callback |
 | 7 | Escalation † | Transfer to the right queue when the caller asks for a person or the agent fails twice |
-| 8 | DTMF † | One-time code entry for PSTN callers. `0` transfers to the IT service desk, or to HR shared services if the domain is HR. `*` repeats the last phrase |
+| 8 | DTMF † | One-time code entry for PSTN callers. `0` transfers to the IT service desk, or to HR shared services if the domain is HR. `*` repeats the last phrase. `0` doesn't transfer while a one-time code is outstanding, and goes to confidential HR once the sensitive guard has tripped. Keypad transfers pass the same routing gate as every other transfer |
 | 9 | Realtime transport † | Local WebSocket only, with no SignalR dependency |
 | 10 | Default port † | `8098`, so it runs alongside the other gallery samples on `8090`–`8097` |
 | 11 | Gallery card † | Visual scene updated to depict IT/HR triage, grounded answers, tickets, and the confidential HR path when the sample lands |
@@ -198,10 +198,14 @@ Reuse the password-reset sample's Express server, configuration pattern, ACS-to-
 Live media bridge, PCM16 24-kHz path, barge-in handling, SQLite event log, health
 endpoint, and simulation-mode conventions. The state machine is:
 
-`ringing → greeting (+ outage banner) → listening → classifying → (clarifying → classifying) | answering | verifying → (personal_answer | proposing_ticket → confirming → filed) | handoff_reset | (sensitive → safety? → confidential_transfer | after_hours_offer) | out_of_scope → listening … → (transferring → transferred) | wrap_up → closing → ended`
+`ringing → greeting (+ outage banner) → listening → classifying → (clarifying → classifying) | answering | verifying → (personal_answer | proposing_ticket → confirming → filed) | handoff_reset | (sensitive → safety? → confidential_transfer | after_hours_offer) | out_of_scope → listening … → (transferring → transferred | callback_offer) | wrap_up → closing → ended`
 
 The sensitive guard can move any state to `sensitive`. From there, the only exits are
 the safety message, a confidential transfer, the after-hours offer, or ending the call.
+A keypad or server transfer that the routing gate refuses because the queue is closed,
+and any transfer that fails, moves to `callback_offer`. `after_hours_offer` and
+`callback_offer` end the call with a callback request if the caller agrees, or with a
+goodbye if they don't.
 
 The model changes state only through server-owned tools:
 
@@ -223,12 +227,89 @@ The model changes state only through server-owned tools:
 - `send_link(articleId | ticketId)` sends a Teams chat message to a verified caller.
 - `handoff_password_reset(intent)` transfers to the reset agent, or files a ticket if
   it is not configured.
-- `route(destination, reason)`, `request_callback(destination)`, `transfer(reason)`,
-  `repeat_last()`, and `end_call(reason)`.
+- `route(destination, reason)` asks for a transfer. The server's routing gate decides
+  (see below). A refusal returns `{ok: false, reason, hint}`, and the model explains it
+  instead of retrying. `reason` is a short topic ID and never carries the caller's words.
+- `request_callback(destination)` asks a closed or unreachable team to call the caller
+  back, and is called only after the caller agrees. Confidential HR gets an HR case
+  holding only the identity and "Confidential HR". Any other team gets a callback
+  request ticket. The server speaks the confirmation, records `callback_requested`, and
+  ends the call.
+- `transfer(reason)`, `repeat_last()`, and `end_call(reason)`. `end_call` is refused
+  while a transfer is in progress, and after a failed transfer until the caller has
+  answered the callback offer.
 
 The server handles the sensitive path, not the model. When the guard trips, the server
 suppresses the model's pending response, plays the fixed acknowledgment text, and
 performs the confidential transfer or after-hours offer itself.
+
+Every line the server speaks reaches the model as a one-response instruction:
+`Say this to the caller now, word for word:` followed by the exact text. The model
+speaks it once, and the line doesn't stay in the session prompt to be repeated later.
+If the model answers that response with tool calls only, so the line isn't spoken, the
+line rides the next response once more. A response the caller talks over drops its
+lines. A fact the model must know without saying it, such as a failed transfer, goes in
+as a system note, after the output of any tool that's still running.
+
+## Routing gate and transfer outcomes
+
+Every transfer passes one server-side gate before anything is sent to ACS: a model
+`route` call, keypad `0`, the P1 transfer, the password-reset handoff, and the
+confidential HR transfer. (A P1 ticket transfers to IT on-call when it's a security
+incident or the service desk is closed, and to the service desk otherwise.) The checks
+run in this order, and the first failure refuses the transfer:
+
+| Check | Refusal |
+|---|---|
+| The destination is in `config/routing.json` | `unknown_destination` |
+| The call hasn't already ended or been transferred | `call_finished` |
+| No other transfer is in progress | `already_transferring` |
+| The call has been answered, and a keypad `0` isn't a digit of an outstanding one-time code | `not_allowed_in_state` |
+| Once the call is confidential (the guard tripped, or the transfer reason trips it), only `confidential-hr` can take it | `confidential_only` |
+| The destination hasn't already failed on this call | `unavailable` |
+| After a failed transfer, the caller has answered the callback offer. Only the model's `route` calls wait for this; keypad `0` doesn't | `awaiting_callback_answer` |
+| The destination is open now, by its hours and holidays. IT on-call and the reset agent are 24x7 | `closed` |
+
+A refusal records `transfer_rejected` with only the destination and the refusal, never
+the model's reason text, and returns `{ok: false, reason, hint}` to the model. For
+`closed` and `unavailable`, the result adds `callbackAvailable: true`, and the model
+offers `request_callback` instead of transferring. `awaiting_callback_answer` tells the
+model to wait for the caller's answer to the offer. When a keypad or server transfer is
+refused for those reasons, the server makes the offer itself, for example **"The IT
+service desk is closed right now. I can ask the IT service desk to call you back when
+they're next open. Would you like that?"**
+
+A transfer that passes the gate records `transfer`, speaks its announcement, and asks
+Call Automation to transfer. Call Automation accepting the request isn't success:
+
+- The request is accepted: `transfer_requested`. The call stays `transferring` until
+  `CallTransferAccepted` arrives, which records `transfer_succeeded` and moves the call
+  to `transferred`.
+- The request is rejected, or `CallTransferFailed` arrives: `transfer_failed`, with only
+  the ACS status and message as detail, for example `480/10140 Temporarily Unavailable`.
+
+A duplicate or late outcome event is ignored. The server never retries a failed
+transfer by itself.
+
+When a transfer fails, the call moves to `callback_offer` and the server apologizes
+once: **"I'm sorry, I can't connect you to the IT service desk right now. I can ask the
+IT service desk to call you back. Would you like that?"** A confidential call is only
+ever offered a confidential HR callback. Before the apology, the model gets a system
+note that the transfer failed and the caller is still on the line, because an earlier
+tool result may still say a transfer is under way. That destination is refused as
+`unavailable` for the rest of the call. Until the caller answers the offer, the model
+can't transfer them elsewhere or end the call (`awaiting_callback_answer`), but the
+caller's keypad `0` still goes through. If the caller agrees, `request_callback`
+records `callback_requested`, and the server confirms the request and hangs up 12
+seconds later. If the caller declines, the agent says goodbye and ends the call. If the
+caller doesn't answer within 30 seconds, the server says **"I'll end the call now. You
+can call back any time. Goodbye."** and hangs up 4 seconds later. The 30 seconds start
+again whenever the agent speaks or the caller starts to speak, so a late offer or a
+slow answer still gets the whole window.
+
+While a transfer is in progress, `end_call` is refused with `transfer_in_progress`, and
+neither the no-input rule nor the call cap ends the call. Only the caller hanging up
+ends it before the outcome arrives.
 
 ## Teams handoff contract
 
@@ -249,6 +330,12 @@ The Teams Phone extensibility custom context carries:
     skip the intent question, never to skip verification.
   - Confidential HR: `Confidential HR`, plus the verified name only if the caller agreed
     to share it. It carries no topic text, category, or transcript.
+
+On the wire each key is sent with "." replaced by "-" (for example
+`CallDetails-CallTopic`) because Call Automation rejects VoIP header keys containing "."
+or "_"; see `voipKey` in `src/handoff.mjs`. An inbound `CallDetails.SessionId` is read
+through the same mapping. Confirm the serialization Teams expects with the Teams Phone
+Unify integration program.
 
 ## Demo surface and configuration
 
@@ -305,6 +392,22 @@ corpus, the config and data fixtures, the labeled routing set, and the call fixt
   an open ticket, an expired call cap, `0` and `*` DTMF, two failed attempts, two
   no-inputs, and a prompt-injection attempt to read another employee's HR data or to
   summarize a sensitive disclosure.
+- `node:test` also covers transfers and their outcomes: the routing gate refusing an
+  unknown destination, a closed queue, a keypad `0` during code entry, and a
+  confidential matter sent anywhere but confidential HR. It covers a transfer request
+  that Call Automation rejects, an accepted request followed by `CallTransferAccepted`
+  or `CallTransferFailed`, duplicate outcome events, `end_call` refused while a transfer
+  is in progress, and model routes and `end_call` held after a failed transfer until
+  the caller answers the callback offer while keypad `0` still goes through. It covers
+  the system note before the offer, the answer window restarting when the caller starts
+  to speak, callbacks after hours and after a failed transfer, VoIP header keys that
+  Call Automation accepts, server lines reaching the model as the exact words to say,
+  and `unregisterAgent`, which a closed media connection calls to detach the call's
+  agent handle. Against a fake Voice Live socket, it covers a line that a tool-only
+  response didn't speak riding the next response once, lines dropped when the caller
+  talks over a response or the server takes over the turn, and a note raised during a
+  tool call going in after that tool's output. No transfer failure crashes the server or leaves the call in
+  `transferring`.
 - The labeled routing fixture of about 60 utterances reaches the configured accuracy
   threshold (`90%` by default), and every sensitive example in it is caught.
 - After the sensitive guard trips, no caller text from that segment reaches the model,
