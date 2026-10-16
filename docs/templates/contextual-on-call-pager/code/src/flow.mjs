@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { config } from "./config.mjs";
 import { buildPageBrief, buildVoicemailPrompt, groupedDigits, maskPhone, normalisePhone, outranks, sanitizeTenantSaid } from "./policy.mjs";
 import { opsAlertPayload, technicianCardPayload } from "./handoff.mjs";
+import { describeCallError } from "./call-invite.mjs";
 
 export const STATES = Object.freeze({
   INTAKE: "intake",
@@ -178,11 +179,7 @@ export class PagerFlow {
   async processDueJobs() {
     const jobs = this.audit.claimDueJobs(this.now());
     const results = [];
-    for (const job of jobs) {
-      if (job.kind === "alert") results.push(await this.#sendUnacknowledgedAlert(job));
-      else results.push(await this.#runPageJob(job));
-      this.audit.completeJob(job.id);
-    }
+    for (const job of jobs) results.push(await this.#runClaimedJob(job));
     return results;
   }
 
@@ -191,9 +188,7 @@ export class PagerFlow {
     const job = this.pendingJobs().find((j) => j.incidentId === incidentId && j.kind === "page");
     if (!job) return { ok: false, reason: "no_pending_page" };
     this.audit.completeJob(job.id, "running");
-    const result = await this.#runPageJob(job);
-    this.audit.completeJob(job.id);
-    return result;
+    return this.#runClaimedJob(job);
   }
 
   getTicketDetail(incidentId, field) {
@@ -218,12 +213,14 @@ export class PagerFlow {
     this.audit.cancelJobsForIncident(incidentId);
     this.audit.updateIncident(incidentId, { state: STATES.ACKNOWLEDGED, acknowledgedAt: at, acknowledgedBy: contact?.name ?? contact?.id ?? "technician" });
     this.audit.recordEvent(incidentId, "tech", "acknowledged", contact?.name ?? null);
-    await this.dialer.statusCall?.({ incident, message: DEFAULT_SPOKEN.statusAck });
-    this.audit.updateIncident(incidentId, { state: STATES.TENANT_NOTIFIED });
-    this.audit.recordEvent(incidentId, "system", "tenant_status_call", "acknowledged");
+    const tenantNotified = await this.#statusCall(incident, DEFAULT_SPOKEN.statusAck, "acknowledged");
+    if (tenantNotified) {
+      this.audit.updateIncident(incidentId, { state: STATES.TENANT_NOTIFIED });
+      this.audit.recordEvent(incidentId, "system", "tenant_status_call", "acknowledged");
+    }
     this.audit.updateIncident(incidentId, { state: STATES.CLOSED, closedAt: at });
     this.#publish(incidentId, "incident", this.audit.getIncident(incidentId));
-    return { ok: true, state: STATES.CLOSED };
+    return { ok: true, state: STATES.CLOSED, tenantNotified };
   }
 
   async decline(incidentId, reason = "declined") {
@@ -297,18 +294,56 @@ export class PagerFlow {
     this.#publish(incidentId, "scheduler", { pendingJobs: this.pendingJobs() });
     return { ok: true, scheduled: id };
   }
+  // A claimed job always leaves "running": "done" once it has run (a failed placement is handled
+  // inside the job and rescheduled), "failed" if it threw unexpectedly, so a job never wedges.
+  async #runClaimedJob(job) {
+    try {
+      const result = job.kind === "alert" ? await this.#sendUnacknowledgedAlert(job) : await this.#runPageJob(job);
+      this.audit.completeJob(job.id);
+      return result;
+    } catch (error) {
+      const message = describeCallError(error);
+      this.audit.completeJob(job.id, "failed");
+      this.audit.recordEvent(job.incidentId, "scheduler", "job_failed", `${job.id}: ${message}`);
+      return { ok: false, reason: "job_failed", jobId: job.id, error: message };
+    }
+  }
   async #runPageJob(job) {
     const incident = this.#incident(job.incidentId);
     if (incident.acknowledgedAt || incident.state === STATES.CLOSED) return { ok: true, skipped: "already_acknowledged" };
     const contact = this.policy.levelContact(incident.propertyId, job.level, new Date(this.now()));
     const brief = buildPageBrief(incident);
-    await this.notifier?.sendTechnicianCard?.(technicianCardPayload(incident, contact));
-    const outcome = this.nextOutcomes.length ? this.nextOutcomes.shift() : "no-answer";
-    const attempt = { id: job.id, incidentId: incident.id, level: job.level, attempt: job.attempt, contactId: contact.id, contactName: contact.name, startedAt: new Date(this.now()).toISOString(), completedAt: new Date(this.now()).toISOString(), outcome, escalatedFrom: job.attempt === 1 && job.level !== "primary" ? previousLevel(this.policy.escalation.levels, job.level) : null, voicemailSafe: outcome === "voicemail" };
+    try {
+      await this.notifier?.sendTechnicianCard?.(technicianCardPayload(incident, contact));
+    } catch (error) {
+      this.audit.recordEvent(incident.id, "system", "notification_failed", `technician_card: ${describeCallError(error)}`);
+    }
+    const planned = this.nextOutcomes.length ? this.nextOutcomes.shift() : "no-answer";
+    const startedAt = new Date(this.now()).toISOString();
+    const previousSession = this.pageSessions.get(incident.id);
+    const session = { job, contact, brief };
+    this.pageSessions.set(incident.id, session);
+    let placementError = null;
+    try {
+      await this.dialer.pageTechnician?.({ incident, contact, brief: planned === "voicemail" ? buildVoicemailPrompt() : brief, outcome: planned });
+    } catch (error) {
+      placementError = error;
+      // No call was placed, so keypad input on an earlier page call still belongs to that call's job.
+      if (this.pageSessions.get(incident.id) === session) {
+        if (previousSession) this.pageSessions.set(incident.id, previousSession);
+        else this.pageSessions.delete(incident.id);
+      }
+    }
+    const outcome = placementError ? "failed" : planned;
+    const attempt = { id: job.id, incidentId: incident.id, level: job.level, attempt: job.attempt, contactId: contact.id, contactName: contact.name, startedAt, completedAt: new Date(this.now()).toISOString(), outcome, escalatedFrom: job.attempt === 1 && job.level !== "primary" ? previousLevel(this.policy.escalation.levels, job.level) : null, voicemailSafe: outcome === "voicemail" };
     this.audit.recordAttempt(attempt);
     this.audit.recordEvent(incident.id, "pager", "page_attempt", `${job.level}:${job.attempt}:${outcome}`);
-    this.pageSessions.set(incident.id, { job, contact, brief });
-    await this.dialer.pageTechnician?.({ incident, contact, brief: outcome === "voicemail" ? buildVoicemailPrompt() : brief, outcome });
+    if (placementError) {
+      // Treated like a no-answer: retry this level after the severity gap, then escalate.
+      const error = describeCallError(placementError);
+      this.audit.recordEvent(incident.id, "pager", "page_failed", `${job.level}:${job.attempt}: ${error}`);
+      return { ok: false, reason: "page_failed", error, next: this.#scheduleNext(job, "failed") };
+    }
     if (outcome === "accept") return this.acknowledge(incident.id, contact);
     if (outcome === "bridge") { await this.bridgeToTenant(incident.id); return this.acknowledge(incident.id, contact); }
     if (outcome === "decline") return this.#scheduleNext(job, "decline");
@@ -334,11 +369,25 @@ export class PagerFlow {
     const incident = this.#incident(job.incidentId);
     if (incident.acknowledgedAt || incident.state === STATES.CLOSED) return { ok: true, skipped: "already_acknowledged" };
     const attempts = this.audit.attemptsFor(incident.id);
-    await this.notifier?.sendOpsAlert?.(opsAlertPayload(incident, attempts));
-    await this.dialer.statusCall?.({ incident, message: DEFAULT_SPOKEN.statusStillTrying });
+    try {
+      await this.notifier?.sendOpsAlert?.(opsAlertPayload(incident, attempts));
+    } catch (error) {
+      this.audit.recordEvent(incident.id, "system", "notification_failed", `ops_alert: ${describeCallError(error)}`);
+    }
+    await this.#statusCall(incident, DEFAULT_SPOKEN.statusStillTrying, "unacknowledged");
     this.audit.updateIncident(incident.id, { state: STATES.UNACKNOWLEDGED_ALERT });
     this.audit.recordEvent(incident.id, "system", "unacknowledged_alert", String(attempts.length));
     return { ok: true, alert: true };
+  }
+  // A tenant status call that cannot be placed is logged and never blocks closing or alerting.
+  async #statusCall(incident, message, purpose) {
+    try {
+      await this.dialer.statusCall?.({ incident, message });
+      return true;
+    } catch (error) {
+      this.audit.recordEvent(incident.id, "system", "status_call_failed", `${purpose}: ${describeCallError(error)}`);
+      return false;
+    }
   }
   #publish(userId, target, payload) { this.hub?.send?.(userId, target, payload); }
 }

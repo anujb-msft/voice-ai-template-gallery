@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { config, referenceNow } from "./config.mjs";
-import { clip } from "./handoff.mjs";
+import { clip, describeTransferError, describeTransferResult } from "./handoff.mjs";
 import { hasPersonalEligibilityDetails, inferTopic, isServiceRequest, sanitizeForAudit } from "./content.mjs";
 
 export const STATES = Object.freeze({
@@ -18,6 +18,8 @@ const TERMINAL = new Set([STATES.TRANSFERRED, STATES.CLOSED, STATES.ENDED]);
 const GREETING = "Thanks for calling the City of Contoso. I'm an automated assistant and can answer questions about city services, hours, and programs. What can I help you find?";
 const AFTER_ANSWER = "Is there anything else?";
 const ELIGIBILITY_DISCLAIMER = "Staff make the final decision on eligibility.";
+const TRANSFER_APOLOGY = "I'm sorry — I can't connect you right now. Please call back during staffed hours or visit contoso.gov.";
+const TRANSFER_APOLOGY_INSTRUCTION = `The transfer to staff did not go through. Say this to the caller once: "${TRANSFER_APOLOGY}" Then call \`end_call\`.`;
 
 export class InquiryFlow {
   constructor({ content, hours, audit, transfer = null, hub = null, now = () => referenceNow(), options = {} }) {
@@ -58,6 +60,8 @@ export class InquiryFlow {
       destination: null,
       transferAttempts: 0,
       dispatched: false,
+      // The transfer request ACS has accepted but not yet reported on (CallTransferAccepted / CallTransferFailed).
+      inFlightTransfer: null,
       transcript: [],
     };
     this.calls.set(call.id, call);
@@ -155,6 +159,8 @@ export class InquiryFlow {
   requestHuman(callId, { reason = "caller_requested", topic = null, sentiment = null } = {}) {
     const call = this.#require(callId);
     if (TERMINAL.has(call.state)) return { ok: false, reason: "call_finished" };
+    // The single transfer is already out; its outcome arrives from ACS.
+    if (call.dispatched) return { ok: false, reason: "already_transferring" };
     call.humanRequested = true;
     call.lastTopic = topic ?? call.lastTopic ?? "General inquiry";
     if (sentiment) call.sentiment = sentiment;
@@ -169,7 +175,10 @@ export class InquiryFlow {
     this.#speak(call, "Connecting you now");
     call.destination = { target: this.hours.queue, context: this.handoffContext(call, reason), reason };
     this.#setState(call, STATES.TRANSFERRING);
-    call.dispatchPromise = this.dispatchTransfer(call.id);
+    call.dispatchPromise = this.dispatchTransfer(call.id).catch((error) => {
+      console.error(`[flow] transfer dispatch for ${call.id} threw: ${error?.message ?? error}`);
+      return { ok: false, reason: "dispatch_error" };
+    });
     return { ok: true, action: "transfer", context: call.destination.context };
   }
 
@@ -213,15 +222,23 @@ export class InquiryFlow {
   endCall(callId, reason = "caller_done") {
     const call = this.get(callId);
     if (!call || TERMINAL.has(call.state)) return { ok: true };
+    // Mid-transfer only the outcome callback or the caller hanging up may end the call.
+    if (call.inFlightTransfer && reason !== "caller_hung_up") return { ok: false, reason: "transfer_in_progress" };
     const line = reason === "caller_done" ? "Thanks for calling the City of Contoso. Goodbye." : "Goodbye.";
     this.#speak(call, line);
     this.#finish(call, STATES.CLOSED, reason);
     return { ok: true, ended: true };
   }
 
+  /**
+   * Hand the call to the staffed queue — once. ACS accepting the request is not the
+   * transfer: the call stays TRANSFERRING until CallTransferAccepted or CallTransferFailed
+   * arrives (transferAccepted / transferFailed). A refused request or a failed transfer
+   * gets an apology and closes the call; there is no second attempt.
+   */
   async dispatchTransfer(callId) {
     const call = this.#require(callId);
-    if (call.dispatched || !call.destination) return { ok: false, reason: "nothing_to_dispatch" };
+    if (call.dispatched || !call.destination || TERMINAL.has(call.state)) return { ok: false, reason: "nothing_to_dispatch" };
     call.dispatched = true;
     call.transferAttempts += 1;
     this.#event(call, "system", "transfer_started", call.destination.reason, call.destination.context);
@@ -231,21 +248,50 @@ export class InquiryFlow {
       this.#finish(call, STATES.TRANSFERRED, `transferred:${call.destination.reason}`, { simulated: true });
       return { ok: true, simulated: true, context: call.destination.context };
     }
+    // A fresh record per attempt, so a late answer can tell whether it is still current.
+    const inFlight = { attempt: call.transferAttempts, destination: call.destination };
+    call.inFlightTransfer = inFlight;
     try {
-      await this.transfer(call, call.destination);
-      this.#event(call, "system", "transfer_succeeded", this.hours.queue.displayName, call.destination.context);
-      this.#publish(call, "handoff", call.destination.context);
-      this.#finish(call, STATES.TRANSFERRED, `transferred:${call.destination.reason}`);
-      return { ok: true, context: call.destination.context };
+      await this.transfer(call, inFlight.destination);
     } catch (error) {
-      this.#event(call, "system", "transfer_failed", error.message);
-      const line = "I'm sorry — I can't connect you right now. Please call back during staffed hours or visit contoso.gov.";
-      this.#speak(call, line);
-      this.#finish(call, STATES.CLOSED, "transfer_failed");
-      return { ok: false, reason: "transfer_failed", error: error.message };
+      const detail = describeTransferError(error);
+      this.#event(call, "system", "transfer_failed", detail);
+      // The call ended while the request was out: record it, but there is nobody left to apologise to.
+      if (call.inFlightTransfer !== inFlight) return { ok: false, reason: "transfer_failed", error: detail };
+      call.inFlightTransfer = null;
+      return this.#transferFailure(call, detail);
     }
+    // A callback can overtake the request's own response; if one already settled this attempt, say nothing.
+    if (call.inFlightTransfer === inFlight) {
+      this.#event(call, "system", "transfer_requested", this.hours.queue.displayName, inFlight.destination.context);
+    }
+    return { ok: true, requested: true, context: inFlight.destination.context };
   }
 
+  /** CallTransferAccepted: staff have the caller. Only now is the transfer a success. */
+  transferAccepted(callId) {
+    const call = this.get(callId);
+    const inFlight = call?.inFlightTransfer;
+    if (!inFlight) return { ok: false, reason: "no_transfer_pending" };
+    call.inFlightTransfer = null;
+    const { destination } = inFlight;
+    this.#event(call, "system", "transfer_succeeded", this.hours.queue.displayName, destination.context);
+    this.#publish(call, "handoff", destination.context);
+    this.#finish(call, STATES.TRANSFERRED, `transferred:${destination.reason}`);
+    return { ok: true, context: destination.context };
+  }
+
+  /** CallTransferFailed: the caller is still connected to the agent, so apologise and close. */
+  transferFailed(callId, resultInformation = null) {
+    const call = this.get(callId);
+    if (!call?.inFlightTransfer) return { ok: false, reason: "no_transfer_pending" };
+    call.inFlightTransfer = null;
+    const detail = describeTransferResult(resultInformation);
+    this.#event(call, "system", "transfer_failed", detail);
+    return this.#transferFailure(call, detail);
+  }
+
+  /** Resolves once ACS has answered the transfer request; the outcome itself arrives later. */
   async settled(callId) { await this.get(callId)?.dispatchPromise; return this.snapshot(callId); }
 
   checkBudget(callId) {
@@ -322,7 +368,8 @@ export class InquiryFlow {
   }
 
   #budgetExpired(call) {
-    return call.answeredAt != null && !TERMINAL.has(call.state) && this.now().getTime() - call.answeredAt >= this.options.callTimeBudgetMs;
+    // Once the transfer is out there is nothing left to expire into; ACS reports how it went.
+    return call.answeredAt != null && !TERMINAL.has(call.state) && !call.dispatched && this.now().getTime() - call.answeredAt >= this.options.callTimeBudgetMs;
   }
 
   #expire(call) {
@@ -330,9 +377,15 @@ export class InquiryFlow {
     return this.requestHuman(call.id, { reason: "time_budget_expired", topic: call.lastTopic ?? "Call time limit" });
   }
 
-  #speak(call, text) {
+  #transferFailure(call, detail) {
+    this.#speak(call, TRANSFER_APOLOGY, TRANSFER_APOLOGY_INSTRUCTION);
+    this.#finish(call, STATES.CLOSED, "transfer_failed");
+    return { ok: false, reason: "transfer_failed", error: detail };
+  }
+
+  #speak(call, text, instruction = text) {
     this.pushTranscript(call.id, "agent", text);
-    this.agents.get(call.id)?.instruct?.(text, text);
+    this.agents.get(call.id)?.instruct?.(instruction, text);
   }
 
   #setState(call, state) {
@@ -345,6 +398,8 @@ export class InquiryFlow {
   }
 
   #finish(call, state, outcome, extra = {}) {
+    // Anything ACS reports about a transfer after this point is a late event.
+    call.inFlightTransfer = null;
     call.outcome = outcome;
     call.endedAt = this.now().getTime();
     this.#setState(call, state);

@@ -16,7 +16,7 @@ import { handleUtterance, registerSimulatedAgent, resolveClarification, runTrans
 import { createHub } from "./realtime.mjs";
 import { attachMediaBridge, activeBridges } from "./voice/call-bridge.mjs";
 import { answerInboundCall, transferToTeams, startDtmfRecognition, hangUp } from "./voice/acs.mjs";
-import { resourceAccountFrom } from "./handoff.mjs";
+import { readVoipHeader, resourceAccountFrom } from "./handoff.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const log = (...a) => console.log(new Date().toISOString(), ...a);
@@ -58,7 +58,7 @@ app.post("/api/events", asyncRoute(async (req, res) => {
 async function onIncomingCall(data) {
   const teamsUserId = data?.from?.rawId?.startsWith("8:orgid:") ? data.from.rawId : null;
   const fromPhone = data?.from?.phoneNumber?.value ?? data?.from?.rawId?.replace(/^4:/, "") ?? null;
-  const call = flow.create({ callId: randomUUID(), teamsUserId, fromPhone, incomingCallContext:data.incomingCallContext, resourceAccountId: resourceAccountFrom(data?.to), sessionId: data.customContext?.voipHeaders?.["CallDetails.SessionId"] ?? data.correlationId });
+  const call = flow.create({ callId: randomUUID(), teamsUserId, fromPhone, incomingCallContext:data.incomingCallContext, resourceAccountId: resourceAccountFrom(data?.to), sessionId: readVoipHeader(data.customContext, "CallDetails.SessionId") ?? data.correlationId });
   const { callConnectionId } = await answerInboundCall({ incomingCallContext:data.incomingCallContext, callId:call.id });
   flow.setCallConnection(call.id, callConnectionId);
 }
@@ -68,11 +68,14 @@ app.post("/api/calls/callback", asyncRoute(async (req, res) => {
   for (const event of req.body ?? []) {
     const type = event.type?.split(".").pop();
     if (type === "CallConnected") { flow.setCallConnection(callId, event.data?.callConnectionId); await startDtmfRecognition({ callConnectionId:event.data?.callConnectionId, fromPhone:flow.get(callId)?.fromPhone }); flow.answered(callId); }
-    if (type === "ContinuousDtmfRecognitionToneReceived") flow.dtmf(callId, TONE_DIGITS[event.data?.tone] ?? event.data?.tone);
+    if (type === "ContinuousDtmfRecognitionToneReceived") { try { await flow.dtmf(callId, TONE_DIGITS[event.data?.tone] ?? event.data?.tone); } catch (e) { log("dtmf handling failed", e); } }
+    // The transfer request resolving only means ACS accepted it; these events carry the outcome.
+    if (type === "CallTransferAccepted") { try { flow.transferAccepted(callId); } catch (e) { log("transfer accepted handling failed", e); } }
+    if (type === "CallTransferFailed") { try { flow.transferFailed(callId, event.data?.resultInformation); } catch (e) { log("transfer failed handling failed", e); } }
     if (type === "CallDisconnected") { flow.endCall(callId, "caller_hung_up"); activeBridges.get(callId)?.stop(); }
   }
 }));
-const TONE_DIGITS = { zero:"0", one:"1", two:"2", three:"3", four:"4", five:"5", six:"6", seven:"7", eight:"8", nine:"9" };
+const TONE_DIGITS = { zero:"0", one:"1", two:"2", three:"3", four:"4", five:"5", six:"6", seven:"7", eight:"8", nine:"9", asterisk:"*", pound:"#" };
 
 app.post("/api/simulate", asyncRoute(async (req, res) => {
   const call = flow.create({ teamsUserId:req.body?.teamsUserId ?? null, fromPhone:req.body?.fromPhone ?? null, simulation:true });
@@ -81,10 +84,10 @@ app.post("/api/simulate", asyncRoute(async (req, res) => {
 }));
 app.post("/api/simulate/:id/say", asyncRoute(async (req, res) => {
   const call = flow.get(req.params.id); if (!call) return res.status(404).json({ error:"unknown call" });
-  const result = call.state === "clarifying" ? resolveClarification(flow, req.params.id, req.body?.text ?? "") : handleUtterance(flow, req.params.id, req.body?.text ?? "");
+  const result = await (call.state === "clarifying" ? resolveClarification(flow, req.params.id, req.body?.text ?? "") : handleUtterance(flow, req.params.id, req.body?.text ?? ""));
   res.json({ ok:true, result, snapshot:flow.snapshot(req.params.id) });
 }));
-app.post("/api/simulate/:id/dtmf", asyncRoute(async (req,res)=>res.json({ ok:true, result:flow.dtmf(req.params.id, String(req.body?.digit ?? "")), snapshot:flow.snapshot(req.params.id) })));
+app.post("/api/simulate/:id/dtmf", asyncRoute(async (req,res)=>res.json({ ok:true, result:await flow.dtmf(req.params.id, String(req.body?.digit ?? "")), snapshot:flow.snapshot(req.params.id) })));
 app.post("/api/simulate/:id/hangup", asyncRoute(async (req,res)=>{ flow.endCall(req.params.id,"caller_hung_up"); await hangUp(flow.get(req.params.id)?.callConnectionId); res.json({ ok:true, snapshot:flow.snapshot(req.params.id) }); }));
 app.post("/api/offline-call", (req,res)=>res.json(runTranscript(flow, req.body ?? {})));
 

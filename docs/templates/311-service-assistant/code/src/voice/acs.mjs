@@ -1,7 +1,7 @@
 import { CallAutomationClient } from "@azure/communication-call-automation";
 import { DefaultAzureCredential } from "@azure/identity";
 import { config } from "../config.mjs";
-import { teamsIdentifier, buildCustomCallingContext } from "../handoff.mjs";
+import { teamsIdentifier, buildCustomCallingContext, describeTransferError } from "../handoff.mjs";
 
 export { teamsIdentifier, buildCustomCallingContext };
 
@@ -67,15 +67,24 @@ export async function answerInboundCall({ incomingCallContext, callId }) {
  * A blind transfer is deliberate for this template: the voice agent's job ends
  * once the context has been delivered, and staying on the line would mean a
  * silent third party on every routed call.
+ *
+ * Resolving only means Call Automation accepted the request. Whether Teams took
+ * the call arrives later on the callback URL as CallTransferAccepted or
+ * CallTransferFailed.
  */
 export async function transferToTeams({ callConnectionId, target, context, callId }) {
   if (!callConnectionId) throw new Error("no call connection to transfer");
 
   const connection = acsClient().getCallConnection(callConnectionId);
-  await connection.transferCallToParticipant(teamsIdentifier(target), {
-    operationContext: `transfer:${callId}`,
-    customCallingContext: buildCustomCallingContext(context),
-  });
+  try {
+    await connection.transferCallToParticipant(teamsIdentifier(target), {
+      operationContext: `transfer:${callId}`,
+      customCallingContext: buildCustomCallingContext(context),
+    });
+  } catch (e) {
+    log("transfer request rejected", callId, describeTransferError(e));
+    throw e;
+  }
 
   log("transfer requested", callId, "->", target.displayName ?? target.objectId);
 }

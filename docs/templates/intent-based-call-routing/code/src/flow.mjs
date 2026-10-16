@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { config } from "./config.mjs";
 import { maskPhone } from "./routes.mjs";
+import { describeTransferError, describeTransferResult } from "./handoff.mjs";
 
 /**
  * The intent-routing state machine.
@@ -52,7 +53,8 @@ export class RoutingFlow {
    * @param {import("./routes.mjs").RoutePolicy} deps.routes
    * @param {import("./routes.mjs").CallerDirectory} [deps.callers]
    * @param {object} deps.audit
-   * @param {(call: object, destination: object) => Promise<void>} [deps.transfer]
+   * @param {(call: object, destination: object) => Promise<void>} [deps.transfer] resolves when ACS
+   *   accepts the request; the outcome is reported later through transferAccepted / transferFailed
    * @param {{send: (id: string, target: string, payload: object) => any}} [deps.hub]
    * @param {() => number} [deps.now] injectable clock, so budget expiry is testable
    */
@@ -109,6 +111,8 @@ export class RoutingFlow {
       transferAttempts: 0,
       dispatched: false,
       pendingDispatch: null,
+      // The transfer request ACS has been sent and not yet reported on.
+      inFlightTransfer: null,
       outcome: null,
       startedAt: this.now(),
       answeredAt: null,
@@ -299,6 +303,8 @@ Open by saying you are ${this.routes.organization}'s automated assistant, then a
   outOfScope(callId, question = null) {
     const call = this.#require(callId);
     if (this.#budgetExpired(call)) return this.#expire(call);
+    // A transfer stays in flight until ACS reports on it; a stray question must not re-route it.
+    if (call.dispatched) return { ok: false, reason: "already_transferring" };
     call.deflections += 1;
     this.#event(call, "caller", "out_of_scope", clip(question, 120));
 
@@ -327,6 +333,8 @@ Open by saying you are ${this.routes.organization}'s automated assistant, then a
   endCall(callId, outcome = "caller_ended") {
     const call = this.get(callId);
     if (!call || TERMINAL.has(call.state)) return { ok: true };
+    // A queued or in-flight transfer ends only with its outcome or the caller hanging up.
+    if ((call.inFlightTransfer || call.pendingDispatch) && outcome !== "caller_hung_up") return { ok: false, reason: "transfer_in_progress" };
     this.#cancelPendingDispatch(call);
     this.#finish(call, STATES.ENDED, outcome);
     return { ok: true };
@@ -476,18 +484,31 @@ Open by saying you are ${this.routes.organization}'s automated assistant, then a
     const delay = this.options.transferDelayMs;
     if (delay <= 0) {
       // Tests and the offline console dispatch immediately.
-      call.dispatchPromise = this.dispatchTransfer(call.id);
+      this.#startDispatch(call);
       return undefined;
     }
     call.pendingDispatch = setTimeout(() => {
       call.pendingDispatch = null;
-      call.dispatchPromise = this.dispatchTransfer(call.id);
+      this.#startDispatch(call);
     }, delay);
     call.pendingDispatch.unref?.();
     return undefined;
   }
 
-  /** Resolves once any in-flight transfer has settled. Used by tests and the console. */
+  /** Every internal dispatch goes through here, so no transfer promise is ever left unhandled. */
+  #startDispatch(call) {
+    call.dispatchPromise = this.dispatchTransfer(call.id).catch((error) => {
+      console.error(`[flow] transfer dispatch for ${call.id} threw: ${error?.message ?? error}`);
+      return { ok: false, reason: "dispatch_error" };
+    });
+    return call.dispatchPromise;
+  }
+
+  /**
+   * Resolves once the current transfer request — and any retry it triggered — has
+   * been answered by ACS. The outcome itself arrives later through
+   * transferAccepted / transferFailed. Used by tests and the console.
+   */
   async settled(callId) {
     await this.get(callId)?.dispatchPromise;
     return this.snapshot(callId);
@@ -503,10 +524,16 @@ Open by saying you are ${this.routes.organization}'s automated assistant, then a
   /**
    * Hand the call to Teams. One retry, then the fallback queue, then an honest
    * explanation — the agent never silently abandons the caller.
+   *
+   * ACS accepting the request is not the transfer. The outcome arrives later as
+   * CallTransferAccepted or CallTransferFailed, so until then the call stays
+   * TRANSFERRING with the attempt recorded in `inFlightTransfer`.
    */
   async dispatchTransfer(callId) {
     const call = this.#require(callId);
-    if (call.dispatched || !call.destination) return { ok: false, reason: "nothing_to_dispatch" };
+    if (call.dispatched || !call.destination || TERMINAL.has(call.state)) {
+      return { ok: false, reason: "nothing_to_dispatch" };
+    }
 
     call.dispatched = true;
     call.transferAttempts += 1;
@@ -522,26 +549,66 @@ Open by saying you are ${this.routes.organization}'s automated assistant, then a
       return { ok: true, simulated: true, context };
     }
 
+    // A fresh record per attempt, so a late answer can tell whether it is still current.
+    const inFlight = { attempt: call.transferAttempts, destination: call.destination, context };
+    call.inFlightTransfer = inFlight;
     try {
       await this.transfer(call, { ...call.destination, context });
-      this.#event(call, "system", "transfer_succeeded", call.destination.routeId);
-      this.#publish(call, "handoff", context);
-      this.#finish(call, STATES.TRANSFERRED, `transferred:${call.destination.routeId}`);
-      return { ok: true, context };
     } catch (error) {
-      this.#event(call, "system", "transfer_failed", error.message);
-      return this.#handleTransferFailure(call, error);
+      const detail = describeTransferError(error);
+      this.#event(call, "system", "transfer_failed", detail);
+      // The call ended while the request was out: record it, but there is nobody left to retry for.
+      if (call.inFlightTransfer !== inFlight) return { ok: false, reason: "transfer_failed", error: detail };
+      call.inFlightTransfer = null;
+      return this.#handleTransferFailure(call, detail);
     }
+
+    // A callback can overtake the request's own response; if one already settled this attempt, say nothing.
+    if (call.inFlightTransfer === inFlight) {
+      this.#event(call, "system", "transfer_requested", inFlight.destination.routeId);
+    }
+    return { ok: true, requested: true, context };
   }
 
-  async #handleTransferFailure(call, error) {
+  /**
+   * CallTransferAccepted: Teams has the caller and this leg is gone. Only now is
+   * the transfer a success. A duplicate or late event finds nothing in flight.
+   */
+  transferAccepted(callId) {
+    const call = this.get(callId);
+    const inFlight = call?.inFlightTransfer;
+    if (!inFlight) return { ok: false, reason: "no_transfer_pending" };
+
+    call.inFlightTransfer = null;
+    const { routeId } = inFlight.destination;
+    this.#event(call, "system", "transfer_succeeded", routeId);
+    this.#publish(call, "handoff", inFlight.context);
+    this.#finish(call, STATES.TRANSFERRED, `transferred:${routeId}`);
+    return { ok: true, routeId, context: inFlight.context };
+  }
+
+  /**
+   * CallTransferFailed: the caller is still connected to the agent, so this
+   * re-enters the same retry ladder as a rejected request.
+   */
+  async transferFailed(callId, resultInformation = null) {
+    const call = this.get(callId);
+    if (!call?.inFlightTransfer) return { ok: false, reason: "no_transfer_pending" };
+
+    call.inFlightTransfer = null;
+    const detail = describeTransferResult(resultInformation);
+    this.#event(call, "system", "transfer_failed", detail);
+    return this.#handleTransferFailure(call, detail);
+  }
+
+  async #handleTransferFailure(call, detail) {
     const isFallback = call.destination.routeId === this.routes.fallbackRouteId;
 
     // One retry against the same destination.
     if (call.transferAttempts < 2) {
       this.#event(call, "system", "transfer_retry", call.destination.routeId);
       call.dispatched = false;
-      return this.dispatchTransfer(call.id);
+      return this.#startDispatch(call);
     }
 
     // Then the fallback queue, once — no retry ladder on the safety net.
@@ -551,7 +618,7 @@ Open by saying you are ${this.routes.organization}'s automated assistant, then a
       call.destination = { routeId: fallbackRoute.id, target: fallbackRoute.target, afterHours: false };
       call.dispatched = false;
       call.transferAttempts = 1;
-      return this.dispatchTransfer(call.id);
+      return this.#startDispatch(call);
     }
 
     this.#setState(call, STATES.FALLBACK);
@@ -560,7 +627,7 @@ Open by saying you are ${this.routes.organization}'s automated assistant, then a
       "The transfer did not go through. Apologise once, tell the caller plainly that you cannot connect them right now, and suggest they call back shortly. Then call `end_call`.",
       "I'm sorry — I can't connect you right now. Please try us again shortly.",
     );
-    return { ok: false, reason: "transfer_unavailable", error: error.message };
+    return { ok: false, reason: "transfer_unavailable", error: detail };
   }
 
   /**
@@ -591,6 +658,8 @@ Open by saying you are ${this.routes.organization}'s automated assistant, then a
 
   #finish(call, state, outcome, extra = {}) {
     this.#cancelPendingDispatch(call);
+    // Anything ACS reports about a transfer after this point is a late event.
+    call.inFlightTransfer = null;
     call.outcome = outcome;
     call.endedAt = this.now();
     this.#setState(call, state);

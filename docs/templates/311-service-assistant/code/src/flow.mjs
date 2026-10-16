@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { config, clockNow } from "./config.mjs";
-import { buildHandoffContext } from "./handoff.mjs";
+import { buildHandoffContext, describeTransferError, describeTransferResult } from "./handoff.mjs";
 
 export const STATES = Object.freeze({
   RINGING: "ringing",
@@ -42,7 +42,7 @@ export class ServiceAssistantFlow {
   }
 
   create({ callId = randomUUID(), fromPhone = null, incomingCallContext = null, sessionId = null, resourceAccountId = null } = {}) {
-    const call = { id: callId, fromPhone, maskedPhone: maskPhone(fromPhone), incomingCallContext, sessionId, resourceAccountId, arrival: resourceAccountId ? "teams-phone-extensibility" : "acs-direct", callConnectionId: null, state: STATES.RINGING, language: "en-US", startedAt: this.now(), answeredAt: null, endedAt: null, transcript: [], requestsHandled: 0, failedAttempts: 0, noInputs: 0, lastSpoken: null, current: null, bulk: null, lastCase: null, transferDepartmentId: null, outcome: null, wrapPrompted: false, modelContext: [] };
+    const call = { id: callId, fromPhone, maskedPhone: maskPhone(fromPhone), incomingCallContext, sessionId, resourceAccountId, arrival: resourceAccountId ? "teams-phone-extensibility" : "acs-direct", callConnectionId: null, state: STATES.RINGING, language: "en-US", startedAt: this.now(), answeredAt: null, endedAt: null, transcript: [], requestsHandled: 0, failedAttempts: 0, noInputs: 0, lastSpoken: null, current: null, bulk: null, lastCase: null, transferDepartmentId: null, transferInFlight: null, transferAttempts: 0, outcome: null, wrapPrompted: false, modelContext: [] };
     this.calls.set(call.id, call);
     this.audit.startCall({ id: call.id, state: call.state, language: call.language, startedAt: call.startedAt });
     this.#event(call, "system", "call_created", call.arrival);
@@ -276,6 +276,8 @@ export class ServiceAssistantFlow {
 
   transfer(callId, { reason = "caller_requested", departmentId = "311-live" } = {}) {
     const call = this.#require(callId);
+    if (TERMINAL.has(call.state)) return { ok: false, reason: "call_finished" };
+    if (call.transferInFlight) return { ok: false, reason: "transfer_in_progress" };
     const department = this.departments.get(departmentId) ?? this.departments.get("311-live");
     if (!this.departments.isOpen(department.id, new Date(this.now())) && reason !== "relay") {
       const phrase = this.departments.nextBusinessPhrase(department.id);
@@ -293,10 +295,36 @@ export class ServiceAssistantFlow {
       this.#finish(call, STATES.TRANSFERRED, `transferred:${department.id}`, { durationMs: this.now() - call.startedAt });
       return { ok: true, transferred: true, simulated: true, department: department.id, context };
     }
-    return Promise.resolve(this.transferFn(call, { target: department.teamsQueue, context })).then(() => {
-      this.#finish(call, STATES.TRANSFERRED, `transferred:${department.id}`);
-      return { ok: true, transferred: true, department: department.id, context };
-    });
+    // The result stays synchronous and the dispatch promise is handled here, so a refused request
+    // can't become an unhandled rejection. Resolving only means ACS accepted the request: the
+    // outcome arrives later as CallTransferAccepted or CallTransferFailed (see transferAccepted).
+    const attempt = (call.transferAttempts += 1);
+    call.transferInFlight = { attempt, destination: department.id };
+    let dispatch;
+    try { dispatch = Promise.resolve(this.transferFn(call, { target: department.teamsQueue, context })); } catch (error) { dispatch = Promise.reject(error); }
+    dispatch
+      .then(() => { if (call.transferInFlight?.attempt === attempt) this.#event(call, "system", "transfer_requested", department.id); }, (error) => this.#transferRejected(call, attempt, error))
+      .catch((error) => console.error(new Date().toISOString(), "[flow] transfer outcome handling failed", call.id, error?.message ?? error));
+    return { ok: true, transferred: false, transferring: true, department: department.id, context };
+  }
+
+  transferAccepted(callId) {
+    const call = this.get(callId);
+    const pending = call?.transferInFlight;
+    if (!pending) return { ok: false, reason: "no_transfer_pending" };
+    call.transferInFlight = null;
+    this.#event(call, "system", "transfer_succeeded", pending.destination);
+    this.#finish(call, STATES.TRANSFERRED, `transferred:${pending.destination}`);
+    return { ok: true, transferred: true, department: pending.destination };
+  }
+
+  transferFailed(callId, resultInformation = null) {
+    const call = this.get(callId);
+    if (!call?.transferInFlight) return { ok: false, reason: "no_transfer_pending" };
+    call.transferInFlight = null;
+    const detail = describeTransferResult(resultInformation);
+    this.#event(call, "system", "transfer_failed", detail);
+    return { ...this.#transferFallback(call), detail };
   }
 
   fail(callId, reason = "failed_attempt") {
@@ -320,7 +348,7 @@ export class ServiceAssistantFlow {
   repeatLast(callId) { const call = this.#require(callId); if (call.lastSpoken) this.#say(call, call.lastSpoken); return { ok: true, repeated: call.lastSpoken }; }
   noInput(callId) { const call = this.#require(callId); call.noInputs += 1; this.#event(call, "caller", "no_input", String(call.noInputs)); if (call.noInputs >= 2) return this.endCall(callId, "two_no_inputs"); this.#say(call, "Are you still there? You can press 0 for a person."); return { ok: true, noInputs: call.noInputs }; }
   checkBudget(callId) { const call = this.get(callId); if (!call) return { ok: true }; const elapsed = this.now() - (call.answeredAt ?? call.startedAt); if (!call.wrapPrompted && elapsed >= this.options.callTimeBudgetMs - 30000) { call.wrapPrompted = true; this.#say(call, "We're almost out of time. Let's finish this up."); return { ok: true, wrapUp: true }; } if (elapsed >= this.options.callTimeBudgetMs) return this.#expire(call); return { ok: true }; }
-  endCall(callId, outcome = "ended") { const call = this.get(callId); if (!call || TERMINAL.has(call.state)) return { ok: true }; this.#finish(call, STATES.ENDED, outcome); return { ok: true }; }
+  endCall(callId, outcome = "ended") { const call = this.get(callId); if (!call || TERMINAL.has(call.state)) return { ok: true }; if (call.transferInFlight && outcome !== "caller_hung_up") return { ok: false, reason: "transfer_in_progress" }; this.#finish(call, STATES.ENDED, outcome); return { ok: true }; }
   settled(callId) { return Promise.resolve(this.snapshot(callId)); }
 
   pushTranscript(callId, role, text) { const call = this.get(callId); if (!call || !text) return; call.transcript.push({ role, text, at: this.now() }); this.audit.recordTranscript?.(callId, role, text); this.#publish(call, "transcript", { role, text }); }
@@ -338,7 +366,24 @@ export class ServiceAssistantFlow {
   #expire(call) { this.#say(call, "We've reached the call time limit, so I'll close this call now. Please call 311 again if you need more help."); this.#finish(call, STATES.ENDED, "time_budget_expired"); return { ok: true, expired: true }; }
   #afterRequestPrompt(call, counted = true) { this.#setState(call, STATES.LISTENING); if (counted && call.requestsHandled >= this.options.maxRequestsPerCall) this.#say(call, "I can handle up to three requests on this call. I'll connect you with 311 staff for anything else."); else this.#say(call, "Is there anything else?"); }
   #say(call, text) { call.lastSpoken = text; this.pushTranscript(call.id, "agent", text); this.agents.get(call.id)?.instruct?.("Speak this exact line.", text); }
-  #finish(call, state, outcome, extra = {}) { call.outcome = outcome; call.endedAt = this.now(); this.#setState(call, state); this.audit.updateCall(call.id, { outcome, endedAt: call.endedAt, durationMs: call.endedAt - call.startedAt, ...extra }); }
+  #transferRejected(call, attempt, error) {
+    this.#event(call, "system", "transfer_failed", describeTransferError(error));
+    if (call.transferInFlight?.attempt !== attempt) return;
+    call.transferInFlight = null;
+    if (!TERMINAL.has(call.state)) this.#transferFallback(call);
+  }
+  // Never re-dispatches: the caller goes back to the assistant with the case they already have, or an offer to file one.
+  #transferFallback(call) {
+    const department = this.departments.get(call.transferDepartmentId)?.displayName ?? "311 staff";
+    call.failedAttempts = 0;
+    this.#setState(call, STATES.LISTENING);
+    const phrase = call.lastCase
+      ? `I'm sorry, I can't connect you with ${department} right now. Your case number is ${speakCaseNumber(call.lastCase.id)}, and the city will follow up. Is there anything else?`
+      : `I'm sorry, I can't connect you with ${department} right now. I can file a case for you now, or you can call back later during business hours.`;
+    this.#say(call, phrase);
+    return { ok: true, transferred: false, fallback: true, phrase };
+  }
+  #finish(call, state, outcome, extra = {}) { call.outcome = outcome; call.endedAt = this.now(); call.transferInFlight = null; this.#setState(call, state); this.audit.updateCall(call.id, { outcome, endedAt: call.endedAt, durationMs: call.endedAt - call.startedAt, ...extra }); }
   #setState(call, state) { if (call.state === state) return; const from = call.state; call.state = state; this.audit.updateCall(call.id, { state }); this.#event(call, "system", "state", `${from} → ${state}`); this.#publish(call, "state", this.snapshot(call.id)); }
   #event(call, source, kind, detail) { this.audit.recordEvent(call.id, source, kind, detail); this.#publish(call, "event", { source, kind, detail, at: new Date(this.now()).toISOString() }); }
   #publish(call, target, payload) { this.hub?.send?.(call.id, target, payload); }

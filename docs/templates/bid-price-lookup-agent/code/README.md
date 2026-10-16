@@ -83,10 +83,12 @@ Teams Phone / ACS number
       <-> PriceBook + FixtureFeed from config/*.json
       <-> SQLite audit log
       <-> local presenter WebSocket
-  -> blind TransferCallToParticipant to merchandiser target
+  -> blind TransferCallToParticipant to merchandiser target (hours and call-back if it fails)
 ```
 
 `src/flow.mjs` has no Azure or Express imports, so tests and offline simulation use the same logic as a live call. `src/voice/*` owns ACS and Voice Live transport only.
+
+The audit log records `transfer_started`, then `transfer_requested` when ACS accepts the transfer request; `transfer_succeeded` and the `transferred:<reason>` outcome are recorded only when the `CallTransferAccepted` callback arrives. A rejected request or a `CallTransferFailed` callback records `transfer_failed` with the ACS detail. The agent then apologizes, gives the merchandiser hours, and the call ends with the outcome `transfer_failed:<reason>`; the server hangs up after 20 seconds if the agent hasn't. Transfers are never retried. While the transfer is out, the agent's `end_call` is refused, so only the transfer's outcome or the caller hanging up ends the call. Teams handoff fields are sent as VoIP header keys such as `CallDetails-CallTopic`, because ACS rejects keys that contain "." or "_".
 
 ## Security notes before production
 

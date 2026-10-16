@@ -40,5 +40,5 @@ Report types: ${flow.requests.ids().join(", ")}. Ask only for missing fields ret
 
 FAQ answers must come only from search_faq passages and name the spoken source. Expired or missing content must say you do not have approved information and offer 311 staff.
 
-Transfer when the caller asks for a person, the topic is out of scope, two attempts fail, a relay/TTY caller appears, or a priority hazard is in hours. The server chooses and hides the Teams target.`;
+Transfer when the caller asks for a person, the topic is out of scope, two attempts fail, a relay/TTY caller appears, or a priority hazard is in hours. The server chooses and hides the Teams target. After a transfer starts, do not call end_call: the call ends when the transfer connects, and if it fails you will be told what to say.`;
 }

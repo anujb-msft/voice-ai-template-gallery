@@ -69,6 +69,27 @@ export function baseInstructions() {
 
 const log = (...a) => console.log(new Date().toISOString(), "[voice-live]", ...a);
 
+const ENTRA_SCOPE = "https://ai.azure.com/.default";
+let credential;
+
+/**
+ * Keyless auth is the default: set VOICE_LIVE_API_KEY only if you cannot assign
+ * the two roles the README lists. @azure/identity is imported lazily so this
+ * module stays loadable without it.
+ */
+export async function authHeaders() {
+  const { apiKey } = config.voiceLive;
+  if (apiKey) return { "api-key": apiKey };
+
+  if (!credential) {
+    const { DefaultAzureCredential } = await import("@azure/identity");
+    credential = new DefaultAzureCredential();
+  }
+  const token = await credential.getToken(ENTRA_SCOPE);
+  if (!token?.token) throw new Error(`Could not acquire a token for ${ENTRA_SCOPE}`);
+  return { Authorization: `Bearer ${token.token}` };
+}
+
 /**
  * One Voice Live session over the WebSocket transport.
  *
@@ -90,12 +111,12 @@ export class VoiceLiveSession {
   }
 
   async connect() {
-    const { endpoint, apiKey, model, apiVersion, voice } = config.voiceLive;
+    const { endpoint, model, apiVersion, voice } = config.voiceLive;
     const url =
       `${endpoint.replace(/^https:/, "wss:")}/voice-live/realtime` +
       `?api-version=${encodeURIComponent(apiVersion)}&model=${encodeURIComponent(model)}`;
 
-    this.ws = new WebSocket(url, { headers: { "api-key": apiKey } });
+    this.ws = new WebSocket(url, { headers: await authHeaders() });
 
     await new Promise((resolve, reject) => {
       const fail = setTimeout(() => reject(new Error("Voice Live connect timeout")), 20000);

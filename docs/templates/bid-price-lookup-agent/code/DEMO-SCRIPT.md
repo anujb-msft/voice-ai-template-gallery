@@ -22,7 +22,7 @@
 6. Click **DTMF \***.
    - The last phrase repeats verbatim.
 7. Type: `I want to sell`.
-   - The mock Teams handoff appears with CallTopic, CallContext, LocationId, and reason.
+   - The mock Teams handoff appears with CallTopic, CallContext, LocationId, and reason, under the `CallDetails-*` header keys sent to Teams.
 
 ## Freshness and outage controls
 

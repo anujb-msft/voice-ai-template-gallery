@@ -12,10 +12,11 @@ import { createHub } from "./realtime.mjs";
 import { handleUtterance, registerSimulatedAgent } from "./offline.mjs";
 import { attachMediaBridge, activeBridges } from "./voice/call-bridge.mjs";
 import { answerInboundCall, transferToTeams, startDtmfRecognition, hangUp } from "./voice/acs.mjs";
-import { resourceAccountFrom } from "./handoff.mjs";
+import { resourceAccountFrom, readVoipHeader, describeTransferError, describeTransferResult } from "./handoff.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const log = (...a) => console.log(new Date().toISOString(), ...a);
+const json = (v) => { try { return JSON.stringify(v ?? null); } catch { return String(v); } };
 const normalisePhone = (phone) => String(phone ?? "").replace(/[^\d+]/g, "");
 
 const feed = new FixtureFeed();
@@ -27,8 +28,24 @@ async function createAudit() {
   catch (e) { log(`[audit] falling back to in-memory audit: ${e.message}`); return new MemoryAudit(); }
 }
 const audit = await createAudit();
-const transfer = isSimulated() ? null : async (call, destination) => transferToTeams({ callConnectionId: call.callConnectionId, target: destination.target, context: destination.context, callId: call.id });
-const flow = new BidLookupFlow({ priceBook, audit, transfer, hub, now: () => Date.parse(config.pricing.demoNow) });
+const transfer = isSimulated() ? null : async (call, destination) => {
+  try {
+    await transferToTeams({ callConnectionId: call.callConnectionId, target: destination.target, context: destination.context, callId: call.id });
+  } catch (e) {
+    log("[call] transfer request rejected", call.id, describeTransferError(e), json(e?.details));
+    throw e;
+  }
+};
+// After a failed transfer the agent says goodbye and calls end_call; this backstop hangs up if it never does.
+const CLOSE_AFTER_FAILED_TRANSFER_MS = 20_000;
+const closeAfterFailedTransfer = isSimulated() ? null : (call) => {
+  setTimeout(() => {
+    const bridge = activeBridges.get(call.id);
+    if (bridge) bridge.stop();
+    else hangUp(call.callConnectionId);
+  }, CLOSE_AFTER_FAILED_TRANSFER_MS);
+};
+const flow = new BidLookupFlow({ priceBook, audit, transfer, hangUp: closeAfterFailedTransfer, hub, now: () => Date.parse(config.pricing.demoNow) });
 
 const app = express();
 app.use(express.json({ limit: "256kb" }));
@@ -55,7 +72,7 @@ async function onIncomingCall(data) {
     fromPhone: fromPhone ? normalisePhone(fromPhone) : null,
     incomingCallContext: data.incomingCallContext,
     resourceAccountId: resourceAccountFrom(data?.to),
-    sessionId: data.customContext?.voipHeaders?.["CallDetails.SessionId"] ?? data.correlationId ?? null,
+    sessionId: readVoipHeader(data.customContext, "CallDetails.SessionId") ?? data.correlationId ?? null,
   });
   const { callConnectionId } = await answerInboundCall({ incomingCallContext: data.incomingCallContext, callId: call.id });
   flow.setCallConnection(call.id, callConnectionId);
@@ -77,6 +94,23 @@ app.post("/api/calls/callback", asyncRoute(async (req, res) => {
         break;
       }
       case "CallDisconnected": flow.endCall(callId, "caller_hung_up"); activeBridges.get(callId)?.stop(); break;
+      case "CallTransferAccepted":
+        try {
+          const result = flow.transferAccepted(callId);
+          log("[call] transfer accepted", callId, result.ok ? "transferred" : result.reason);
+        } catch (e) {
+          log("[call] CallTransferAccepted handling failed", callId, e.message);
+        }
+        break;
+      case "CallTransferFailed":
+        try {
+          log("[call] transfer failed", callId, describeTransferResult(event.data?.resultInformation), json(event.data?.resultInformation));
+          const result = flow.transferFailed(callId, event.data?.resultInformation);
+          log("[call] after failed transfer", callId, result.reason);
+        } catch (e) {
+          log("[call] CallTransferFailed handling failed", callId, e.message);
+        }
+        break;
     }
   }
 }));

@@ -14,9 +14,9 @@ export function handleUtterance(flow, callId, text) {
   const guard = flow.ingestUtterance(callId, said);
   if (guard.sensitive || guard.expired || guard.ended || guard.ok === false) return guard;
 
-  if (call.state === STATES.AFTER_HOURS_OFFER) {
-    if (isAffirmative(said)) return flow.requestCallback(callId, "confidential-hr");
-    if (isNegative(said)) return flow.endCall(callId, "confidential_after_hours_declined");
+  if (call.state === STATES.AFTER_HOURS_OFFER || call.state === STATES.CALLBACK_OFFER) {
+    if (isAffirmative(said)) return flow.requestCallback(callId, call.callbackOffer ?? "confidential-hr");
+    if (isNegative(said)) return flow.endCall(callId, call.state === STATES.AFTER_HOURS_OFFER ? "confidential_after_hours_declined" : "callback_declined");
   }
   if (call.state === STATES.VERIFYING) {
     if (!call.verification && /[\w.-]+@contoso\.com/i.test(said)) return flow.startVerification(callId, said.match(/[\w.-]+@contoso\.com/i)[0]);
@@ -29,7 +29,7 @@ export function handleUtterance(flow, callId, text) {
   if (call.state === STATES.CONFIRMING && call.pendingProposal) return flow.fileTicket(callId, call.pendingProposal.proposalId, said);
   if (/\b(status|happening|my ticket|ticket status)\b/i.test(said)) return flow.getMyTickets(callId);
   if (/\b(send|link|teams chat)\b/i.test(said) && call.lastArticle) return flow.sendLink(callId, call.lastArticle);
-  if (/\b(person|human|agent|representative)\b/i.test(said)) return flow.route(callId, call.domain === "HR" ? "hr-shared-services" : "it-service-desk", "caller_requested_person");
+  if (/\b(person|human|agent|representative)\b/i.test(said)) return flow.route(callId, call.confidential ? "confidential-hr" : call.domain === "HR" ? "hr-shared-services" : "it-service-desk", "caller_requested_person");
   if (/\b(salary|someone else's|colleague|other employee|another employee|ignore previous|system prompt)\b/i.test(said)) return flow.refusePersonal(callId, "forbidden_personal_data");
 
   const classification = flow.classify(said);

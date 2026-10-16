@@ -211,15 +211,15 @@ function renderHandoff(context) {
     .join("\n");
 }
 
-/** Mirrors src/handoff.mjs so the console shows what actually goes on the wire. */
+/** Mirrors src/handoff.mjs so the console shows what actually goes on the wire (voipKey: "." → "-"). */
 function toHeaders(context) {
   return [
-    ["CallDetails.SessionId", context.sessionId],
-    ["CallDetails.CallTopic", context.callTopic],
-    ["CallDetails.CallContext", context.callContext],
-    ["CallDetails.CallSentiment", context.callSentiment],
-    ["CallDetails.RouteId", context.routeId],
-    ["CallDetails.AfterHours", context.afterHours ? "true" : null],
+    ["CallDetails-SessionId", context.sessionId],
+    ["CallDetails-CallTopic", context.callTopic],
+    ["CallDetails-CallContext", context.callContext],
+    ["CallDetails-CallSentiment", context.callSentiment],
+    ["CallDetails-RouteId", context.routeId],
+    ["CallDetails-AfterHours", context.afterHours ? "true" : null],
     ["CallerDetails", context.callerDetails ? JSON.stringify(context.callerDetails) : null],
   ].filter(([, value]) => value != null && value !== "");
 }

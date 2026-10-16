@@ -246,6 +246,10 @@ Adapt `code/` to your scenario, keeping the reference's architecture
   "Demo surface and configuration" section.
 - Cover the policy core with unit tests, and point the smoke test at your smoke port
   ([testing](ARCHITECTURE.md#5-testing)).
+- Add a live-call suite, `scripts/voice-harness/scenarios/<template-id>.mjs`, based on
+  your `code/DEMO-SCRIPT.md`. The harness's CI job fails until it exists. If you have
+  two ACS phone numbers, run it over real calls: see the
+  [harness guide](scripts/voice-harness/README.md).
 - Explain any new dependency in the pull request description. The reference's six
   dependencies cover most scenarios.
 - Update `README.md`, `code/README.md`, `code/DEMO-SCRIPT.md`, the video and slide
@@ -386,6 +390,9 @@ npm run check
 npm run smoke
 ```
 
+Then, in `scripts/voice-harness`, run `npm ci` and `npm test` to validate your
+live-call suite.
+
 Preview the gallery, and check your template's card, its **Build this agent** dialog,
 and its page three ways: at full width, at 600 px wide, and with reduced motion. To
 emulate reduced motion in Edge or Chrome, open DevTools, open the **Rendering** panel,
@@ -518,7 +525,7 @@ Copy this list into the pull request description, and check each item that appli
       changed.
 - [ ] The description explains any new dependency.
 - [ ] For a new template: the proposal issue confirmed the id and port, and I added a
-      Ports row, a CI job, and a Dependabot entry.
+      Ports row, a CI job, a Dependabot entry, and a live-call suite.
 - [ ] I bumped the `?v=` value in `docs/index.html` for every file it references that I
       changed. A new template changes all three.
 - [ ] I checked the card, the **Build this agent** dialog, and the page at full width,

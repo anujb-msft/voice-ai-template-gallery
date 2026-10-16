@@ -49,6 +49,7 @@ fails if they're out of date.
 | `docs/data/` | Generated catalogue data; don't edit by hand |
 | `docs/schemas/template.schema.json` | Template manifest schema |
 | `scripts/generate-template-index.js` | Catalogue validator and data generator |
+| `scripts/voice-harness/` | Live-call tests: a second phone number calls each template and checks its call flow |
 | `.github/workflows/validate.yml` | Catalogue and sample checks for pull requests |
 | `.github/workflows/pages.yml` | GitHub Pages deployment |
 | `ARCHITECTURE.md` | Architectural standards for the site and templates |

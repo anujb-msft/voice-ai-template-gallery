@@ -1,9 +1,10 @@
 import WebSocket from "ws";
 import { config } from "../src/config.mjs";
-const { endpoint, apiKey, model, voice, apiVersion } = config.voiceLive;
+import { authHeaders } from "../src/voice/voice-live.mjs";
+const { endpoint, model, voice, apiVersion } = config.voiceLive;
 const t0=Date.now(); const ts=()=>`+${((Date.now()-t0)/1000).toFixed(1)}s`;
 const url = `${endpoint.replace(/^https:/,"wss:")}/voice-live/realtime?api-version=${apiVersion}&model=${model}`;
-const ws = new WebSocket(url, { headers: { "api-key": apiKey } });
+const ws = new WebSocket(url, { headers: await authHeaders() });
 let audioBytes = 0;
 ws.on("open", () => {
   console.log(ts(),"open");

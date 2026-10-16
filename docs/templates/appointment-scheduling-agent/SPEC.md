@@ -254,6 +254,12 @@ Teams Phone extensibility deployment, the custom context carries:
   - Referral coordinator: the patient's first name, the department, and the rule that
     blocked booking.
 
+On the wire each key is sent with "." replaced by "-" (for example `CallDetails-CallTopic`)
+because Call Automation rejects VoIP header keys containing "." or "_"; see `voipKey` in
+`src/handoff.mjs`. The reminder sample sends its handoff the same way, so the server reads
+the inbound `CallDetails-CallContext` and `CallDetails-SessionId` headers through
+`readVoipHeader`.
+
 Inbound from the reminder sample, the agent reads `CallContext` `{intent: "reschedule",
 appointmentId, patientRef, verified, sessionId}` and trusts it only after the server
 redeems `patientRef`. On a plain ACS number, `CallContext` travels as SIP custom headers

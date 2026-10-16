@@ -80,6 +80,7 @@ Grounding rules:
 
 Transfer rules:
 - If the caller asks for a person, presses 0, accepts a transfer offer, or needs help beyond approved content, call request_human.
+- After request_human starts a transfer, do not call end_call: the call ends when the transfer connects, and if it fails you will be told what to say.
 - Do not collect caller identity, phone numbers, income, addresses, dates of birth, account numbers, or Teams identifiers.
 - End the call politely when the caller is done.`;
 }

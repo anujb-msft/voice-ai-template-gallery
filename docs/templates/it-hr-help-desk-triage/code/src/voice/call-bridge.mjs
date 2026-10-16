@@ -37,8 +37,13 @@ class CallBridge {
     await this.voice.connect();
 
     this.flow.registerAgent(this.callId, {
-      instruct: (text) => this.voice.instruct(text),
+      instruct: (instructions, text) => this.voice.instruct(instructions, text),
       nudge: (text, opts) => this.voice.nudge(text, opts),
+      interrupt: () => {
+        this.#stopCallerPlayback();
+        this.voice.interrupt();
+      },
+      end: (ms) => this.#endAfter(ms),
     });
 
     // Moving into the greeting is what makes the agent speak first.
@@ -63,9 +68,20 @@ class CallBridge {
         // Barge-in: flush whatever ACS still has buffered so the agent stops instantly.
         this.#stopCallerPlayback();
         this.voice.cancelResponse();
+        // The caller may be answering a callback offer; their transcript arrives later.
+        try {
+          this.flow.callerSpeechStarted(this.callId);
+        } catch (err) {
+          log("speech start handling failed", err);
+        }
         break;
       case "user_transcript":
-        this.flow.ingestUtterance(this.callId, e.text);
+        // This runs inside a socket handler, where a throw would take the whole server down.
+        try {
+          this.flow.ingestUtterance(this.callId, e.text);
+        } catch (err) {
+          log("transcript handling failed", err);
+        }
         break;
       case "agent_transcript":
         this.flow.pushTranscript(this.callId, "agent", e.text);
@@ -98,11 +114,17 @@ class CallBridge {
       case "get_my_tickets": return this.flow.getMyTickets(this.callId);
       case "send_link": return this.flow.sendLink(this.callId, args.target);
       case "handoff_password_reset": return this.flow.handoffPasswordReset(this.callId, args.intent);
-      case "route": return this.flow.route(this.callId, args.destination, args.reason ?? args.destination);
-      case "end_call":
-        setTimeout(() => this.stop(), 4000);
-        this.flow.endCall(this.callId, args.reason ?? "agent_ended");
-        return { ending: true };
+      case "route": return this.flow.route(this.callId, args.destination, args.reason ?? args.destination, {}, { origin: "agent" });
+      case "request_callback": return this.flow.requestCallback(this.callId, args.destination);
+      case "end_call": {
+        // Ask the flow first: it refuses while a transfer is still ringing, and then the call must stay up.
+        // "caller_hung_up" is reserved for the CallDisconnected event; from the model it would slip past that refusal.
+        const reason = args?.reason && args.reason !== "caller_hung_up" ? String(args.reason) : "agent_ended";
+        const result = this.flow.endCall(this.callId, reason);
+        if (result?.ok === false) return result;
+        this.#endAfter(4000);
+        return { ...result, ending: true };
+      }
       default:
         return { error: `Unknown tool ${name}` };
     }
@@ -125,8 +147,24 @@ class CallBridge {
     }
   }
 
+  /** Hang up once the goodbye has had time to play. A scheduled hang-up can move later, never earlier. */
+  #endAfter(ms) {
+    const at = Date.now() + ms;
+    if (this.endTimer && this.endAt >= at) return;
+    clearTimeout(this.endTimer);
+    this.endAt = at;
+    this.endTimer = setTimeout(() => this.stop(), ms);
+  }
+
   stop() {
-    this.flow.unregisterAgent(this.callId);
+    if (this.stopped) return;
+    this.stopped = true;
+    clearTimeout(this.endTimer);
+    try {
+      this.flow.unregisterAgent(this.callId);
+    } catch (e) {
+      log("unregister failed", e);
+    }
     this.voice?.close();
     try {
       this.acs.close();
@@ -163,9 +201,15 @@ export function attachMediaBridge(flow, path = "/ws/media") {
     socket.on("message", (raw) => bridge.handleAcsMessage(raw));
     socket.on("close", () => {
       log("media socket closed for call", callId);
-      bridge.voice?.close();
-      flow.unregisterAgent(callId);
-      activeBridges.delete(callId);
+      // A throw here would kill the process and every other call with it.
+      try {
+        bridge.voice?.close();
+        flow.unregisterAgent(callId);
+      } catch (e) {
+        log("media socket cleanup failed", e);
+      } finally {
+        activeBridges.delete(callId);
+      }
     });
     socket.on("error", (e) => log("media socket error", e.message));
 

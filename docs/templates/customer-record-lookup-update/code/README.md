@@ -71,9 +71,11 @@ Teams Phone / ACS number
 
 The model never receives Teams IDs, PINs, phone numbers, or hidden CRM fields. It can only call server-owned tools. Contact phone/email is returned only when requested.
 
+Handoff fields are sent as VoIP headers with hyphenated keys such as `CallDetails-CallTopic`, because Call Automation rejects keys containing "." or "_" (see `voipKey` in `src/handoff.mjs`). A transfer is only marked `transferred` when the `CallTransferAccepted` callback arrives. The audit events are `transfer` (with the reason), `transfer_requested` (ACS accepted the request), `transfer_succeeded`, and `transfer_failed` (a refused request or `CallTransferFailed`, with the ACS error or result code). After a failure the agent apologises once without retrying: a verified rep returns to where they were, and a caller still at the PIN prompt hears goodbye and the call is marked ended. While the transfer is out, the agent's `end_call` is refused, so only the transfer's outcome or the caller hanging up ends the call.
+
 ## Tests and checks
 
-- `npm test` covers identity, PINs, access scoping, account matching, briefing drill-ins, contact detail gating, proposal validation, allow-list refusals, explicit confirmation, commit audit rows, undo conflicts, drafts, pause/continue, DTMF, handoff payloads, and offline simulation.
+- `npm test` covers identity, PINs, access scoping, account matching, briefing drill-ins, contact detail gating, proposal validation, allow-list refusals, explicit confirmation, commit audit rows, undo conflicts, drafts, pause/continue, DTMF, handoff payloads, refused and failed transfers, VoIP header keys, and offline simulation.
 - `npm run check` syntax-checks source, tests, and scripts.
 - `GET /health` reports application, Voice Live readiness, telephony readiness, Teams target provisioning, CRM seed counts, rep directory, and simulation mode.
 - `GET /api/stats` reports calls, handle time, briefings, proposals, commits, fields written, undos, drafts, refused writes, transfers, and estimated after-call-work minutes saved.

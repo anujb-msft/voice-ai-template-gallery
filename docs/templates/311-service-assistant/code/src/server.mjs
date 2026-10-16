@@ -16,7 +16,7 @@ import { createHub } from "./realtime.mjs";
 import { handleUtterance, registerSimulatedAgent } from "./offline.mjs";
 import { attachMediaBridge, activeBridges } from "./voice/call-bridge.mjs";
 import { answerInboundCall, transferToTeams, startDtmfRecognition, hangUp } from "./voice/acs.mjs";
-import { resourceAccountFrom } from "./handoff.mjs";
+import { resourceAccountFrom, readVoipHeader, describeTransferResult } from "./handoff.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const log = (...a) => console.log(new Date().toISOString(), ...a);
@@ -67,7 +67,7 @@ app.post("/api/events", asyncRoute(async (req, res) => {
 
 async function onIncomingCall(data) {
   const fromPhone = data?.from?.rawId?.replace(/^4:/, "") ?? data?.from?.phoneNumber?.value ?? null;
-  const call = flow.create({ callId: randomUUID(), fromPhone, incomingCallContext: data.incomingCallContext, resourceAccountId: resourceAccountFrom(data?.to), sessionId: data.customContext?.voipHeaders?.["CallDetails.SessionId"] ?? data.correlationId ?? null });
+  const call = flow.create({ callId: randomUUID(), fromPhone, incomingCallContext: data.incomingCallContext, resourceAccountId: resourceAccountFrom(data?.to), sessionId: readVoipHeader(data.customContext, "CallDetails.SessionId") ?? data.correlationId ?? null });
   const { callConnectionId } = await answerInboundCall({ incomingCallContext: data.incomingCallContext, callId: call.id });
   flow.setCallConnection(call.id, callConnectionId);
 }
@@ -84,6 +84,19 @@ app.post("/api/calls/callback", asyncRoute(async (req, res) => {
         break;
       case "ContinuousDtmfRecognitionToneReceived":
         flow.dtmf(callId, TONE_DIGITS[event.data?.tone] ?? event.data?.tone);
+        break;
+      // The transfer request resolving only means ACS accepted it; these carry the outcome.
+      case "CallTransferAccepted":
+        try {
+          const result = flow.transferAccepted(callId);
+          log("transfer accepted", callId, result.ok ? result.department : result.reason);
+        } catch (e) { log("transfer accepted handling failed", callId, e.message); }
+        break;
+      case "CallTransferFailed":
+        try {
+          const result = flow.transferFailed(callId, event.data?.resultInformation);
+          log("transfer failed", callId, describeTransferResult(event.data?.resultInformation), result.ok ? "" : result.reason);
+        } catch (e) { log("transfer failed handling failed", callId, e.message); }
         break;
       case "CallDisconnected":
         flow.endCall(callId, "caller_hung_up");

@@ -13,7 +13,7 @@ import { createHub } from "./realtime.mjs";
 import { handleUtterance, registerSimulatedAgent, runOfflineTranscript } from "./offline.mjs";
 import { attachMediaBridge, activeBridges } from "./voice/call-bridge.mjs";
 import { answerInboundCall, transferToTeams, startDtmfRecognition, hangUp } from "./voice/acs.mjs";
-import { resourceAccountFrom } from "./handoff.mjs";
+import { describeTransferResult, readVoipHeader, resourceAccountFrom } from "./handoff.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const log = (...a) => console.log(new Date().toISOString(), ...a);
@@ -70,7 +70,7 @@ async function onIncomingCall(data) {
     fromPhone,
     incomingCallContext: data.incomingCallContext,
     resourceAccountId: resourceAccountFrom(data?.to),
-    sessionId: data.customContext?.voipHeaders?.["CallDetails.SessionId"] ?? data.correlationId ?? null,
+    sessionId: readVoipHeader(data.customContext, "CallDetails.SessionId") ?? data.correlationId ?? null,
   });
   const { callConnectionId } = await answerInboundCall({ incomingCallContext: data.incomingCallContext, callId: call.id });
   flow.setCallConnection(call.id, callConnectionId);
@@ -91,10 +91,27 @@ app.post("/api/calls/callback", asyncRoute(async (req, res) => {
         if (digit != null) flow.dtmf(callId, String(digit));
         break;
       }
-      case "CallTransferFailed":
-        flow.get(callId) && (flow.get(callId).dispatched = false);
-        await flow.dispatchTransfer(callId).catch((e) => log("[call] recovery failed", e.message));
+      // The transfer request was only accepted; these two report what happened.
+      case "CallTransferAccepted":
+        try {
+          const result = flow.transferAccepted(callId);
+          log("[call] transfer accepted", callId, result.ok ? "— transferred" : `— ignored (${result.reason})`);
+        } catch (e) {
+          log("[call] transfer accepted handling failed", e.message);
+        }
         break;
+      case "CallTransferFailed": {
+        // One attempt only: the flow apologises and closes the call rather than sending it again.
+        const info = event.data?.resultInformation;
+        log("[call] transfer failed", callId, describeTransferResult(info));
+        try {
+          const result = flow.transferFailed(callId, info);
+          if (result.reason === "no_transfer_pending") log("[call] transfer failure ignored: no transfer pending", callId);
+        } catch (e) {
+          log("[call] transfer failure handling failed", e.message);
+        }
+        break;
+      }
       case "CallDisconnected":
         flow.endCall(callId, "caller_hung_up");
         activeBridges.get(callId)?.stop();

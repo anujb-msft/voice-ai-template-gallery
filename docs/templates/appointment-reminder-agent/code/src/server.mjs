@@ -12,7 +12,8 @@ import { createHub } from "./realtime.mjs";
 import { runOfflineReminder } from "./offline.mjs";
 import { attachMediaBridge, activeBridges } from "./voice/call-bridge.mjs";
 import { answerInboundCall, createOutboundCall, startDtmfRecognition, hangUp } from "./voice/acs.mjs";
-import { resourceAccountFrom } from "./handoff.mjs";
+import { readVoipHeader, resourceAccountFrom } from "./handoff.mjs";
+import { launchReminderCalls } from "./campaign.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const log = (...a) => console.log(new Date().toISOString(), ...a);
@@ -25,26 +26,21 @@ let schedule = new ScheduleAdapter();
 async function createAudit() { try { const { SqliteAudit } = await import("./db.mjs"); return new SqliteAudit(); } catch (e) { log("[audit] memory fallback", e.message); return new MemoryAudit(); } }
 let audit = await createAudit();
 const hub = createHub();
-let callsInFlight = 0;
+const callsInFlight = new Set();
 const transfer = isSimulated() ? null : async (call, handoff) => { await import("./voice/acs.mjs").then((m) => m.transferCall({ callConnectionId: call.callConnectionId, target: handoff.target, context: { sessionId: call.sessionId, callTopic: handoff.callTopic, callContext: handoff.callContext }, callId: call.id })); };
 let flow = new AppointmentReminderFlow({ schedule, audit, transfer, hub });
 
-app.get("/health", (_req, res) => res.json({ ...readiness(), callsInFlight, nextScheduledRun: "nightly demo scheduler is on demand", realtime: hub.transport, audit: { store: audit.name, transcriptsPersisted: config.retention.transcripts } }));
-app.get("/api/stats", (_req, res) => res.json({ ...schedule.stats(), audit: audit.stats(), callsInFlight }));
+app.get("/health", (_req, res) => res.json({ ...readiness(), callsInFlight: callsInFlight.size, nextScheduledRun: "nightly demo scheduler is on demand", realtime: hub.transport, audit: { store: audit.name, transcriptsPersisted: config.retention.transcripts } }));
+app.get("/api/stats", (_req, res) => res.json({ ...schedule.stats(), audit: audit.stats(), callsInFlight: callsInFlight.size }));
 app.get("/api/campaign/dry-run", (_req, res) => res.json({ now: config.demoNow, dialPlan: flow.buildDialPlan({ dryRun: true }) }));
 app.post("/api/campaign/run", asyncRoute(async (_req, res) => {
-  const dialPlan = flow.buildDialPlan({ dryRun: config.campaign.dryRun || !config.campaign.enabled });
-  const launched = [];
-  if (config.campaign.enabled && !config.campaign.dryRun) {
-    for (const row of dialPlan.filter((r) => r.state === "scheduled").slice(0, config.campaign.maxConcurrent)) {
-      const call = flow.create({ appointmentId: row.appointmentId });
-      callsInFlight += 1;
-      launched.push(call.id);
-      const phone = call.appointment.patient.phones?.[0]?.number;
-      await createOutboundCall({ to: phone, callId: call.id });
-    }
-  }
-  res.json({ dryRun: config.campaign.dryRun || !config.campaign.enabled, dialPlan, launched });
+  const dryRun = config.campaign.dryRun || !config.campaign.enabled;
+  const dialPlan = flow.buildDialPlan({ dryRun });
+  const { launched, failed } = dryRun
+    ? { launched: [], failed: [] }
+    : await launchReminderCalls({ flow, dialPlan, maxConcurrent: config.campaign.maxConcurrent, placeCall: createOutboundCall, inFlight: callsInFlight });
+  if (failed.length) log("[campaign] placement failed", failed.map((f) => `${f.appointmentId}: ${f.error}`).join(" | "));
+  res.json({ dryRun, dialPlan, launched, failed });
 }));
 app.post("/api/reset", asyncRoute(async (_req, res) => { schedule.close(); ScheduleAdapter.reset(); schedule = new ScheduleAdapter(); audit = await createAudit(); flow = new AppointmentReminderFlow({ schedule, audit, transfer, hub }); res.json({ ok: true, stats: schedule.stats() }); }));
 
@@ -81,7 +77,7 @@ async function onIncomingCall(data) {
   const fromPhone = data?.from?.rawId?.replace(/^4:/, "") ?? data?.from?.phoneNumber?.value ?? null;
   const appointment = schedule.listUpcoming().find((a) => a.patient.phones?.some((p) => p.number === fromPhone));
   if (!appointment) return log("unknown callback", fromPhone);
-  const call = flow.create({ appointmentId: appointment.appointmentId, direction: "inbound", sessionId: data.customContext?.voipHeaders?.["CallDetails.SessionId"] ?? data.correlationId ?? randomUUID() });
+  const call = flow.create({ appointmentId: appointment.appointmentId, direction: "inbound", sessionId: readVoipHeader(data.customContext, "CallDetails.SessionId") ?? data.correlationId ?? randomUUID() });
   call.resourceAccountId = resourceAccountFrom(data?.to);
   const { callConnectionId } = await answerInboundCall({ incomingCallContext: data.incomingCallContext, callId: call.id });
   call.callConnectionId = callConnectionId;
@@ -95,8 +91,8 @@ app.post("/api/calls/callback", asyncRoute(async (req, res) => {
     switch (type) {
       case "CallConnected": if (call) { call.callConnectionId = event.data?.callConnectionId; await startDtmfRecognition({ callConnectionId: call.callConnectionId, fromPhone: call.appointment.patient.phones?.[0]?.number }); } break;
       case "ContinuousDtmfRecognitionToneReceived": flow.get(callId) && flow.dtmf(callId, TONE_DIGITS[event.data?.tone] ?? event.data?.tone); break;
-      case "CallDisconnected": flow.endCall(callId, "caller_hung_up"); activeBridges.get(callId)?.stop(); callsInFlight = Math.max(0, callsInFlight - 1); break;
-      case "CreateCallFailed": flow.endCall(callId, "create_call_failed"); callsInFlight = Math.max(0, callsInFlight - 1); break;
+      case "CallDisconnected": flow.endCall(callId, "caller_hung_up"); activeBridges.get(callId)?.stop(); callsInFlight.delete(callId); break;
+      case "CreateCallFailed": flow.endCall(callId, "create_call_failed"); callsInFlight.delete(callId); break;
     }
   }
 }));

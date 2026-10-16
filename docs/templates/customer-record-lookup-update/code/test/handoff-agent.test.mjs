@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { teamsIdentifier, buildCustomCallingContext, resourceAccountFrom } from "../src/handoff.mjs";
+import { teamsIdentifier, buildCustomCallingContext, resourceAccountFrom, voipKey, readVoipHeader } from "../src/handoff.mjs";
 import { AGENT_TOOLS, buildInstructions, localeLanguage } from "../src/agent.mjs";
 import { readiness } from "../src/config.mjs";
 import { SqliteCrmAdapter } from "../src/db.mjs";
@@ -18,8 +18,24 @@ test("Teams handoff addresses queues as apps and users as users", () => {
 test("custom context uses Teams Phone VoIP headers and clips values", () => {
   const headers = buildCustomCallingContext({ sessionId: "s1", callTopic: "Sales rep – Fabrikam renewal update", callContext: "x".repeat(5000), routeId: "sales-operations" });
   assert.ok(headers.every((h) => h.kind === "voip"));
-  assert.equal(headers.find((h) => h.key === "CallDetails.CallTopic").value, "Sales rep – Fabrikam renewal update");
-  assert.equal(headers.find((h) => h.key === "CallDetails.CallContext").value.length, 1024);
+  assert.equal(headers.find((h) => h.key === "CallDetails-CallTopic").value, "Sales rep – Fabrikam renewal update");
+  assert.equal(headers.find((h) => h.key === "CallDetails-CallContext").value.length, 1024);
+});
+
+test("VoIP header keys use only characters Call Automation accepts and round-trip on inbound reads", () => {
+  assert.equal(voipKey("CallDetails.CallTopic"), "CallDetails-CallTopic");
+  assert.equal(voipKey("Call_Details.Topic"), "Call-Details-Topic");
+  const flow = new CustomerRecordFlow({ crm: new SqliteCrmAdapter({ path: ":memory:" }), reps: RepDirectory.load(), audit: new MemoryAudit(), now: () => Date.parse("2026-06-10T19:00:00Z") });
+  const call = flow.startSimulation({ repId: "rep-alex" });
+  flow.findAccount(call.id, "Fabrikam");
+  const headers = buildCustomCallingContext(flow.handoffContext(flow.get(call.id), "dtmf_zero"));
+  assert.deepEqual(headers.map((h) => h.key), ["CallDetails-SessionId", "CallDetails-CallTopic", "CallDetails-CallContext", "CallDetails-RouteId"]);
+  for (const h of headers) assert.match(h.key, /^[A-Za-z0-9-]{1,64}$/);
+  const inbound = { voipHeaders: Object.fromEntries(headers.map((h) => [h.key, h.value])) };
+  assert.equal(readVoipHeader(inbound, "CallDetails.SessionId"), call.id);
+  assert.equal(readVoipHeader(inbound, "CallDetails.RouteId"), "sales-operations");
+  assert.equal(readVoipHeader({ voipHeaders: { "CallDetails.SessionId": "dotted" } }, "CallDetails.SessionId"), null);
+  assert.equal(readVoipHeader(undefined, "CallDetails.SessionId"), null);
 });
 
 test("resource account is extracted only from Teams Phone extensibility raw ids", () => {

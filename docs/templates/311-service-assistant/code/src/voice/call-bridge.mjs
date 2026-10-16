@@ -72,7 +72,8 @@ class CallBridge {
       case "send_form_link": return this.flow.sendFormLink(this.callId, args.serviceId);
       case "transfer": return this.flow.transfer(this.callId, { reason: args.reason, departmentId: args.department ?? "311-live" });
       case "repeat_last": return this.flow.repeatLast(this.callId);
-      case "end_call": setTimeout(() => this.stop(), 3000); return this.flow.endCall(this.callId, args.reason ?? "agent_ended");
+      // "caller_hung_up" is reserved for the CallDisconnected event; from the model it would slip past the transfer guard.
+      case "end_call": { const reason = args?.reason && args.reason !== "caller_hung_up" ? String(args.reason) : "agent_ended"; const result = this.flow.endCall(this.callId, reason); if (result?.ok !== false) setTimeout(() => this.stop(), 3000); return result; }
       default: return { ok: false, error: `Unknown tool ${name}` };
     }
   }

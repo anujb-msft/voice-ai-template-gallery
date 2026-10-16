@@ -219,6 +219,20 @@ carries:
   fields, caller language, and transfer reason. Reporter contact details are included
   only when the caller asked for updates.
 
+On the wire each key is sent with "." replaced by "-" (for example
+`CallDetails-CallTopic`) because Call Automation rejects VoIP header keys containing "."
+or "_"; see `voipKey` in `src/handoff.mjs`.
+
+A transfer counts as done only when Call Automation reports `CallTransferAccepted`. The
+audit log records `transfer_started` when the agent announces the transfer,
+`transfer_requested` when Call Automation accepts the request, and then
+`transfer_succeeded`, or `transfer_failed` with the ACS error or result code when the
+request is refused or `CallTransferFailed` arrives. On failure the agent apologises
+once, says it can't connect the caller right now, and goes back to listening. If a case
+was filed on this call it reads back the case number and says the city will follow up;
+otherwise it offers to file a case now or suggests calling back during business hours.
+It never retries the transfer on its own.
+
 After hours, no transfer is attempted. The request is captured and the agent speaks the
 next-business-day follow-up.
 
@@ -266,8 +280,9 @@ snippet, the config fixtures, the bilingual corpus, and the call fixtures.
   walkthrough with SMS declined, a priority hazard in hours, a priority hazard after
   hours, a holiday, each emergency category in English and Spanish, an emergency phrase
   mid-intake, a full Spanish report, a fourth request past the per-call limit, two
-  failed attempts, a relay caller, `0` and `*` DTMF, two no-inputs, the wrap-up prompt,
-  an expired call cap, and a caller prompt-injection attempt asking for another
+  failed attempts, a relay caller, `0` and `*` DTMF, a transfer request Call Automation
+  refuses, a `CallTransferFailed` outcome, VoIP header keys, two no-inputs, the wrap-up
+  prompt, an expired call cap, and a caller prompt-injection attempt asking for another
   reporter's details.
 - An emergency phrase always produces the redirect and never creates a case.
 - Every case number is read back in groups and repeated. Every location is confirmed

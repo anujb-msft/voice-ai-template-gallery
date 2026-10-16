@@ -53,7 +53,8 @@ function renderHandoff(context) {
   $("toast").hidden = false;
   $("toastTopic").textContent = context.callTopic;
   $("toastContext").textContent = context.callContext ?? "";
-  $("headers").innerHTML = [["CallDetails.SessionId", context.sessionId], ["CallDetails.CallTopic", context.callTopic], ["CallDetails.CallContext", context.callContext], ["CallDetails.LocationId", context.locationId], ["CallDetails.TransferReason", context.reason]].filter(([, v]) => v).map(([k, v]) => `<b>${escapeHtml(k)}</b>: ${escapeHtml(v)}`).join("\n");
+  // Wire keys as sent by voipKey() in src/handoff.mjs: Call Automation rejects "." in VoIP header keys.
+  $("headers").innerHTML = [["CallDetails-SessionId", context.sessionId], ["CallDetails-CallTopic", context.callTopic], ["CallDetails-CallContext", context.callContext], ["CallDetails-LocationId", context.locationId], ["CallDetails-TransferReason", context.reason]].filter(([, v]) => v).map(([k, v]) => `<b>${escapeHtml(k)}</b>: ${escapeHtml(v)}`).join("\n");
 }
 
 function addTranscript(role, text) { const li = document.createElement("li"); li.className = role; li.innerHTML = `<span class="who">${role}</span>${escapeHtml(text)}`; $("transcript").querySelector(".empty")?.remove(); $("transcript").append(li); $("transcript").scrollTop = $("transcript").scrollHeight; }

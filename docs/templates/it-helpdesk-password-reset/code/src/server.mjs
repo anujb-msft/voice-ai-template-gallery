@@ -3,7 +3,7 @@ import { createServer } from "node:http";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { knowledgeBase, watchKnowledge } from "./knowledge.mjs";
-import { config, assertCallConfig } from "./config.mjs";
+import { config, assertCallConfig, authSummary } from "./config.mjs";
 import { db } from "./db.mjs";
 import { createDirectoryProvider } from "./providers/directory.mjs";
 import { createTicketingProvider } from "./providers/ticketing.mjs";
@@ -244,6 +244,7 @@ app.get("/health", (_req, res) =>
     ticketing: ticketing.name,
     voiceModel: config.voiceLive.model,
     telephonyMode: config.acs.telephonyMode,
+    auth: authSummary(),
     callReady: assertCallConfig().length === 0,
     missingCallConfig: assertCallConfig(),
   }),
@@ -254,8 +255,22 @@ function maskPhone(p) {
 }
 
 const server = createServer(app);
-hub.attach?.(server);
-attachMediaBridge(server, flow);
+
+// One upgrade listener, routed by pathname. See attachMediaBridge for why this
+// cannot be left to `new WebSocketServer({ server, path })`. Only the built-in
+// hub serves the browser here; Azure SignalR clients connect to the service.
+const wsRoutes = new Map([["/ws/media", attachMediaBridge(flow)]]);
+if (hub.attach) wsRoutes.set("/ws/hub", hub.attach());
+
+server.on("upgrade", (req, socket, head) => {
+  const { pathname } = new URL(req.url, "http://localhost");
+  const wss = wsRoutes.get(pathname);
+  if (!wss) {
+    log("[ws] no handler for", pathname);
+    return socket.destroy();
+  }
+  wss.handleUpgrade(req, socket, head, (ws) => wss.emit("connection", ws, req));
+});
 
 server.listen(config.port, config.host, () => {
   log(`IT help desk password reset demo on http://${config.host}:${config.port}`);

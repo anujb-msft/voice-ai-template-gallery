@@ -69,9 +69,13 @@ class CallBridge {
         return this.flow.recordAnswer(this.callId, args);
       case "request_human":
         return this.flow.requestHuman(this.callId, args);
-      case "end_call":
-        setTimeout(() => this.stop(), 4000);
-        return this.flow.endCall(this.callId, args?.reason ?? "agent_ended");
+      case "end_call": {
+        // "caller_hung_up" is reserved for the CallDisconnected event; from the model it would slip past the transfer guard.
+        const reason = args?.reason && args.reason !== "caller_hung_up" ? String(args.reason) : "agent_ended";
+        const result = this.flow.endCall(this.callId, reason);
+        if (result?.ok !== false) setTimeout(() => this.stop(), 4000);
+        return result;
+      }
       default:
         return { error: `Unknown tool ${name}` };
     }

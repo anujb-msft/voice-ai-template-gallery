@@ -98,10 +98,12 @@ class CallBridge {
         return this.flow.outOfScope(this.callId, args.question);
       case "take_message":
         return this.flow.takeMessage(this.callId, args);
-      case "end_call":
+      case "end_call": {
+        const result = this.flow.endCall(this.callId, "agent_ended");
+        if (result?.ok === false) return result;
         setTimeout(() => this.stop(), 4000); // let the closing line finish playing
-        this.flow.endCall(this.callId, "agent_ended");
         return { ending: true };
+      }
       default:
         return { error: `Unknown tool ${name}` };
     }

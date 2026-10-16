@@ -188,8 +188,17 @@ extensibility custom context schema through VoIP headers:
   calling number matches. Caller ID is not authentication, so the handoff must mark these
   details as unverified and the agent must never treat a match as proof of identity.
 
+On the wire each field is sent as a VoIP header without the `CustomContext.` prefix and
+with "." replaced by "-" (for example `CallDetails-CallTopic`), because Call Automation
+rejects VoIP header keys containing "." or "_"; see `voipKey` in `src/handoff.mjs`.
+
 Every ACS operation uses an operation context so callback events can be correlated with
-the state-machine transition that initiated them.
+the state-machine transition that initiated them. Call Automation accepting the transfer
+request only means it took the request: the audit log records `transfer_requested` and
+the call stays `transferring`. The transfer is recorded as successful
+(`transfer_succeeded`, state `transferred`) only when `CallTransferAccepted` arrives. A
+refused request or a `CallTransferFailed` event records `transfer_failed` with the ACS
+reason and enters the retry ladder in step 7.
 
 ## Demo surface and configuration
 

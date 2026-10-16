@@ -200,6 +200,21 @@ Transfers use `TransferCallToParticipant` to the sales operations Teams queue in
   proposal summary or draft ID, refused requests, and the transfer reason. It carries no
   PIN and no contact details.
 
+On the wire each key is sent with "." replaced by "-" (for example
+`CallDetails-CallTopic`) because Call Automation rejects VoIP header keys containing "."
+or "_"; see `voipKey` in `src/handoff.mjs`.
+
+A transfer counts as done only when Call Automation reports `CallTransferAccepted`. The
+audit log records `transfer` with the reason when the transfer starts,
+`transfer_requested` when Call Automation accepts the request, and then
+`transfer_succeeded`, or `transfer_failed` with the ACS error or result code when the
+request is refused or `CallTransferFailed` arrives. On failure the agent apologises once
+and says no one in sales operations is available right now. A verified rep goes back to
+the state they were in before the transfer, with any pending proposal intact, and can
+carry on or hang up. A caller who has not yet entered a PIN can't use the assistant, so
+the call ends with outcome `transfer_failed`. The agent never retries the transfer on its
+own, and the failure count resets so the next miss doesn't start another transfer.
+
 ## Demo surface and configuration
 
 The presenter console shows call state, the identified rep and how they were verified,
@@ -243,8 +258,10 @@ fixtures, and the call fixtures.
   90 days, "maybe" treated as no confirmation, a confirmed commit, undo, undo after a
   conflicting change, a hang-up before confirming that saves a draft, "call me back
   later", "resume my draft", pause and continue, the wrap-up draft at 7:00, an expired
-  call cap, `0` and `*` DTMF, two failed attempts, two no-inputs, and a prompt-injection
-  attempt asking to read another rep's account or change a field outside the allow-list.
+  call cap, `0` and `*` DTMF, a transfer request Call Automation refuses, a
+  `CallTransferFailed` outcome, VoIP header keys, two failed attempts, two no-inputs, and
+  a prompt-injection attempt asking to read another rep's account or change a field
+  outside the allow-list.
 - No CRM write happens without an explicit confirmation in the rep's last utterance, and
   every committed field has an audit row with before and after values.
 - The rep can never read or write a record outside their visible scope.

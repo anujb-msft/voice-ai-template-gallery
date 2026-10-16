@@ -1,12 +1,17 @@
 import { CallAutomationClient } from "@azure/communication-call-automation";
+import { DefaultAzureCredential } from "@azure/identity";
 import { config } from "../config.mjs";
-import { callerArguments } from "../telephony.mjs";
+import { callerArguments, telephonyAuth } from "../telephony.mjs";
 
 let client;
 export function acsClient() {
   if (!client) {
-    if (!config.acs.connectionString) throw new Error("ACS_CONNECTION_STRING is not set");
-    client = new CallAutomationClient(config.acs.connectionString);
+    // Entra first, so no ACS key has to live in a file. A connection string is
+    // still accepted as an explicit fallback.
+    const auth = telephonyAuth(config.acs);
+    if (auth === "entra") client = new CallAutomationClient(config.acs.endpoint, new DefaultAzureCredential());
+    else if (auth === "connection-string") client = new CallAutomationClient(config.acs.connectionString);
+    else throw new Error("Set ACS_ENDPOINT (preferred) or ACS_CONNECTION_STRING");
   }
   return client;
 }

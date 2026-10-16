@@ -205,6 +205,13 @@ endpoint, and simulation-mode conventions. Add the outbound path: `CreateCall` w
 media streaming options, `CallConnected` and `CreateCallFailed` handling, and
 `StartContinuousDtmfRecognition` once connected.
 
+`CreateCall` takes a call invite: the patient's number goes in `targetParticipant` and
+the caller ID in `sourceCallIdNumber` (`buildCallInvite` in `src/call-invite.mjs`). If
+ACS rejects a placement outright, that call ends with outcome `create_call_failed`, the
+same outcome as a `CreateCallFailed` callback, and no attempt is counted because the
+patient was not dialed. The campaign run moves on to the next row, and
+`POST /api/campaign/run` lists the rejected rows under `failed` next to `launched`.
+
 Each appointment has a campaign state:
 
 `pending → scheduled → dialing → (busy | no_answer → retry_scheduled → dialing …) | bad_number | voicemail_left | wrong_party → retry_scheduled | reached_unverified | confirmed | cancelled | reschedule_handoff | reschedule_callback | opted_out | completed_by_callback | skipped (no_consent | channel | suppressed | tty | cutoff | holiday)`
@@ -260,6 +267,12 @@ Teams Phone extensibility deployment, the custom context carries:
     result, and what the agent already did.
   - Nurse line: the patient's first name, the appointment ID, and that the patient asked
     a clinical question. The question's text is not passed.
+
+On the wire each key is sent with "." replaced by "-" (for example
+`CallDetails-CallTopic`) because Call Automation rejects VoIP header keys containing "."
+or "_"; see `voipKey` in `src/handoff.mjs`. The scheduling agent reads
+`CallDetails-CallContext` with an identical helper, and an inbound callback's
+`CallDetails-SessionId` is read through `readVoipHeader`.
 
 On a plain ACS number, `CallContext` is sent as SIP custom headers on the transfer, with
 the same fields.

@@ -12,7 +12,7 @@ import { createHub } from "./realtime.mjs";
 import { handleUtterance, registerSimulatedAgent } from "./offline.mjs";
 import { attachMediaBridge, activeBridges } from "./voice/call-bridge.mjs";
 import { answerInboundCall, transferToTeams, startDtmfRecognition, hangUp } from "./voice/acs.mjs";
-import { resourceAccountFrom } from "./handoff.mjs";
+import { resourceAccountFrom, readVoipHeader, describeTransferResult } from "./handoff.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const log = (...a) => console.log(new Date().toISOString(), ...a);
@@ -109,7 +109,7 @@ async function onIncomingCall(data) {
     resourceAccountId,
     // Preserve an Auto Attendant's session id when this line sits behind one, so
     // the whole journey correlates in Teams rather than restarting here.
-    sessionId: data.customContext?.voipHeaders?.["CallDetails.SessionId"] ?? data.correlationId ?? null,
+    sessionId: readVoipHeader(data.customContext, "CallDetails.SessionId") ?? data.correlationId ?? null,
   });
 
   log("[call] incoming", call.id, "from", call.maskedPhone, "via", call.arrival);
@@ -160,17 +160,29 @@ app.post(
           break;
         }
 
+        // The transfer request was only accepted; these two report what happened.
         case "CallTransferAccepted":
-          log("[call] transfer accepted", callId);
+          try {
+            const result = flow.transferAccepted(callId);
+            log("[call] transfer accepted", callId, result.ok ? result.routeId : `— ignored (${result.reason})`);
+          } catch (e) {
+            log("[call] transfer accepted handling failed", e.message);
+          }
           break;
 
-        case "CallTransferFailed":
-          // The flow already owns the retry ladder, so re-enter it rather than
-          // improvising a second recovery path here.
-          log("[call] transfer failed", event.data?.resultInformation?.message);
-          flow.get(callId) && (flow.get(callId).dispatched = false);
-          await flow.dispatchTransfer(callId).catch((e) => log("[call] recovery failed", e.message));
+        case "CallTransferFailed": {
+          // The caller is still on the line, and the flow owns the retry ladder,
+          // so the failure goes back into it rather than a second recovery path.
+          const info = event.data?.resultInformation;
+          log("[call] transfer failed", callId, describeTransferResult(info));
+          try {
+            const result = await flow.transferFailed(callId, info);
+            if (result?.reason === "no_transfer_pending") log("[call] transfer failure ignored: no transfer pending", callId);
+          } catch (e) {
+            log("[call] transfer failure handling failed", e.message);
+          }
           break;
+        }
 
         case "CallDisconnected":
           flow.endCall(callId, "caller_hung_up");

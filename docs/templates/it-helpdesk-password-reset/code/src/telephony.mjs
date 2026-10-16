@@ -13,6 +13,16 @@ export function normalizeTelephonyMode(value = TELEPHONY_MODES.ACS_DIRECT) {
   return mode;
 }
 
+/**
+ * Which credential the Call Automation client uses. Entra wins when both are set,
+ * so no ACS key has to live on disk.
+ */
+export function telephonyAuth({ endpoint, connectionString }) {
+  if (endpoint) return "entra";
+  if (connectionString) return "connection-string";
+  return "none";
+}
+
 export function telephonyMissing({ mode, callerId, teamsResourceAccountId }) {
   if (mode === TELEPHONY_MODES.TEAMS_PHONE) {
     return teamsResourceAccountId ? [] : ["TPE_RESOURCE_ACCOUNT_ID"];

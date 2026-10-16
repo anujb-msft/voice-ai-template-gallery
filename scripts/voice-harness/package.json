@@ -1,0 +1,23 @@
+{
+  "name": "voice-harness",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Live-call functional test harness: a second phone number calls each template, speaks its demo script, and checks the call flow the server records.",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "check": "for f in run.mjs src/*.mjs scenarios/*.mjs; do node --check \"$f\" || exit 1; done; echo \"syntax ok\"",
+    "list": "node run.mjs list",
+    "doctor": "node run.mjs doctor",
+    "serve": "node run.mjs serve",
+    "live": "node run.mjs run"
+  },
+  "dependencies": {
+    "@azure/communication-call-automation": "^1.6.0",
+    "@azure/identity": "^4.5.0",
+    "ws": "^8.18.0"
+  }
+}
