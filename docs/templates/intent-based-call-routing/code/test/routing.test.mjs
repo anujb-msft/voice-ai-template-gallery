@@ -480,8 +480,11 @@ test("a transfer that succeeds on the retry still completes normally", async () 
 
   const snap = await flow.settled(id);
   assert.equal(calls, 2);
-  assert.equal(snap.state, STATES.TRANSFERRED);
-  assert.equal(snap.destination.routeId, "support");
+  assert.equal(snap.state, STATES.TRANSFERRING, "an accepted request is not yet a transfer");
+
+  flow.transferAccepted(id);
+  assert.equal(flow.get(id).state, STATES.TRANSFERRED);
+  assert.equal(flow.snapshot(id).destination.routeId, "support");
 });
 
 test("the real transfer receives the destination target and the handoff context", async () => {
@@ -497,6 +500,324 @@ test("the real transfer receives the destination target and the handoff context"
   assert.equal(seen[0].destination.target.type, "callQueue");
   assert.equal(seen[0].destination.context.routeId, "billing");
   assert.equal(seen[0].destination.context.callerDetails.verified, false);
+});
+
+// ------------------------------------------------- transfer outcomes from ACS
+
+/** What Call Automation 1.6.0 throws when it refuses the request outright. */
+const invalidKeyError = () =>
+  Object.assign(new Error("Invalid request"), {
+    statusCode: 400,
+    details: {
+      error: {
+        message: "Invalid request",
+        details: [
+          {
+            message: "Invalid CustomCallingContext in request, one or more provided voip headers with invalid key.",
+            target: "CustomCallingContext",
+          },
+        ],
+      },
+    },
+  });
+
+/** What a CallTransferFailed event carries when the Teams target does not answer. */
+const UNAVAILABLE = { code: 480, subCode: 10140, message: "Temporarily Unavailable" };
+
+/** Fails the test if any transfer promise it started rejected with nobody listening. */
+function noUnhandledRejections(t) {
+  const rejections = [];
+  const onRejection = (reason) => rejections.push(reason);
+  process.on("unhandledRejection", onRejection);
+  t.after(() => process.off("unhandledRejection", onRejection));
+  return async () => {
+    await new Promise((resolve) => setImmediate(resolve));
+    assert.deepEqual(rejections, [], "a transfer promise rejected unhandled");
+  };
+}
+
+/** A fake agent that keeps every instruction and example line it is given. */
+function listen(flow, id) {
+  const said = [];
+  flow.registerAgent(id, { instruct: (text, spoken) => said.push({ text, spoken }) });
+  return said;
+}
+
+const transferTrail = (audit, id) =>
+  audit
+    .eventsFor(id)
+    .filter((e) => e.kind.startsWith("transfer_"))
+    .map((e) => `${e.kind}:${e.detail}`);
+
+test("a request ACS refuses is recorded with its reason, then retried, diverted and apologised for", async (t) => {
+  const settle = noUnhandledRejections(t);
+  const attempts = [];
+  const { flow, audit } = makeFlow({
+    transfer: async (_call, destination) => {
+      attempts.push(destination.routeId);
+      throw invalidKeyError();
+    },
+  });
+  const id = answer(flow);
+  const said = listen(flow, id);
+  flow.proposeRoute(id, confident("billing"));
+  flow.confirmRoute(id, "billing");
+  await flow.settled(id);
+  await settle();
+
+  const refused = "400 Invalid CustomCallingContext in request, one or more provided voip headers with invalid key.";
+  assert.deepEqual(attempts, ["billing", "billing", "reception"]);
+  assert.deepEqual(transferTrail(audit, id), [
+    "transfer_started:billing",
+    `transfer_failed:${refused}`,
+    "transfer_retry:billing",
+    "transfer_started:billing",
+    `transfer_failed:${refused}`,
+    "transfer_diverted:reception",
+    "transfer_started:reception",
+    `transfer_failed:${refused}`,
+  ]);
+  assert.equal(flow.get(id).state, STATES.FALLBACK);
+  assert.equal(flow.get(id).inFlightTransfer, null);
+  assert.match(said.at(-1).text, /call `end_call`/);
+  assert.equal(said.at(-1).spoken, "I'm sorry — I can't connect you right now. Please try us again shortly.");
+});
+
+test("an accepted request is not a transfer: success waits for CallTransferAccepted", async (t) => {
+  const settle = noUnhandledRejections(t);
+  const attempts = [];
+  const { flow, audit } = makeFlow({ transfer: async (_call, destination) => attempts.push(destination.routeId) });
+  const id = answer(flow, KNOWN_CALLER);
+  flow.proposeRoute(id, confident("support"));
+  flow.confirmRoute(id, "support");
+  await flow.settled(id);
+  await settle();
+
+  assert.equal(flow.get(id).state, STATES.TRANSFERRING);
+  assert.equal(flow.get(id).outcome, null);
+  assert.deepEqual(transferTrail(audit, id), ["transfer_started:support", "transfer_requested:support"]);
+
+  // Teams is still ringing; nothing the caller or model does can re-route the call now.
+  assert.equal(flow.proposeRoute(id, confident("billing")).reason, "already_transferring");
+  assert.equal(flow.requestHuman(id).reason, "already_transferring");
+  assert.equal(flow.dtmf(id, "3").reason, "already_transferring");
+  assert.equal(flow.outOfScope(id, "what are your hours?").reason, "already_transferring");
+
+  const accepted = flow.transferAccepted(id);
+  assert.equal(accepted.ok, true);
+  assert.equal(accepted.context.routeId, "support");
+  assert.equal(accepted.context.callerDetails.verified, false);
+  assert.equal(flow.get(id).state, STATES.TRANSFERRED);
+  assert.equal(flow.get(id).outcome, "transferred:support");
+  assert.deepEqual(transferTrail(audit, id), [
+    "transfer_started:support",
+    "transfer_requested:support",
+    "transfer_succeeded:support",
+  ]);
+
+  // Duplicate or late callbacks change nothing.
+  assert.deepEqual(flow.transferAccepted(id), { ok: false, reason: "no_transfer_pending" });
+  assert.deepEqual(await flow.transferFailed(id, UNAVAILABLE), { ok: false, reason: "no_transfer_pending" });
+  assert.deepEqual(attempts, ["support"]);
+  assert.equal(audit.stats().transfers, 1);
+});
+
+test("CallTransferFailed drives the same ladder: retry, divert, then apologise — three dispatches", async (t) => {
+  const settle = noUnhandledRejections(t);
+  const attempts = [];
+  const { flow, audit } = makeFlow({ transfer: async (_call, destination) => attempts.push(destination.routeId) });
+  const id = answer(flow);
+  const said = listen(flow, id);
+  flow.proposeRoute(id, confident("billing"));
+  flow.confirmRoute(id, "billing");
+  await flow.settled(id);
+
+  assert.equal((await flow.transferFailed(id, UNAVAILABLE)).ok, true, "the retry request was accepted");
+  assert.deepEqual(attempts, ["billing", "billing"]);
+  assert.equal(flow.get(id).state, STATES.TRANSFERRING);
+
+  await flow.transferFailed(id, UNAVAILABLE);
+  assert.deepEqual(attempts, ["billing", "billing", "reception"]);
+  assert.equal(flow.get(id).state, STATES.TRANSFERRING);
+
+  const last = await flow.transferFailed(id, UNAVAILABLE);
+  assert.equal(last.reason, "transfer_unavailable");
+  assert.equal(last.error, "480/10140 Temporarily Unavailable");
+  await settle();
+
+  assert.equal(flow.get(id).state, STATES.FALLBACK);
+  assert.deepEqual(transferTrail(audit, id), [
+    "transfer_started:billing",
+    "transfer_requested:billing",
+    "transfer_failed:480/10140 Temporarily Unavailable",
+    "transfer_retry:billing",
+    "transfer_started:billing",
+    "transfer_requested:billing",
+    "transfer_failed:480/10140 Temporarily Unavailable",
+    "transfer_diverted:reception",
+    "transfer_started:reception",
+    "transfer_requested:reception",
+    "transfer_failed:480/10140 Temporarily Unavailable",
+  ]);
+  assert.match(said.at(-1).text, /call `end_call`/);
+  assert.equal(said.at(-1).spoken, "I'm sorry — I can't connect you right now. Please try us again shortly.");
+
+  // A duplicate failure, or anything after the agent ends the call, dispatches nothing.
+  assert.deepEqual(await flow.transferFailed(id, UNAVAILABLE), { ok: false, reason: "no_transfer_pending" });
+  flow.endCall(id, "agent_ended");
+  assert.equal(flow.get(id).state, STATES.ENDED);
+  assert.deepEqual(await flow.transferFailed(id, UNAVAILABLE), { ok: false, reason: "no_transfer_pending" });
+  assert.deepEqual(flow.transferAccepted(id), { ok: false, reason: "no_transfer_pending" });
+  assert.deepEqual(attempts, ["billing", "billing", "reception"], "exactly three dispatches");
+  assert.equal(flow.get(id).state, STATES.ENDED);
+});
+
+test("the agent's end_call is refused while any rung of the ladder is out, and allowed after the apology", async (t) => {
+  const settle = noUnhandledRejections(t);
+  const attempts = [];
+  const { flow, audit } = makeFlow({ transfer: async (_call, destination) => attempts.push(destination.routeId) });
+  const id = answer(flow);
+  const said = listen(flow, id);
+  flow.proposeRoute(id, confident("billing"));
+  flow.confirmRoute(id, "billing");
+  await flow.settled(id);
+
+  const refused = { ok: false, reason: "transfer_in_progress" };
+  assert.deepEqual(flow.endCall(id, "agent_ended"), refused);
+  assert.equal(flow.get(id).state, STATES.TRANSFERRING);
+  assert.equal(flow.get(id).outcome, null);
+
+  // The retry and the diversion are transfers in their own right.
+  await flow.transferFailed(id, UNAVAILABLE);
+  assert.deepEqual(flow.endCall(id, "agent_ended"), refused);
+  await flow.transferFailed(id, UNAVAILABLE);
+  assert.deepEqual(flow.endCall(id, "agent_ended"), refused);
+  assert.equal(flow.get(id).state, STATES.TRANSFERRING);
+  assert.equal(flow.get(id).outcome, null);
+
+  const last = await flow.transferFailed(id, UNAVAILABLE);
+  assert.equal(last.reason, "transfer_unavailable");
+  assert.equal(last.error, "480/10140 Temporarily Unavailable");
+  await settle();
+  assert.equal(flow.get(id).state, STATES.FALLBACK);
+  assert.deepEqual(transferTrail(audit, id), [
+    "transfer_started:billing",
+    "transfer_requested:billing",
+    "transfer_failed:480/10140 Temporarily Unavailable",
+    "transfer_retry:billing",
+    "transfer_started:billing",
+    "transfer_requested:billing",
+    "transfer_failed:480/10140 Temporarily Unavailable",
+    "transfer_diverted:reception",
+    "transfer_started:reception",
+    "transfer_requested:reception",
+    "transfer_failed:480/10140 Temporarily Unavailable",
+  ]);
+  assert.match(said.at(-1).text, /call `end_call`/);
+  assert.equal(said.at(-1).spoken, "I'm sorry — I can't connect you right now. Please try us again shortly.");
+
+  assert.deepEqual(flow.endCall(id, "agent_ended"), { ok: true });
+  assert.equal(flow.get(id).state, STATES.ENDED);
+  assert.equal(flow.get(id).outcome, "agent_ended");
+  assert.deepEqual(attempts, ["billing", "billing", "reception"]);
+});
+
+test("inside the mind-change window the agent's end_call is refused and the transfer still goes; a caller hang-up cancels it", async (t) => {
+  const settle = noUnhandledRejections(t);
+  const attempts = [];
+  const { flow } = makeFlow({ transfer: async (call) => attempts.push(call.id), options: { transferDelayMs: 1 } });
+  const queueSupport = (id) => {
+    flow.proposeRoute(id, confident("support"));
+    flow.confirmRoute(id, "support");
+    return flow.get(id).pendingDispatch;
+  };
+
+  const id = answer(flow);
+  const armed = queueSupport(id);
+  assert.ok(armed, "the transfer is queued, not yet dispatched");
+  assert.deepEqual(flow.endCall(id, "agent_ended"), { ok: false, reason: "transfer_in_progress" });
+  assert.equal(flow.get(id).state, STATES.TRANSFERRING);
+  assert.equal(flow.get(id).outcome, null);
+  assert.equal(flow.get(id).pendingDispatch, armed, "the queued transfer is left alone");
+
+  const hungUp = answer(flow);
+  assert.ok(queueSupport(hungUp));
+  assert.deepEqual(flow.endCall(hungUp, "caller_hung_up"), { ok: true });
+  assert.equal(flow.get(hungUp).pendingDispatch, null);
+
+  await new Promise((resolve) => setTimeout(resolve, 20));
+  await flow.settled(id);
+  await settle();
+  assert.deepEqual(attempts, [id], "only the call still on the line was transferred");
+  assert.equal(flow.get(id).pendingDispatch, null);
+  assert.deepEqual(flow.endCall(id, "agent_ended"), { ok: false, reason: "transfer_in_progress" });
+  assert.equal(flow.transferAccepted(id).ok, true);
+  assert.equal(flow.get(id).state, STATES.TRANSFERRED);
+  assert.equal(flow.get(hungUp).outcome, "caller_hung_up");
+});
+
+test("a transfer outcome that arrives after the caller hung up is ignored", async (t) => {
+  const settle = noUnhandledRejections(t);
+  const attempts = [];
+  const { flow, audit } = makeFlow({ transfer: async (_call, destination) => attempts.push(destination.routeId) });
+  const id = answer(flow);
+  flow.proposeRoute(id, confident("sales"));
+  flow.confirmRoute(id, "sales");
+  await flow.settled(id);
+
+  flow.endCall(id, "caller_hung_up");
+  assert.deepEqual(await flow.transferFailed(id, UNAVAILABLE), { ok: false, reason: "no_transfer_pending" });
+  assert.deepEqual(flow.transferAccepted(id), { ok: false, reason: "no_transfer_pending" });
+  await settle();
+
+  assert.deepEqual(attempts, ["sales"]);
+  assert.equal(flow.get(id).state, STATES.ENDED);
+  assert.equal(flow.get(id).outcome, "caller_hung_up");
+  assert.deepEqual(transferTrail(audit, id), ["transfer_started:sales", "transfer_requested:sales"]);
+});
+
+test("a request refused after the caller hung up is recorded but not retried", async (t) => {
+  const settle = noUnhandledRejections(t);
+  let refuse;
+  let attempts = 0;
+  const { flow, audit } = makeFlow({
+    transfer: () => {
+      attempts += 1;
+      return new Promise((_resolve, reject) => (refuse = reject));
+    },
+  });
+  const id = answer(flow);
+  flow.proposeRoute(id, confident("sales"));
+  flow.confirmRoute(id, "sales");
+
+  flow.endCall(id, "caller_hung_up");
+  refuse(invalidKeyError());
+  await flow.settled(id);
+  await settle();
+
+  assert.equal(attempts, 1);
+  assert.equal(flow.get(id).state, STATES.ENDED);
+  assert.deepEqual(transferTrail(audit, id), [
+    "transfer_started:sales",
+    "transfer_failed:400 Invalid CustomCallingContext in request, one or more provided voip headers with invalid key.",
+  ]);
+});
+
+test("a CallTransferAccepted that overtakes the request's own response completes the transfer once", async (t) => {
+  const settle = noUnhandledRejections(t);
+  let respond;
+  const { flow, audit } = makeFlow({ transfer: () => new Promise((resolve) => (respond = resolve)) });
+  const id = answer(flow);
+  flow.proposeRoute(id, confident("support"));
+  flow.confirmRoute(id, "support");
+
+  assert.equal(flow.transferAccepted(id).ok, true);
+  respond();
+  await flow.settled(id);
+  await settle();
+
+  assert.equal(flow.get(id).state, STATES.TRANSFERRED);
+  assert.deepEqual(transferTrail(audit, id), ["transfer_started:support", "transfer_succeeded:support"]);
 });
 
 // ------------------------------------------------------------------------- audit

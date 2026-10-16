@@ -1,7 +1,15 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { teamsIdentifier, buildCustomCallingContext, resourceAccountFrom } from "../src/handoff.mjs";
+import {
+  teamsIdentifier,
+  buildCustomCallingContext,
+  resourceAccountFrom,
+  voipKey,
+  readVoipHeader,
+  describeTransferError,
+  describeTransferResult,
+} from "../src/handoff.mjs";
 import { RoutingFlow, STATES } from "../src/flow.mjs";
 import { RoutePolicy, CallerDirectory } from "../src/routes.mjs";
 import { MemoryAudit } from "../src/audit.mjs";
@@ -93,7 +101,80 @@ test("absent context fields are omitted rather than sent as empty headers", () =
   });
 
   const keys = headers.map((h) => h.key);
-  assert.deepEqual(keys, ["CallDetails.SessionId", "CallDetails.CallTopic", "CallDetails.RouteId"]);
+  assert.deepEqual(keys, ["CallDetails-SessionId", "CallDetails-CallTopic", "CallDetails-RouteId"]);
+});
+
+test("every VoIP header key is one ACS accepts: letters, digits and hyphens, at most 64", () => {
+  const headers = buildCustomCallingContext({
+    sessionId: "abc",
+    callTopic: "Duplicate charge",
+    callContext: "Billed twice in August.",
+    callSentiment: "frustrated",
+    routeId: "reception",
+    afterHours: true,
+    callerDetails: { name: "Dana Whitfield", verified: false },
+  });
+
+  // "CallDetails.RouteId" and "CallDetails_RouteId" are both refused with 400
+  // "Invalid CustomCallingContext ... invalid key", which fails every transfer.
+  assert.equal(headers.length, 7);
+  for (const { key } of headers) assert.match(key, /^[A-Za-z0-9-]{1,64}$/, `${key} would be refused by ACS`);
+  assert.deepEqual(
+    headers.map((h) => h.key),
+    [
+      "CallDetails-SessionId",
+      "CallDetails-CallTopic",
+      "CallDetails-CallContext",
+      "CallDetails-CallSentiment",
+      "CallDetails-RouteId",
+      "CallDetails-AfterHours",
+      "CallerDetails",
+    ],
+  );
+});
+
+test("voipKey maps a Teams field name to its wire key", () => {
+  assert.equal(voipKey("CallDetails.CallTopic"), "CallDetails-CallTopic");
+  assert.equal(voipKey("CallDetails_CallTopic"), "CallDetails-CallTopic");
+  assert.equal(voipKey("CallerDetails"), "CallerDetails");
+});
+
+test("readVoipHeader reads back what buildCustomCallingContext writes", () => {
+  const headers = buildCustomCallingContext({ sessionId: "aa-session-7", callTopic: "Renewal", routeId: "sales" });
+  const customContext = { voipHeaders: Object.fromEntries(headers.map((h) => [h.key, h.value])) };
+
+  assert.equal(readVoipHeader(customContext, "CallDetails.SessionId"), "aa-session-7");
+  assert.equal(readVoipHeader(customContext, "CallDetails.CallTopic"), "Renewal");
+  assert.equal(readVoipHeader(customContext, "CallDetails.CallSentiment"), null);
+  assert.equal(readVoipHeader(undefined, "CallDetails.SessionId"), null);
+});
+
+test("transfer failures are described in one audit line, with the ACS detail", () => {
+  const rejected = Object.assign(new Error("Invalid request"), {
+    statusCode: 400,
+    details: {
+      error: {
+        message: "Invalid request",
+        details: [
+          {
+            message: "Invalid CustomCallingContext in request, one or more provided voip headers with invalid key.",
+            target: "CustomCallingContext",
+          },
+        ],
+      },
+    },
+  });
+  assert.equal(
+    describeTransferError(rejected),
+    "400 Invalid CustomCallingContext in request, one or more provided voip headers with invalid key.",
+  );
+  assert.equal(describeTransferError(new Error("no call connection to transfer")), "no call connection to transfer");
+
+  assert.equal(
+    describeTransferResult({ code: 480, subCode: 10140, message: "Temporarily Unavailable" }),
+    "480/10140 Temporarily Unavailable",
+  );
+  assert.equal(describeTransferResult(null), "transfer failed");
 });
 
 test("caller details travel as one record so the unverified flag cannot be lost", () => {
@@ -115,12 +196,12 @@ test("header values stay inside the 1024 character VoIP limit", () => {
     callContext: "y".repeat(5000),
     routeId: "support",
   });
-  assert.equal(headers.find((h) => h.key === "CallDetails.CallContext").value.length, 1024);
+  assert.equal(headers.find((h) => h.key === "CallDetails-CallContext").value.length, 1024);
 });
 
 test("after-hours diversions are declared in the handoff", () => {
   const headers = buildCustomCallingContext({ sessionId: "a", callTopic: "t", routeId: "reception", afterHours: true });
-  assert.equal(headers.find((h) => h.key === "CallDetails.AfterHours").value, "true");
+  assert.equal(headers.find((h) => h.key === "CallDetails-AfterHours").value, "true");
 });
 
 test("a real routing decision produces headers a Teams agent can read", async () => {
@@ -138,9 +219,9 @@ test("a real routing decision produces headers a Teams agent can read", async ()
   const snap = await flow.settled(call.id);
 
   const headers = Object.fromEntries(buildCustomCallingContext(snap.handoff).map((h) => [h.key, h.value]));
-  assert.equal(headers["CallDetails.CallTopic"], "Reporting portal will not load");
-  assert.equal(headers["CallDetails.RouteId"], "support");
-  assert.equal(headers["CallDetails.CallSentiment"], "frustrated");
+  assert.equal(headers["CallDetails-CallTopic"], "Reporting portal will not load");
+  assert.equal(headers["CallDetails-RouteId"], "support");
+  assert.equal(headers["CallDetails-CallSentiment"], "frustrated");
   assert.equal(JSON.parse(headers["CallerDetails"]).name, "Marcus Bell");
 });
 

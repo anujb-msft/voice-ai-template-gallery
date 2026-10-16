@@ -62,7 +62,7 @@ Try these:
 Run the tests — they need no Azure and no network:
 
 ```bash
-npm test     # 63 cases across the state machine and the Teams handoff
+npm test     # 75 cases across the state machine and the Teams handoff
 npm run check
 ```
 
@@ -104,7 +104,7 @@ ringing → greeting → classifying → confirming → transferring → transfe
 | Whether a queue is open | `RoutePolicy.isOpen`, in the queue's own time zone |
 | How many clarifications before a human | `MAX_CLARIFICATIONS`, default 2 |
 | How long the whole thing may take | `ROUTE_TIME_BUDGET_MS`, default 90s |
-| Retry, divert, then admit failure | `RoutingFlow#dispatchTransfer` |
+| Retry, divert, then admit failure | `RoutingFlow#dispatchTransfer`, `RoutingFlow#transferFailed` |
 
 Because the audit sink, the transfer function and the clock are all injected, the
 entire flow is testable with plain `node --test` — no mocks of the Azure SDK, no
@@ -124,12 +124,18 @@ still be transferred, but the agent would answer blind.
 
 | Header | Contents |
 | --- | --- |
-| `CallDetails.SessionId` | The Auto Attendant session id when this line sits behind one, otherwise the ACS correlation id |
-| `CallDetails.CallTopic` | The confirmed intent, clipped to the Teams 48-character limit |
-| `CallDetails.CallContext` | One sentence of what the caller needs |
-| `CallDetails.CallSentiment` | Only when the caller *said* they were unhappy — never inferred from tone |
-| `CallDetails.RouteId` / `AfterHours` | Which route was chosen, and whether it was a diversion |
+| `CallDetails-SessionId` | The Auto Attendant session id when this line sits behind one, otherwise the ACS correlation id |
+| `CallDetails-CallTopic` | The confirmed intent, clipped to the Teams 48-character limit |
+| `CallDetails-CallContext` | One sentence of what the caller needs |
+| `CallDetails-CallSentiment` | Only when the caller *said* they were unhappy — never inferred from tone |
+| `CallDetails-RouteId` / `CallDetails-AfterHours` | Which route was chosen, and whether it was a diversion |
 | `CallerDetails` | The caller record, serialised whole so `verified: false` cannot be separated from the name |
+
+Teams Phone extensibility names these fields `CallDetails.*`, but Call Automation refuses
+any VoIP header key containing "." or "_" with a 400 (`Invalid CustomCallingContext`),
+which fails the transfer before it reaches Teams. `voipKey` in `src/handoff.mjs` sends
+each field with the "." replaced by "-", and inbound reads use the same helper. Confirm
+the serialization your Teams side expects with the Teams Phone Unify integration program.
 
 Call queues and auto attendants are resource accounts, so they are addressed as Teams
 *apps* (`{ teamsAppId }`); a named specialist is addressed as a Teams *user*
@@ -307,7 +313,7 @@ config/
   routes.json     the routing policy
   callers.json    fictional caller directory
 public/           the presenter console
-test/             63 cases, no Azure required
+test/             75 cases, no Azure required
 ```
 
 `flow.mjs`, `routes.mjs`, `handoff.mjs`, `agent.mjs`, `offline.mjs` and `audit.mjs`
@@ -322,8 +328,14 @@ and trust are the parts that run without installing anything.
   `CallConnected`; the keypad is only *offered* aloud after speech has failed twice.
 - **The transfer is blind.** The agent's job ends once the context is delivered.
   Staying on the line would put a silent third party on every routed call.
-- **`CallTransferFailed` re-enters the flow's own retry ladder** rather than starting a
-  second, competing recovery path.
+- **An accepted transfer request is not a transfer.** Call Automation answers
+  `TransferCallToParticipant` as soon as it takes the request, so the flow records
+  `transfer_requested` and stays `transferring`. Only `CallTransferAccepted` records
+  `transfer_succeeded`. A refused request or a `CallTransferFailed` event records
+  `transfer_failed` with the ACS reason and re-enters the flow's own retry ladder rather
+  than starting a second, competing recovery path. Late or duplicate callbacks are ignored.
+  While a transfer is queued or out, the agent's `end_call` is refused, so only the
+  transfer's outcome or the caller hanging up ends the call.
 - **Barge-in** sends `StopAudio` to ACS and `response.cancel` to Voice Live, so the
   agent stops mid-word rather than talking over the caller.
 - **Voice Live allows one in-flight response.** A state transition and a tool result
