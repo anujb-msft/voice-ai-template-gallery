@@ -74,10 +74,12 @@ PSTN / Teams Phone
        <-> JSON policy fixtures
        <-> SQLite lead store + audit + outbox
        <-> local WebSocket presenter console
-  -> blind transfer to Teams Sales Queue when in hours
+  -> blind transfer to Teams Sales Queue when in hours (lead capture if it fails)
 ```
 
-`src/flow.mjs` has no Azure, Express, or SQLite imports. The transfer function, clock, store, and presenter hub are injected so tests and offline simulation run without credentials.
+`src/flow.mjs` has no Azure, Express, or SQLite imports. The transfer and resume-with-agent functions, clock, store, and presenter hub are injected so tests and offline simulation run without credentials.
+
+In-hours calls are answered with media streaming configured but not started, and the transfer is requested once the `CallConnected` callback arrives (Call Automation refuses call actions before the call is established). The audit log records `transfer_requested` when ACS accepts the transfer request and `transfer_succeeded` only when the `CallTransferAccepted` callback arrives. A rejected request or a `CallTransferFailed` callback records `transfer_failed` with the ACS detail; the server then starts media streaming and the agent apologizes and captures the lead instead of retrying. If media can't start, `agent_resume_failed` is recorded and the call is ended. Teams handoff fields are sent as VoIP header keys such as `CallDetails-CallTopic`, because ACS rejects keys that contain "." or "_".
 
 ## Security notes before production
 

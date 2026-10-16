@@ -30,7 +30,7 @@ The assistant says it cannot quote that and records the question as a note for t
 
 ## 5. Show in-hours routing
 
-Use the API or set `DEMO_NOW` to a weekday business-hour timestamp. An in-hours simulated call transfers directly to the sales queue and does not start lead capture.
+Use the API or set `DEMO_NOW` to a weekday business-hour timestamp. An in-hours simulated call transfers directly to the sales queue and does not start lead capture. On a live call the transfer counts as done only when ACS reports `CallTransferAccepted`; if ACS refuses or fails it, the agent apologizes once and captures the lead instead, and the call's events show `transfer_failed`.
 
 ## 6. Close
 

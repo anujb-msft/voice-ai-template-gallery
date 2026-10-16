@@ -39,7 +39,7 @@ review.
 | 7 | Notification delivery † | A durable outbox table. Live mode posts to `TEAMS_WORKFLOW_URL` and sends email through Azure Communication Services Email. Offline, the outbox is shown in the console and never sent |
 | 8 | No-input policy † | Two reprompts, then save whatever was captured as a partial lead and close politely |
 | 9 | Transcript retention † | Events, lead fields, and summaries are stored at rest. The full transcript stays in memory unless persistence is opted in |
-| 10 | Handoff † | Blind `TransferCallToParticipant` to the configured sales Call Queue in hours, carrying `CallTopic` and `CallContext` |
+| 10 | Handoff † | Blind `TransferCallToParticipant` to the configured sales Call Queue in hours, carrying `CallTopic` and `CallContext`. The handoff is complete only on `CallTransferAccepted`. A refused or failed transfer falls back to lead capture and is never retried |
 
 ## Experience decisions
 
@@ -95,10 +95,14 @@ An example qualification rule set:
    resource account linked to ACS through Teams Phone extensibility. The documented ACS
    number fallback only changes provisioning.
 2. Event Grid delivers `IncomingCall`. The server checks `config/hours.json`. In sales
-   hours, it transfers to the sales queue. If the queue overflows or times out, the
-   call arrives back at the agent. After hours, and on holidays, the server answers
-   through Call Automation, starts bidirectional media streaming, and opens a Voice Live
-   session.
+   hours, it answers with media streaming configured but not started and, once Call
+   Automation reports `CallConnected`, transfers to the sales queue (call actions sent
+   before the call is established are refused). If ACS refuses the transfer or reports
+   `CallTransferFailed`, the server starts media streaming and the agent says once that
+   it can't connect the caller right now, then captures the lead as it would after hours.
+   If the queue overflows or times out, the call arrives back at the agent. After hours,
+   and on holidays, the server answers through Call Automation, starts bidirectional
+   media streaming, and opens a Voice Live session.
 3. The agent greets the caller: **"Thanks for calling Contoso Industrial Supply. I'm an
    automated assistant. Our sales team isn't available right now, but I can take your
    details and have the right person call you back. What are you looking for today?"**
@@ -150,7 +154,8 @@ endpoint, and simulation-mode conventions. The state machine is:
 
 `ringing → routing → (transferring → transferred) | greeting → discovery → qualifying → confirming → saving → closing → ended`
 
-A `non-sales` branch goes from `discovery` to `closing` without a save.
+A `non-sales` branch goes from `discovery` to `closing` without a save. A refused or
+failed in-hours transfer goes from `transferring` back to `greeting` for lead capture.
 
 The model changes state only through server-owned tools:
 
@@ -180,6 +185,25 @@ extensibility custom context carries:
   collected one before the transfer, up to 48 characters.
 - `CallDetails.CallContext`: one or two sentences summarizing any captured need,
   quantity, and timeline.
+
+On the wire each key is sent with "." replaced by "-" (for example `CallDetails-CallTopic`)
+because Call Automation rejects VoIP header keys containing "." or "_"; see `voipKey` in
+`src/handoff.mjs`. Inbound reads such as `CallDetails.SessionId` and
+`CallDetails.QueueOverflow` use the same mapping.
+
+The in-hours transfer request is sent when the `CallConnected` callback arrives, not as
+soon as the answer request returns, because Call Automation refuses call actions before
+the call is established (400, subcode 8501 "Call Not Established"). A resolved transfer
+request only means ACS accepted it: the audit log records `transfer_requested` and the
+call stays in `transferring`. `transfer_succeeded` is
+recorded when ACS sends `CallTransferAccepted`. If ACS rejects the request or later sends
+`CallTransferFailed`, the server records `transfer_failed` with the ACS detail (for
+example `480/10140 Temporarily Unavailable`) and never retries. It starts the media
+streaming that the in-hours answer configured but left stopped, and the agent apologizes
+once, says it can't connect the caller to sales right now, and captures the lead with the
+usual callback promise, as it does for a queue overflow. If media streaming can't start,
+the server records `agent_resume_failed` and hangs up rather than leave the caller in
+silence.
 
 After-hours leads are never transferred. They are delivered to the rep by notification.
 
@@ -218,7 +242,8 @@ provisioning snippet, the config fixtures, and the call fixtures.
   lead, a cold lead, a duplicate by phone, a duplicate by email, a repeat caller after 30
   days, a corrected phone read-back, a corrected email spelling, a caller with no email,
   a price and stock question, an existing customer with an order issue, an emergency, a
-  robocall, an in-hours call, a holiday call, a queue overflow, two no-inputs with a
+  robocall, an in-hours call, a refused or failed in-hours transfer that falls back to
+  lead capture, a holiday call, a queue overflow, two no-inputs with a
   partial lead, an expired call cap, round-robin across three reps with one inactive, a
   failed webhook delivery that stays in the outbox, and a caller prompt-injection attempt.
 - The score and owner are computed only by the server. The model never speaks a score, a
