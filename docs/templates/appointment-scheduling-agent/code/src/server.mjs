@@ -12,7 +12,7 @@ import { createHub } from "./realtime.mjs";
 import { runOfflineScheduling } from "./offline.mjs";
 import { attachMediaBridge, activeBridges } from "./voice/call-bridge.mjs";
 import { answerInboundCall, startDtmfRecognition, hangUp, transferCall } from "./voice/acs.mjs";
-import { resourceAccountFrom } from "./handoff.mjs";
+import { readVoipHeader, resourceAccountFrom } from "./handoff.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const log = (...a) => console.log(new Date().toISOString(), ...a);
@@ -65,7 +65,8 @@ app.post("/api/events", asyncRoute(async (req, res) => {
   }
 }));
 async function onIncomingCall(data) {
-  const call = flow.create({ fromPhone: data?.from?.phoneNumber?.value ?? null, callContext: data.customContext?.voipHeaders?.["CallDetails.CallContext"] ? JSON.parse(data.customContext.voipHeaders["CallDetails.CallContext"]) : null, sessionId: data.customContext?.voipHeaders?.["CallDetails.SessionId"] ?? data.correlationId ?? randomUUID() });
+  const rawContext = readVoipHeader(data.customContext, "CallDetails.CallContext");
+  const call = flow.create({ fromPhone: data?.from?.phoneNumber?.value ?? null, callContext: rawContext ? JSON.parse(rawContext) : null, sessionId: readVoipHeader(data.customContext, "CallDetails.SessionId") ?? data.correlationId ?? randomUUID() });
   call.resourceAccountId = resourceAccountFrom(data?.to);
   const { callConnectionId } = await answerInboundCall({ incomingCallContext: data.incomingCallContext, callId: call.id });
   call.callConnectionId = callConnectionId;
