@@ -12,7 +12,7 @@ The sample runs fully offline: typed transcript input drives the same state mach
 - General eligibility answers with the required staff-decision disclaimer.
 - No caller lookup and no personal details passed to the model or Teams.
 - DTMF `0`, human requests, no-input handling, call cap, and after-hours close.
-- Blind `TransferCallToParticipant` context with `SessionId`, `CallTopic`, `CallContext`, and optional `CallSentiment`.
+- Blind `TransferCallToParticipant` context with `SessionId`, `CallTopic`, `CallContext`, and optional `CallSentiment`, sent as the VoIP headers `CallDetails-SessionId`, `CallDetails-CallTopic`, `CallDetails-CallContext`, and `CallDetails-CallSentiment` (Call Automation rejects keys containing "." or "_"; see `voipKey` in `src/handoff.mjs`).
 - Local WebSocket presenter console; no SignalR dependency.
 
 ## Quick start — offline first
@@ -97,9 +97,11 @@ Teams Phone / ACS number
 
 `src/flow.mjs` has no Azure or Express imports. It is the policy boundary for retrieval, citations, stale/expired guards, transfer decisions, no-inputs, DTMF, and call-cap behavior.
 
+ACS accepting the transfer request is not the transfer. The flow records `transfer_requested` and stays `transferring` until a callback arrives: `CallTransferAccepted` records `transfer_succeeded`, while `CallTransferFailed` (or a refused request) records `transfer_failed` with the ACS reason, speaks the apology, closes the call with outcome `transfer_failed`, and tells the agent to call `end_call`. There is one transfer attempt per call, and late or duplicate callbacks are ignored. While the transfer is out, the agent's `end_call` is refused, so only the transfer's outcome or the caller hanging up ends the call.
+
 ## Tests
 
-`npm test` covers the spec fixture list: fresh/stale/expired retrieval, misses, out-of-scope service requests, eligibility disclaimers, personal-detail guard, citations, multi-question calls, repeat/slower, DTMF `0`, staffed and after-hours human requests, no-inputs, call cap, failed transfer, invalid `record_answer`, and prompt-injection attempts.
+`npm test` covers the spec fixture list: fresh/stale/expired retrieval, misses, out-of-scope service requests, eligibility disclaimers, personal-detail guard, citations, multi-question calls, repeat/slower, DTMF `0`, staffed and after-hours human requests, no-inputs, call cap, failed transfer, invalid `record_answer`, and prompt-injection attempts. It also covers transfer outcomes from ACS (a refused request, `CallTransferAccepted`, `CallTransferFailed`, and late or duplicate callbacks) and the VoIP header keys Call Automation accepts.
 
 ## Security notes before production
 

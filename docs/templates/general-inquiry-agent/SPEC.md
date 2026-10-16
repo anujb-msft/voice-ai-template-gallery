@@ -152,7 +152,7 @@ Search without changing the tools. The state machine is:
 
 `ringing → greeting → listening → answering → listening … → transferring → transferred | closed | ended`
 
-`closed` covers after-hours declines, the call cap, and callers who are done.
+`closed` covers after-hours declines, the call cap, failed transfers, and callers who are done.
 
 The model changes state only through server-owned tools:
 
@@ -188,7 +188,20 @@ extensibility custom context carries:
   content, an eligibility follow-up, or the caller asked).
 - `CallDetails.CallSentiment`: sent only when the caller states frustration explicitly.
 
+On the wire each key is sent with "." replaced by "-" (for example `CallDetails-CallTopic`)
+because Call Automation rejects VoIP header keys containing "." or "_"; see `voipKey` in
+`src/handoff.mjs`. The inbound `CallDetails-SessionId` is read through the same helper.
+
 No caller details are sent. This template does no caller lookup or identification.
+
+Call Automation accepting the transfer request only means it took the request: the audit
+log records `transfer_requested` and the call stays `transferring`. The transfer is
+recorded as successful (`transfer_succeeded`, state `transferred`) only when
+`CallTransferAccepted` arrives. A refused request or a `CallTransferFailed` event records
+`transfer_failed` with the ACS reason. The agent then apologises ("I'm sorry — I can't
+connect you right now. Please call back during staffed hours or visit contoso.gov."), the
+call closes with outcome `transfer_failed`, and the agent is told to call `end_call`, which
+hangs up. Each call gets one transfer attempt; a failed transfer is never sent again.
 
 ## Demo surface and configuration
 
