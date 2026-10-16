@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { teamsIdentifier, buildCustomCallingContext, resourceAccountFrom } from "../src/handoff.mjs";
+import { teamsIdentifier, buildCustomCallingContext, resourceAccountFrom, voipKey, readVoipHeader, describeTransferError, describeTransferResult } from "../src/handoff.mjs";
 import { AGENT_TOOLS, buildInstructions, localeLanguage } from "../src/agent.mjs";
 import { PriceBook, LocationDirectory, FixtureFeed } from "../src/pricing.mjs";
 
@@ -14,9 +14,35 @@ test("Teams identifiers use app ids for queues and user ids for merchandisers", 
 test("handoff context is sent as bounded VoIP headers", () => {
   const headers = buildCustomCallingContext({ sessionId: "s", callTopic: "Sell corn – Riverside", callContext: "x".repeat(5000), locationId: "riverside", reason: "sell_request" });
   assert.ok(headers.every((h) => h.kind === "voip"));
-  assert.equal(headers.find((h) => h.key === "CallDetails.CallTopic").value, "Sell corn – Riverside");
-  assert.equal(headers.find((h) => h.key === "CallDetails.CallContext").value.length, 1024);
-  assert.equal(headers.find((h) => h.key === "CallDetails.LocationId").value, "riverside");
+  assert.equal(headers.find((h) => h.key === "CallDetails-CallTopic").value, "Sell corn – Riverside");
+  assert.equal(headers.find((h) => h.key === "CallDetails-CallContext").value.length, 1024);
+  assert.equal(headers.find((h) => h.key === "CallDetails-LocationId").value, "riverside");
+});
+
+test("VoIP header keys are letters, digits and hyphens only, because ACS rejects '.' and '_'", () => {
+  const keys = buildCustomCallingContext({ sessionId: "s", callTopic: "Sell corn – Riverside", callContext: "Reason: sell_request", locationId: "riverside", reason: "sell_request" }).map((h) => h.key);
+  assert.deepEqual(keys, ["CallDetails-SessionId", "CallDetails-CallTopic", "CallDetails-CallContext", "CallDetails-LocationId", "CallDetails-TransferReason"]);
+  for (const key of keys) assert.match(key, /^[A-Za-z0-9-]{1,64}$/);
+  assert.equal(voipKey("CallDetails.Transfer_Reason"), "CallDetails-Transfer-Reason");
+});
+
+test("readVoipHeader reads back the headers buildCustomCallingContext sends", () => {
+  const headers = buildCustomCallingContext({ sessionId: "session-1", callTopic: "Sell corn – Riverside", callContext: "Last quote: corn", locationId: "riverside", reason: "sell_request" });
+  const customContext = { voipHeaders: Object.fromEntries(headers.map((h) => [h.key, h.value])) };
+  assert.equal(readVoipHeader(customContext, "CallDetails.SessionId"), "session-1");
+  assert.equal(readVoipHeader(customContext, "CallDetails.CallTopic"), "Sell corn – Riverside");
+  assert.equal(readVoipHeader(customContext, "CallDetails.LocationId"), "riverside");
+  assert.equal(readVoipHeader(customContext, "CallDetails.TransferReason"), "sell_request");
+  assert.equal(readVoipHeader({ voipHeaders: {} }, "CallDetails.SessionId"), null);
+  assert.equal(readVoipHeader(undefined, "CallDetails.SessionId"), null);
+});
+
+test("transfer failures become one audit line", () => {
+  const rejected = Object.assign(new Error("Invalid request"), { statusCode: 400, details: { error: { message: "Invalid request", details: [{ message: "Invalid CustomCallingContext in request, one or more provided voip headers with invalid key.", target: "CustomCallingContext" }] } } });
+  assert.equal(describeTransferError(rejected), "400 Invalid CustomCallingContext in request, one or more provided voip headers with invalid key.");
+  assert.equal(describeTransferError(new Error("no call connection to transfer")), "no call connection to transfer");
+  assert.equal(describeTransferResult({ code: 480, subCode: 10140, message: "Temporarily Unavailable" }), "480/10140 Temporarily Unavailable");
+  assert.equal(describeTransferResult(undefined), "transfer failed");
 });
 
 test("Teams Phone extensibility resource account is detected from rawId", () => {

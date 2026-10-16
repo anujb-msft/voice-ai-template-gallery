@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { config } from "./config.mjs";
+import { describeTransferError, describeTransferResult } from "./handoff.mjs";
 
 export const STATES = Object.freeze({ RINGING: "ringing", GREETING: "greeting", LISTENING: "listening", QUOTING: "quoting", TRANSFERRING: "transferring", TRANSFERRED: "transferred", CLOSING: "closing", ENDED: "ended" });
 const TERMINAL = new Set([STATES.TRANSFERRED, STATES.ENDED]);
@@ -14,10 +15,12 @@ export function maskPhone(phone) {
 }
 
 export class BidLookupFlow {
-  constructor({ priceBook, audit, transfer = null, hub = null, now = () => Date.now(), options = {} }) {
+  constructor({ priceBook, audit, transfer = null, hangUp = null, hub = null, now = () => Date.now(), options = {} }) {
     this.priceBook = priceBook;
     this.audit = audit;
     this.transfer = transfer;
+    // Ends the phone leg after a failed transfer if the agent never calls end_call; the server delays it so the closing line plays.
+    this.hangUp = hangUp;
     this.hub = hub;
     this.now = now;
     this.options = { callTimeBudgetMs: config.pricing.callTimeBudgetMs, maxNoInputs: 2, ...options };
@@ -30,7 +33,7 @@ export class BidLookupFlow {
       id: callId, fromPhone, maskedPhone: maskPhone(fromPhone), incomingCallContext, sessionId, resourceAccountId,
       arrival: resourceAccountId ? "teams-phone-extensibility" : "acs-direct", callConnectionId: null, state: STATES.RINGING,
       disclaimerSpoken: false, lastLocationId: null, lastQuote: null, lastPhrase: null, noInputs: 0, outcome: null,
-      startedAt: this.now(), answeredAt: null, endedAt: null, transcript: [], pendingTransfer: null,
+      startedAt: this.now(), answeredAt: null, endedAt: null, transcript: [], pendingTransfer: null, transferInFlight: null, transferAttempts: 0,
     };
     this.calls.set(call.id, call);
     this.audit.startCall({ id: call.id, maskedPhone: call.maskedPhone, state: call.state, startedAt: new Date(call.startedAt).toISOString() });
@@ -56,6 +59,7 @@ export class BidLookupFlow {
 
   getBid(callId, { commodity, location = null, month = null } = {}) {
     const call = this.#active(callId);
+    if (call.transferInFlight) return this.#transferInProgress(call);
     if (this.#budgetExpired(call)) return this.#expire(call);
     this.#setState(call, STATES.QUOTING);
     const result = this.priceBook.quote({ commodity, location, month, lastLocationId: call.lastLocationId });
@@ -86,6 +90,7 @@ export class BidLookupFlow {
 
   listBids(callId, { commodity, month = null } = {}) {
     const call = this.#active(callId);
+    if (call.transferInFlight) return this.#transferInProgress(call);
     if (this.#budgetExpired(call)) return this.#expire(call);
     this.#setState(call, STATES.QUOTING);
     const result = this.priceBook.list({ commodity, month });
@@ -110,6 +115,11 @@ export class BidLookupFlow {
 
   transferToMerchandiser(callId, { location = null, reason = "caller_requested" } = {}) {
     const call = this.#active(callId);
+    if (call.endedAt != null || TERMINAL.has(call.state)) return { ok: false, reason: "call_finished" };
+    if (call.transferInFlight) {
+      const pending = call.transferInFlight.destination;
+      return { ok: true, action: "transfer", pending: true, locationId: pending.location.id, reason: pending.reason };
+    }
     const locMatch = this.priceBook.locations.match(location, { lastLocationId: call.lastLocationId });
     if (!locMatch.ok) {
       const message = locMatch.ambiguous ? `Did you mean ${locMatch.candidates.map((l) => l.displayName).join(" or ")}?` : "Which location should I connect you with?";
@@ -128,13 +138,13 @@ export class BidLookupFlow {
     const phrase = `Connecting you with the ${loc.displayName} merchandiser now`;
     this.#speak(call, phrase, "Say this once, then stop talking while the blind transfer starts.");
     call.pendingTransfer = { target: loc.merchandiser, location: loc, reason };
-    call.dispatchPromise = this.dispatchTransfer(call.id);
+    call.dispatchPromise = this.dispatchTransfer(call.id).catch((e) => ({ ok: false, reason: "dispatch_error", error: e?.message ?? String(e) }));
     return { ok: true, action: "transfer", locationId: loc.id, reason };
   }
 
   async dispatchTransfer(callId) {
     const call = this.#require(callId);
-    if (!call.pendingTransfer || TERMINAL.has(call.state)) return { ok: false, reason: "nothing_to_transfer" };
+    if (!call.pendingTransfer || call.transferInFlight || call.endedAt != null || TERMINAL.has(call.state)) return { ok: false, reason: "nothing_to_transfer" };
     const destination = call.pendingTransfer;
     const context = this.handoffContext(call, destination);
     this.#event(call, "system", "transfer_started", destination.reason);
@@ -144,11 +154,57 @@ export class BidLookupFlow {
       this.#finish(call, STATES.TRANSFERRED, `transferred:${destination.reason}`, { simulated: true });
       return { ok: true, simulated: true, context };
     }
-    await this.transfer(call, { target: destination.target, context, reason: destination.reason });
+    const attempt = (call.transferAttempts += 1);
+    call.transferInFlight = { attempt, destination };
+    try {
+      await this.transfer(call, { target: destination.target, context, reason: destination.reason });
+    } catch (error) {
+      const detail = describeTransferError(error);
+      if (call.transferInFlight?.attempt === attempt) return this.#closeAfterFailedTransfer(call, detail);
+      this.#event(call, "system", "transfer_failed", detail);
+      return { ok: false, reason: "transfer_failed", detail };
+    }
+    // Call Automation only accepted the request; CallTransferAccepted or CallTransferFailed decides the outcome.
+    if (call.transferInFlight?.attempt === attempt) this.#event(call, "system", "transfer_requested", destination.location.id);
+    return { ok: true, requested: true, context };
+  }
+
+  transferAccepted(callId) {
+    const call = this.get(callId);
+    if (!call?.transferInFlight || TERMINAL.has(call.state)) return { ok: false, reason: "no_transfer_pending" };
+    const { destination } = call.transferInFlight;
+    call.transferInFlight = null;
     this.#event(call, "system", "transfer_succeeded", destination.location.id);
-    this.#publish(call, "handoff", context);
+    this.#publish(call, "handoff", this.handoffContext(call, destination));
     this.#finish(call, STATES.TRANSFERRED, `transferred:${destination.reason}`);
-    return { ok: true, context };
+    return { ok: true, transferred: true, locationId: destination.location.id };
+  }
+
+  transferFailed(callId, resultInformation = null) {
+    const call = this.get(callId);
+    if (!call?.transferInFlight || TERMINAL.has(call.state)) return { ok: false, reason: "no_transfer_pending" };
+    return this.#closeAfterFailedTransfer(call, describeTransferResult(resultInformation));
+  }
+
+  // Never re-dispatches: the caller hears why, when the merchandiser is reachable, and the call closes.
+  #closeAfterFailedTransfer(call, detail) {
+    const { location, reason } = call.transferInFlight.destination;
+    call.transferInFlight = null;
+    this.#event(call, "system", "transfer_failed", detail);
+    const callBack = this.priceBook.locations.get(location.id)?.hours
+      ? `${this.priceBook.locations.hoursPhrase(location.id)} Please call back during those hours.`
+      : "Please call back later.";
+    const phrase = `Sorry, I can't reach the ${location.displayName} merchandiser right now. ${callBack} Goodbye.`;
+    this.#speak(call, phrase, `The transfer did not go through. Say this once, word for word, then call end_call: "${phrase}"`);
+    this.#finish(call, STATES.ENDED, `transfer_failed:${reason}`);
+    if (this.hangUp) Promise.resolve().then(() => this.hangUp(call)).catch(() => {});
+    return { ok: false, reason: "transfer_failed", detail, phrase };
+  }
+
+  // The call stays in transferring until Call Automation reports the outcome: no quotes and no call-cap close meanwhile.
+  #transferInProgress(call) {
+    const { location } = call.transferInFlight.destination;
+    return { ok: false, reason: "transfer_in_progress", locationId: location.id, message: `I'm still connecting you with the ${location.displayName} merchandiser.` };
   }
 
   repeatLast(callId) {
@@ -190,7 +246,7 @@ export class BidLookupFlow {
   }
 
   checkBudget(callId) { const call = this.get(callId); return !call || !this.#budgetExpired(call) ? { ok: true } : this.#expire(call); }
-  endCall(callId, reason = "caller_ended") { const call = this.get(callId); if (!call || TERMINAL.has(call.state)) return { ok: true }; this.#speak(call, "Thanks for calling Contoso Grain Co-op. Goodbye.", "Close politely."); this.#finish(call, STATES.ENDED, reason); return { ok: true, ending: true }; }
+  endCall(callId, reason = "caller_ended") { const call = this.get(callId); if (!call || TERMINAL.has(call.state)) return { ok: true }; if (call.transferInFlight && reason !== "caller_hung_up") return this.#transferInProgress(call); this.#speak(call, "Thanks for calling Contoso Grain Co-op. Goodbye.", "Close politely."); this.#finish(call, STATES.ENDED, reason); return { ok: true, ending: true }; }
   settled(callId) { return Promise.resolve(this.get(callId)?.dispatchPromise).then(() => this.snapshot(callId)); }
 
   handoffContext(call, destination = call.pendingTransfer) {
@@ -214,9 +270,9 @@ export class BidLookupFlow {
   recordAgentAction(callId, { tool, ok = true, detail = null }) { const c = this.get(callId); if (c) this.#event(c, "agent", ok ? "tool" : "tool_rejected", detail ? `${tool}: ${detail}` : tool); }
   #require(id) { const c = this.get(id); if (!c) throw new Error(`unknown call ${id}`); return c; }
   #active(id) { const c = this.#require(id); if (TERMINAL.has(c.state)) return c; return c; }
-  #budgetExpired(call) { return call.answeredAt != null && !TERMINAL.has(call.state) && this.now() - call.answeredAt >= this.options.callTimeBudgetMs; }
+  #budgetExpired(call) { return call.answeredAt != null && !call.transferInFlight && !TERMINAL.has(call.state) && this.now() - call.answeredAt >= this.options.callTimeBudgetMs; }
   #expire(call) { this.#event(call, "system", "budget_expired", `${this.options.callTimeBudgetMs}ms`); return this.endCall(call.id, "time_budget_expired"); }
-  #finish(call, state, outcome, extra = {}) { call.outcome = outcome; call.endedAt = this.now(); this.#setState(call, state); this.audit.updateCall(call.id, { outcome, endedAt: new Date(call.endedAt).toISOString(), durationMs: call.endedAt - call.startedAt, ...extra }); }
+  #finish(call, state, outcome, extra = {}) { call.transferInFlight = null; call.outcome = outcome; call.endedAt = this.now(); this.#setState(call, state); this.audit.updateCall(call.id, { outcome, endedAt: new Date(call.endedAt).toISOString(), durationMs: call.endedAt - call.startedAt, ...extra }); }
   #speak(call, spoken, instruction) { this.agents.get(call.id)?.instruct?.(instruction, spoken); this.pushTranscript(call.id, "agent", spoken); }
   #setState(call, state) { if (call.state === state) return; const from = call.state; call.state = state; this.audit.updateCall(call.id, { state }); this.#event(call, "system", "state", `${from} → ${state}`); this.#publish(call, "state", this.snapshot(call.id)); }
   #event(call, source, kind, detail) { this.audit.recordEvent(call.id, source, kind, detail); this.#publish(call, "event", { source, kind, detail, at: new Date(this.now()).toISOString() }); }

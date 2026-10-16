@@ -14,14 +14,34 @@ const AFTER_CLOSE = Date.parse("2026-09-08T20:00:00Z");
 const AFTER_HOURS = Date.parse("2026-09-09T01:00:00Z");
 const HOLIDAY = Date.parse("2026-09-07T15:42:00Z");
 
-function makeFlow({ now = OPEN, feed = new FixtureFeed(), transfer = null, options = {} } = {}) {
+function makeFlow({ now = OPEN, feed = new FixtureFeed(), transfer = null, hangUp = null, hub = null, options = {} } = {}) {
   let clock = now;
   const audit = new MemoryAudit();
   const priceBook = new PriceBook({ locations: LocationDirectory.load(), feed, now: () => new Date(clock), options });
-  const flow = new BidLookupFlow({ priceBook, audit, transfer, now: () => clock, options: { callTimeBudgetMs: 180_000 } });
+  const flow = new BidLookupFlow({ priceBook, audit, transfer, hangUp, hub, now: () => clock, options: { callTimeBudgetMs: 180_000 } });
   return { flow, audit, feed, priceBook, setNow: (t) => (clock = t), advance: (ms) => (clock += ms) };
 }
 function answer(flow) { const call = flow.create({ fromPhone: "+14255550123" }); flow.answered(call.id); return call.id; }
+
+const invalidKeyError = () => Object.assign(new Error("Invalid request"), { statusCode: 400, details: { error: { message: "Invalid request", details: [{ message: "Invalid CustomCallingContext in request, one or more provided voip headers with invalid key.", target: "CustomCallingContext" }] } } });
+const settle = async () => { for (let i = 0; i < 5; i++) await new Promise((resolve) => setImmediate(resolve)); };
+async function noUnhandledRejections(fn) {
+  const seen = [];
+  const guard = (reason) => seen.push(reason);
+  process.on("unhandledRejection", guard);
+  try { await fn(); await settle(); } finally { process.off("unhandledRejection", guard); }
+  assert.deepEqual(seen, [], "unhandled rejection");
+}
+// An answered in-hours call with a quote, a fake ACS transfer, a fake agent that records what it is told to say, and a fake hang-up.
+function liveCall({ transfer }) {
+  const hangUps = [], said = [], published = [];
+  const ctx = makeFlow({ transfer, hangUp: (call) => hangUps.push(call.id), hub: { send: (_id, target, payload) => published.push({ target, payload }) } });
+  const id = answer(ctx.flow);
+  ctx.flow.registerAgent(id, { instruct: (instruction, spoken) => said.push({ instruction, spoken }) });
+  ctx.flow.getBid(id, { commodity: "corn", location: "Riverside" });
+  const events = () => ctx.audit.eventsFor(id).filter((e) => e.kind.startsWith("transfer_"));
+  return { ...ctx, id, hangUps, said, published, transferKinds: () => events().map((e) => e.kind), event: (kind) => events().find((e) => e.kind === kind) };
+}
 
 test("opening line discloses AI and says the disclaimer exactly once", () => {
   const { flow } = makeFlow();
@@ -156,6 +176,158 @@ test("sell request transfers in hours but gives hours after hours", async () => 
   const result = after.flow.transferToMerchandiser(id2, { location: "Riverside", reason: "sell_request" });
   assert.equal(result.afterHours, true);
   assert.match(result.phrase, /08:00 to 17:00/);
+});
+
+test("a rejected transfer request (sell or feed outage) is caught: the caller hears the merchandiser's hours and the call closes", async () => {
+  await noUnhandledRejections(async () => {
+    for (const reason of ["sell_request", "feed_outage"]) {
+      const live = liveCall({ transfer: async () => { throw invalidKeyError(); } });
+      if (reason === "feed_outage") live.feed.setFeedDown(true);
+      const result = reason === "feed_outage"
+        ? live.flow.getBid(live.id, { commodity: "corn", location: "Riverside" })
+        : live.flow.transferToMerchandiser(live.id, { reason });
+      assert.equal(result.action, "transfer");
+      assert.equal((await live.flow.get(live.id).dispatchPromise).reason, "transfer_failed");
+      assert.deepEqual(live.transferKinds(), ["transfer_started", "transfer_failed"]);
+      assert.equal(live.event("transfer_failed").detail, "400 Invalid CustomCallingContext in request, one or more provided voip headers with invalid key.");
+      const snap = live.flow.snapshot(live.id);
+      assert.equal(snap.state, STATES.ENDED);
+      assert.equal(snap.outcome, `transfer_failed:${reason}`);
+      assert.equal(live.flow.get(live.id).transferInFlight, null);
+      const closing = live.said.at(-1);
+      assert.match(closing.spoken, /^Sorry, I can't reach the Riverside merchandiser right now\. .*08:00 to 17:00.* Please call back during those hours\. Goodbye\.$/);
+      assert.ok(closing.instruction.includes(closing.spoken), "the agent is given the exact closing line");
+      assert.match(closing.instruction, /end_call/);
+      await settle();
+      assert.deepEqual(live.hangUps, [live.id]);
+      assert.equal(live.published.some((p) => p.target === "handoff"), false);
+    }
+  });
+});
+
+test("an accepted transfer request is only requested until CallTransferAccepted arrives", async () => {
+  const requests = [];
+  const live = liveCall({ transfer: async (_call, destination) => { requests.push(destination); } });
+  live.flow.transferToMerchandiser(live.id, { reason: "sell_request" });
+  assert.equal((await live.flow.get(live.id).dispatchPromise).requested, true);
+  assert.deepEqual(live.transferKinds(), ["transfer_started", "transfer_requested"]);
+  assert.equal(live.event("transfer_requested").detail, "riverside");
+  assert.equal(live.flow.snapshot(live.id).state, STATES.TRANSFERRING);
+  assert.equal(live.flow.snapshot(live.id).outcome, null);
+  assert.equal(live.published.some((p) => p.target === "handoff"), false);
+  assert.equal(live.flow.dtmf(live.id, "0").pending, true, "pressing 0 again while the transfer is in flight does not re-dispatch");
+  assert.equal(requests.length, 1);
+  assert.equal(requests[0].context.callTopic, "Sell corn – Riverside");
+
+  assert.equal(live.flow.transferAccepted(live.id).ok, true);
+  assert.deepEqual(live.transferKinds(), ["transfer_started", "transfer_requested", "transfer_succeeded"]);
+  const snap = live.flow.snapshot(live.id);
+  assert.equal(snap.state, STATES.TRANSFERRED);
+  assert.equal(snap.outcome, "transferred:sell_request");
+  assert.equal(live.published.filter((p) => p.target === "handoff").length, 1);
+  assert.deepEqual(live.flow.transferAccepted(live.id), { ok: false, reason: "no_transfer_pending" });
+  assert.deepEqual(live.flow.transferFailed(live.id, { code: 480 }), { ok: false, reason: "no_transfer_pending" });
+  assert.equal(live.flow.snapshot(live.id).state, STATES.TRANSFERRED);
+  await settle();
+  assert.deepEqual(live.hangUps, []);
+});
+
+test("CallTransferFailed closes the call once; duplicate, late and unknown-call events are no-ops", async () => {
+  const requests = [];
+  const live = liveCall({ transfer: async (_call, destination) => { requests.push(destination); } });
+  live.flow.dtmf(live.id, "0");
+  await live.flow.settled(live.id);
+  const failed = live.flow.transferFailed(live.id, { code: 480, subCode: 10140, message: "Temporarily Unavailable" });
+  assert.equal(failed.reason, "transfer_failed");
+  assert.equal(failed.detail, "480/10140 Temporarily Unavailable");
+  assert.deepEqual(live.transferKinds(), ["transfer_started", "transfer_requested", "transfer_failed"]);
+  assert.equal(live.event("transfer_failed").detail, "480/10140 Temporarily Unavailable");
+  assert.equal(live.flow.snapshot(live.id).state, STATES.ENDED);
+  assert.equal(live.flow.snapshot(live.id).outcome, "transfer_failed:dtmf_0");
+  assert.match(live.said.at(-1).spoken, /^Sorry, I can't reach the Riverside merchandiser right now\./);
+
+  assert.deepEqual(live.flow.transferFailed(live.id, { code: 480, subCode: 10140 }), { ok: false, reason: "no_transfer_pending" });
+  assert.deepEqual(live.flow.transferAccepted(live.id), { ok: false, reason: "no_transfer_pending" });
+  assert.deepEqual(live.flow.transferFailed("unknown-call", { code: 480 }), { ok: false, reason: "no_transfer_pending" });
+  assert.deepEqual(live.flow.dtmf(live.id, "0"), { ok: false, reason: "call_finished" });
+  assert.deepEqual(live.flow.endCall(live.id, "agent_ended"), { ok: true });
+  await settle();
+  assert.equal(requests.length, 1, "no second dispatch");
+  assert.deepEqual(live.hangUps, [live.id]);
+  assert.equal(live.flow.snapshot(live.id).transcript.filter((t) => /can't reach/.test(t.text)).length, 1);
+  assert.equal(live.flow.snapshot(live.id).outcome, "transfer_failed:dtmf_0");
+});
+
+test("the agent's end_call is refused while the transfer is in flight, so CallTransferFailed still apologizes and closes", async () => {
+  const requests = [];
+  const live = liveCall({ transfer: async (_call, destination) => { requests.push(destination); } });
+  live.flow.dtmf(live.id, "0");
+  await live.flow.settled(live.id);
+  const spokenBefore = live.said.length;
+  assert.deepEqual(live.flow.endCall(live.id, "agent_ended"), { ok: false, reason: "transfer_in_progress", locationId: "riverside", message: "I'm still connecting you with the Riverside merchandiser." });
+  assert.equal(live.said.length, spokenBefore);
+  assert.equal(live.flow.snapshot(live.id).state, STATES.TRANSFERRING);
+  assert.equal(live.flow.snapshot(live.id).outcome, null);
+  await settle();
+  assert.deepEqual(live.hangUps, []);
+
+  const failed = live.flow.transferFailed(live.id, { code: 480, subCode: 10140, message: "Temporarily Unavailable" });
+  assert.equal(failed.reason, "transfer_failed");
+  assert.equal(failed.detail, "480/10140 Temporarily Unavailable");
+  assert.deepEqual(live.transferKinds(), ["transfer_started", "transfer_requested", "transfer_failed"]);
+  assert.equal(live.flow.snapshot(live.id).state, STATES.ENDED);
+  assert.equal(live.flow.snapshot(live.id).outcome, "transfer_failed:dtmf_0");
+  assert.match(live.said.at(-1).spoken, /^Sorry, I can't reach the Riverside merchandiser right now\./);
+
+  assert.deepEqual(live.flow.endCall(live.id, "agent_ended"), { ok: true });
+  await settle();
+  assert.equal(requests.length, 1);
+  assert.deepEqual(live.hangUps, [live.id]);
+  assert.equal(live.flow.snapshot(live.id).outcome, "transfer_failed:dtmf_0");
+});
+
+test("while a transfer is in flight the call stays in transferring: no quotes and no call-cap close", async () => {
+  const live = liveCall({ transfer: async () => {} });
+  live.flow.transferToMerchandiser(live.id, { reason: "sell_request" });
+  await live.flow.settled(live.id);
+  const spokenBefore = live.said.length;
+  live.advance(180_000);
+  for (const result of [live.flow.getBid(live.id, { commodity: "soybeans", location: "Riverside" }), live.flow.listBids(live.id, { commodity: "corn" })]) {
+    assert.deepEqual(result, { ok: false, reason: "transfer_in_progress", locationId: "riverside", message: "I'm still connecting you with the Riverside merchandiser." });
+  }
+  assert.deepEqual(live.flow.checkBudget(live.id), { ok: true });
+  assert.equal(live.said.length, spokenBefore);
+  assert.equal(live.flow.snapshot(live.id).state, STATES.TRANSFERRING);
+  assert.equal(live.audit.eventsFor(live.id).some((e) => e.kind === "budget_expired"), false);
+  assert.equal(live.flow.transferAccepted(live.id).ok, true);
+  assert.equal(live.flow.snapshot(live.id).outcome, "transferred:sell_request");
+});
+
+test("transfer results that arrive after the caller hung up are ignored", async () => {
+  await noUnhandledRejections(async () => {
+    let rejectRequest;
+    const rejected = liveCall({ transfer: () => new Promise((_resolve, reject) => { rejectRequest = reject; }) });
+    rejected.flow.transferToMerchandiser(rejected.id, { reason: "sell_request" });
+    rejected.flow.endCall(rejected.id, "caller_hung_up");
+    rejectRequest(invalidKeyError());
+    assert.equal((await rejected.flow.get(rejected.id).dispatchPromise).reason, "transfer_failed");
+    assert.deepEqual(rejected.transferKinds(), ["transfer_started", "transfer_failed"]);
+    assert.equal(rejected.flow.snapshot(rejected.id).outcome, "caller_hung_up");
+    assert.equal(rejected.said.some((s) => /can't reach/.test(s.spoken)), false);
+
+    let resolveRequest;
+    const accepted = liveCall({ transfer: () => new Promise((resolve) => { resolveRequest = resolve; }) });
+    accepted.flow.transferToMerchandiser(accepted.id, { reason: "sell_request" });
+    accepted.flow.endCall(accepted.id, "caller_hung_up");
+    resolveRequest();
+    await accepted.flow.get(accepted.id).dispatchPromise;
+    assert.deepEqual(accepted.flow.transferAccepted(accepted.id), { ok: false, reason: "no_transfer_pending" });
+    assert.deepEqual(accepted.flow.transferFailed(accepted.id, { code: 480 }), { ok: false, reason: "no_transfer_pending" });
+    assert.deepEqual(accepted.transferKinds(), ["transfer_started"]);
+    assert.equal(accepted.flow.snapshot(accepted.id).outcome, "caller_hung_up");
+    await settle();
+    assert.deepEqual([...rejected.hangUps, ...accepted.hangUps], []);
+  });
 });
 
 test("advice questions are refused without market predictions", () => {

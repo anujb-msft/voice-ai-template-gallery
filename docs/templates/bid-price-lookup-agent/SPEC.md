@@ -37,7 +37,7 @@ review.
 | 7 | Feed adapter † | A `PriceFeed` interface with `getBidSheet()` and `getFutures(symbols)`. The sample ships a `FixtureFeed`. A live adapter is documented, not built |
 | 8 | No-input policy † | Two reprompts, then a polite close |
 | 9 | Transcript retention † | Events and quoted prices are stored at rest. The full transcript stays in memory unless persistence is opted in |
-| 10 | Handoff mechanics † | Blind `TransferCallToParticipant` to the location's merchandiser target, carrying `CallTopic` and `CallContext` |
+| 10 | Handoff mechanics † | Blind `TransferCallToParticipant` to the location's merchandiser target, carrying `CallTopic` and `CallContext`. The handoff is complete only on `CallTransferAccepted`. A refused or failed transfer closes the call with the merchandiser hours and is never retried |
 
 ## Experience decisions
 
@@ -111,8 +111,10 @@ An example bid sheet entry:
    the same fixed form.
 8. If the caller wants to sell or book a contract, or the pricing data is unavailable,
    the agent checks the merchandiser hours. In hours, it says **"Connecting you with the
-   Riverside merchandiser now"** and transfers. After hours, it gives the hours and
-   closes.
+   Riverside merchandiser now"** and transfers. If the transfer is refused or fails, it
+   says **"Sorry, I can't reach the Riverside merchandiser right now."**, gives the hours,
+   asks the caller to call back during them, and closes. After hours, it gives the hours
+   and closes.
 9. If the caller asks "should I sell?" or "where's the market going?", the agent says
    **"I can't advise on that, but the merchandiser can talk it through with you."** It
    then offers a transfer in hours.
@@ -171,6 +173,22 @@ extensibility custom context carries:
 - `CallDetails.CallContext`: the last quote the caller heard, with its as-of time, and
   the reason for the transfer.
 
+On the wire each key is sent with "." replaced by "-" (for example `CallDetails-CallTopic`)
+because Call Automation rejects VoIP header keys containing "." or "_"; see `voipKey` in
+`src/handoff.mjs`. The inbound `CallDetails.SessionId` read uses the same mapping.
+
+A resolved transfer request only means ACS accepted it: the audit log records
+`transfer_requested` and the call stays in `transferring`. Meanwhile `get_bid` and
+`list_bids` return `transfer_in_progress` instead of quoting, and another transfer request,
+including `0`, is reported as pending rather than sent again. `transfer_succeeded` and the
+`transferred` state are recorded when ACS sends `CallTransferAccepted`. If ACS rejects the
+request or later sends `CallTransferFailed`, the server records `transfer_failed` with the
+ACS detail (for example `480/10140 Temporarily Unavailable`) and never retries. The agent
+says once that it can't reach the merchandiser right now, gives the merchandiser hours,
+asks the caller to call back during them, and says goodbye. The call ends with the outcome
+`transfer_failed:<reason>`, and the server hangs up after 20 seconds if the agent hasn't
+ended the call.
+
 After hours, no transfer is attempted. The agent speaks the merchandiser hours from
 config.
 
@@ -209,6 +227,7 @@ fixtures, and the call fixtures.
   a commodity, stale futures, a bid sheet not updated today, the hard limit falling back
   to the close, after the market closes, a holiday, a feed outage with transfer in hours,
   a feed outage after hours, a sell request in hours, a sell request after hours, a
+  refused transfer request, a transfer that Call Automation reports as failed, a
   "should I sell" question, a repeat request, `*` and `0` DTMF, two no-inputs, an expired
   call cap, and a caller prompt-injection attempt asking for a different price.
 - Every spoken price matches the server phrase exactly. The model never speaks a number
