@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { config, resolvePath, todayIso, nowDate } from "./config.mjs";
+import { describeTransferError, describeTransferResult } from "./handoff.mjs";
 
 export const STATES = Object.freeze({
   RINGING: "ringing",
@@ -68,6 +69,8 @@ export class CustomerRecordFlow {
       failures: 0,
       noInputs: 0,
       refusedItems: [],
+      transferInFlight: null,
+      transferAttempts: 0,
       startedAt: this.now(),
       answeredAt: null,
       endedAt: null,
@@ -155,7 +158,7 @@ export class CustomerRecordFlow {
     }
     if (result.status === "no_match") {
       const failed = this.#failure(call, "account_no_match");
-      if (failed?.simulated || failed instanceof Promise) return failed;
+      if (failed?.simulated || failed?.transferring) return failed;
     }
     this.#remember(call, result.phrase ?? "I couldn't find that account. Could you spell it?");
     return { ok: result.status !== "no_match", ...result };
@@ -325,6 +328,8 @@ export class CustomerRecordFlow {
   transfer(callId, reason = "caller_requested") {
     const call = this.#require(callId);
     if (TERMINAL.has(call.state)) return { ok: false, reason: "call_finished" };
+    if (call.transferInFlight) return { ok: false, reason: "transfer_in_progress" };
+    const previousState = call.state;
     this.#setState(call, STATES.TRANSFERRING);
     const context = this.handoffContext(call, reason);
     this.#event(call, "agent", "transfer", reason);
@@ -333,10 +338,38 @@ export class CustomerRecordFlow {
       this.audit.updateCall(call.id, { simulated: true, outcome: `transferred:${reason}` });
       return { ok: true, simulated: true, context };
     }
-    return Promise.resolve(this.transferCall(call, { target: this.routing.salesOperations, context })).then(() => {
-      this.#setState(call, STATES.TRANSFERRED);
-      return { ok: true, context };
-    });
+    // The result stays synchronous and the dispatch promise is handled here, so a refused request
+    // can't become an unhandled rejection. Resolving only means ACS accepted the request: the
+    // outcome arrives later as CallTransferAccepted or CallTransferFailed (see transferAccepted).
+    const attempt = (call.transferAttempts += 1);
+    call.transferInFlight = { attempt, destination: context.routeId, reason, previousState };
+    let dispatch;
+    try { dispatch = Promise.resolve(this.transferCall(call, { target: this.routing.salesOperations, context })); } catch (error) { dispatch = Promise.reject(error); }
+    dispatch
+      .then(() => { if (call.transferInFlight?.attempt === attempt) this.#event(call, "system", "transfer_requested", context.routeId); }, (error) => this.#transferRejected(call, attempt, error))
+      .catch((error) => console.error(new Date().toISOString(), "[flow] transfer outcome handling failed", call.id, error?.message ?? error));
+    return { ok: true, transferring: true, context };
+  }
+
+  transferAccepted(callId) {
+    const call = this.get(callId);
+    const pending = call?.transferInFlight;
+    if (!pending) return { ok: false, reason: "no_transfer_pending" };
+    call.transferInFlight = null;
+    this.#event(call, "system", "transfer_succeeded", pending.destination);
+    this.#setState(call, STATES.TRANSFERRED);
+    this.audit.updateCall(call.id, { outcome: `transferred:${pending.reason}` });
+    return { ok: true, transferred: true, destination: pending.destination };
+  }
+
+  transferFailed(callId, resultInformation = null) {
+    const call = this.get(callId);
+    const pending = call?.transferInFlight;
+    if (!pending) return { ok: false, reason: "no_transfer_pending" };
+    call.transferInFlight = null;
+    const detail = describeTransferResult(resultInformation);
+    this.#event(call, "system", "transfer_failed", detail);
+    return { ...this.#transferFallback(call, pending), detail };
   }
 
   handoffContext(call, reason = "caller_requested") {
@@ -352,6 +385,8 @@ export class CustomerRecordFlow {
   endCall(callId, outcome = "agent_ended") {
     const call = this.get(callId);
     if (!call || TERMINAL.has(call.state)) return { ok: true };
+    // Mid-transfer only the outcome callback or the caller hanging up may end the call.
+    if (call.transferInFlight && outcome !== "caller_hung_up") return { ok: false, reason: "transfer_in_progress" };
     if (call.currentProposalId) this.saveDraft(callId, call.currentProposalId, outcome);
     this.#finish(call, STATES.ENDED, outcome);
     return { ok: true };
@@ -402,12 +437,34 @@ export class CustomerRecordFlow {
   #budgetExpired(call) { return call.answeredAt != null && this.now() - call.answeredAt >= this.options.callTimeBudgetMs; }
   #expire(call) { return this.endCall(call.id, "call_time_cap"); }
   #failure(call, reason) { call.failures += 1; this.#event(call, "system", "failure", reason); if (call.failures >= 2) return this.transfer(call.id, "two_failures"); return { ok: false, reason, failures: call.failures }; }
+  #transferRejected(call, attempt, error) {
+    this.#event(call, "system", "transfer_failed", describeTransferError(error));
+    const pending = call.transferInFlight;
+    if (pending?.attempt !== attempt) return;
+    call.transferInFlight = null;
+    if (!TERMINAL.has(call.state)) this.#transferFallback(call, pending);
+  }
+  // One apology and no automatic retry. A verified rep goes back to where they were; an unverified
+  // caller can't use the assistant, so the call ends. Failures reset so the next miss doesn't re-dispatch.
+  #transferFallback(call, pending) {
+    call.failures = 0;
+    const sorry = "I'm sorry, no one in sales operations is available right now.";
+    if (!call.rep) {
+      this.#speak(call, `${sorry} Please try again later. Goodbye.`);
+      this.endCall(call.id, "transfer_failed");
+      return { ok: true, transferred: false, fallback: true, ended: true };
+    }
+    if (call.state === STATES.TRANSFERRING) this.#setState(call, pending.previousState);
+    const phrase = `${sorry} You can carry on with me, or hang up and try again later.`;
+    this.#speak(call, phrase);
+    return { ok: true, transferred: false, fallback: true, state: call.state, phrase };
+  }
   #remember(call, phrase) { call.lastPhrase = phrase; this.#speak(call, phrase); }
   #speak(call, text) { if (text) { this.pushTranscript(call.id, "agent", text); this.agents.get(call.id)?.instruct?.(text, text); } }
   #event(call, source, kind, detail) { this.audit.recordEvent(call.id, source, kind, detail); this.#publish(call, "event", { source, kind, detail, at: iso(this.now()) }); }
   #publish(call, target, payload) { this.hub?.send?.(call.id, target, payload); }
   #setState(call, state) { if (call.state === state) return; const from = call.state; call.state = state; this.audit.updateCall(call.id, { state }); this.#event(call, "system", "state", `${from} → ${state}`); this.#publish(call, "state", this.snapshot(call.id)); }
-  #finish(call, state, outcome) { call.outcome = outcome; call.endedAt = this.now(); this.#setState(call, state); this.audit.updateCall(call.id, { outcome, endedAt: iso(call.endedAt), durationMs: call.endedAt - call.startedAt }); }
+  #finish(call, state, outcome) { call.outcome = outcome; call.endedAt = this.now(); call.transferInFlight = null; this.#setState(call, state); this.audit.updateCall(call.id, { outcome, endedAt: iso(call.endedAt), durationMs: call.endedAt - call.startedAt }); }
 }
 
 export function buildProposal({ crm, rep, account, dictation, allowlist, picklists }) {
