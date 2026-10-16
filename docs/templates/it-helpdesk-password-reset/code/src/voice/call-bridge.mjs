@@ -129,8 +129,16 @@ class CallBridge {
 /** @type {Map<string, CallBridge>} */
 export const activeBridges = new Map();
 
-export function attachMediaBridge(httpServer, flow, path = "/ws/media") {
-  const wss = new WebSocketServer({ server: httpServer, path });
+/**
+ * Returns the server so the caller can route upgrades to it. Deliberately
+ * `noServer`: two WebSocketServers sharing one HTTP server both receive every
+ * upgrade event, and `ws` aborts the handshake — destroying the socket — for any
+ * path a given server does not own. Whichever is registered first therefore
+ * kills the other's connections. With the built-in hub registered first, that
+ * refused every media stream: the call connected and then sat in silence.
+ */
+export function attachMediaBridge(flow, path = "/ws/media") {
+  const wss = new WebSocketServer({ noServer: true });
 
   wss.on("connection", async (socket, req) => {
     const sessionId = new URL(req.url, "http://localhost").searchParams.get("session");

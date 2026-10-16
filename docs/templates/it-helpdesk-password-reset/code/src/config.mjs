@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { normalizeTelephonyMode, telephonyMissing } from "./telephony.mjs";
+import { normalizeTelephonyMode, telephonyAuth, telephonyMissing } from "./telephony.mjs";
 
 const required = (name) => {
   const v = process.env[name];
@@ -19,6 +19,13 @@ export const config = {
   publicBaseUrl: (process.env.PUBLIC_BASE_URL ?? "").replace(/\/$/, ""),
 
   acs: {
+    /**
+     * Preferred. e.g. https://<resource>.unitedstates.communication.azure.com
+     * When set, Call Automation authenticates with DefaultAzureCredential and no
+     * ACS key is stored anywhere.
+     */
+    endpoint: (process.env.ACS_ENDPOINT ?? "").replace(/\/$/, ""),
+    /** Fallback only. Ignored when ACS_ENDPOINT is set. */
     connectionString: process.env.ACS_CONNECTION_STRING ?? "",
     telephonyMode: normalizeTelephonyMode(process.env.TELEPHONY_MODE),
     /** Used only in acs-direct mode. Must be a geographic ACS number. */
@@ -30,6 +37,7 @@ export const config = {
   voiceLive: {
     /** e.g. https://<resource>.services.ai.azure.com */
     endpoint: (process.env.VOICE_LIVE_ENDPOINT ?? "").replace(/\/$/, ""),
+    /** Optional. When empty the server uses DefaultAzureCredential (keyless). */
     apiKey: process.env.VOICE_LIVE_API_KEY ?? "",
     model: process.env.VOICE_LIVE_MODEL ?? "gpt-realtime",
     /** WebSocket transport api-version. */
@@ -61,7 +69,7 @@ export const config = {
 
 export function assertCallConfig() {
   const missing = [];
-  if (!config.acs.connectionString) missing.push("ACS_CONNECTION_STRING");
+  if (telephonyAuth(config.acs) === "none") missing.push("ACS_ENDPOINT");
   missing.push(
     ...telephonyMissing({
       mode: config.acs.telephonyMode,
@@ -71,7 +79,14 @@ export function assertCallConfig() {
   );
   if (!config.publicBaseUrl) missing.push("PUBLIC_BASE_URL");
   if (!config.voiceLive.endpoint) missing.push("VOICE_LIVE_ENDPOINT");
-  if (!config.voiceLive.apiKey) missing.push("VOICE_LIVE_API_KEY");
   if (!config.demo.defaultPhone) missing.push("DEMO_PHONE_NUMBER");
   return missing;
+}
+
+/** Which credential each Azure connection uses, for `/health`. Never includes secrets. */
+export function authSummary() {
+  return {
+    telephony: telephonyAuth(config.acs),
+    voiceLive: config.voiceLive.apiKey ? "api-key" : "entra",
+  };
 }

@@ -52,6 +52,13 @@ jobs:
       - name: Check server syntax
         run: npm run check
 
+      # The unit suite is dependency-free by design, so it cannot see transport
+      # faults. This boots the server with the built-in hub and checks both
+      # WebSocket endpoints accept an upgrade. They once did not: the hub
+      # refused every media stream, and the call connected in silence.
+      - name: Smoke test the WebSocket endpoints
+        run: npm run smoke
+
   call-routing-demo:
     runs-on: ubuntu-latest
     defaults:
@@ -85,3 +92,30 @@ jobs:
       # sitting in silence with "MediaStreamingFailed" in the ACS callback.
       - name: Smoke test the WebSocket endpoints
         run: npm run smoke
+
+  voice-harness:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: scripts/voice-harness
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: scripts/voice-harness/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check harness syntax
+        run: npm run check
+
+      # Unit tests only: CI never places a call. They also validate every
+      # live-call suite, and fail when a runnable template has none.
+      - name: Test the harness and its suites
+        run: npm test

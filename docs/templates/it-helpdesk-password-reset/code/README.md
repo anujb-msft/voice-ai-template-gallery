@@ -102,11 +102,13 @@ and metrics work, no call is placed. That is enough to demo the UX.
 |---|---|
 | `HOST` | Bind address. Defaults to `127.0.0.1`; set it explicitly for a container or remote development environment. |
 | `PUBLIC_BASE_URL` | Public HTTPS URL ACS can reach. `devtunnel host -p 8090 --allow-anonymous` (create the port with `--protocol http`, not `https`). |
-| `ACS_CONNECTION_STRING` | Azure Communication Services resource. |
+| `ACS_ENDPOINT` | Azure Communication Services endpoint, e.g. `https://<acs>.unitedstates.communication.azure.com`. Keyless, via `DefaultAzureCredential` — see [Keyless auth](#keyless-auth). |
+| `ACS_CONNECTION_STRING` | Optional fallback if you cannot use Entra. Ignored when `ACS_ENDPOINT` is set. |
 | `TELEPHONY_MODE` | `acs-direct` (default) or `teams-phone`. |
 | `ACS_CALLER_ID` | Required only for `acs-direct`. Must be a geographic ACS number; toll-free ACS numbers cannot place outbound calls. |
 | `TPE_RESOURCE_ACCOUNT_ID` | Required only for `teams-phone`. Use the Teams resource account object ID, not its phone number or the bot application ID. |
 | `VOICE_LIVE_ENDPOINT` | `https://<resource>.services.ai.azure.com` — an Azure AI Services resource (`kind=AIServices`) with a custom domain. |
+| `VOICE_LIVE_API_KEY` | Optional. Leave empty for keyless auth. |
 | `VOICE_LIVE_MODEL` | `gpt-realtime`. Pick a region that serves the model — see [supported models and regions](https://learn.microsoft.com/azure/ai-services/speech-service/voice-live#supported-models-and-regions). |
 | `AZURE_SIGNALR_CONNECTION_STRING` | Optional. Must be **Serverless** service mode. Leave empty to use the built-in WebSocket hub. |
 | `DEMO_PHONE_NUMBER` | The number the demo always calls, regardless of the directory record. |
@@ -119,10 +121,27 @@ Check your wiring at `GET /health`:
   "realtime": "azure-signalr",
   "voiceModel": "gpt-realtime",
   "telephonyMode": "teams-phone",
+  "auth": { "telephony": "entra", "voiceLive": "entra" },
   "callReady": true,
   "missingCallConfig": []
 }
 ```
+
+### Keyless auth
+
+Both Azure connections default to Entra, so no key needs to live on disk.
+
+**ACS.** Set `ACS_ENDPOINT` and leave `ACS_CONNECTION_STRING` unset. The signed-in
+identity needs **Communication and Email Service Owner** on the ACS resource. Locally
+that identity comes from `az login`; in Azure, use a managed identity.
+
+**Voice Live.** Assign the same identity both roles on the AI Services resource:
+
+- **Cognitive Services User**
+- **Foundry User**
+
+The server then acquires a token for the `https://ai.azure.com/.default` scope through
+`DefaultAzureCredential`. Setting `VOICE_LIVE_API_KEY` overrides this.
 
 ### Place callbacks through Teams Phone extensibility
 
@@ -283,6 +302,10 @@ scripts/
 - **`npm run ws-test`-style check:** `node scripts/ws-test.mjs` verifies Voice Live auth,
   the model, speech output and tool calling without placing a call. Run it first when
   debugging.
+- **WebSocket smoke test:** `npm run smoke` boots the server with the built-in hub and
+  checks that `/ws/hub` and `/ws/media` both accept an upgrade. If a call connects but
+  the agent never speaks, run this: it catches a second WebSocket server refusing the
+  media stream, which the unit tests cannot see.
 - The `data/` directory and `.env` are gitignored. Delete `data/helpdesk.db` and re-run
   `npm run seed` to reset the demo.
 

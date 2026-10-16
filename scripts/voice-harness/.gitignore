@@ -1,0 +1,5 @@
+# Run reports, cached TTS audio and per-run fixtures can contain real phone
+# numbers and call transcripts. Keep them local.
+out/
+.cache/
+.runtime/

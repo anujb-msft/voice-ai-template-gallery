@@ -4,8 +4,16 @@ import {
   TELEPHONY_MODES,
   callerArguments,
   normalizeTelephonyMode,
+  telephonyAuth,
   telephonyMissing,
 } from "../src/telephony.mjs";
+
+test("ACS auth prefers Entra and falls back to a connection string", () => {
+  const connectionString = "endpoint=https://acs.example/;accesskey=fake";
+  assert.equal(telephonyAuth({ endpoint: "https://acs.example", connectionString }), "entra");
+  assert.equal(telephonyAuth({ endpoint: "", connectionString }), "connection-string");
+  assert.equal(telephonyAuth({ endpoint: "", connectionString: "" }), "none");
+});
 
 test("direct ACS mode uses only the ACS caller number", () => {
   assert.deepEqual(

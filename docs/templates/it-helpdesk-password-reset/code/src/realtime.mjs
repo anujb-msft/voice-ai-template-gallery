@@ -78,8 +78,13 @@ class LocalWebSocketHub {
   /** @type {Map<string, Set<import("ws").WebSocket>>} */
   #clients = new Map();
 
-  attach(httpServer, path = "/ws/hub") {
-    const wss = new WebSocketServer({ server: httpServer, path });
+  /**
+   * Returns the server so the caller can route upgrades to it. Deliberately
+   * `noServer`: attaching two WebSocketServers to one HTTP server does not work,
+   * because each aborts the handshake for paths it does not own.
+   */
+  attach() {
+    const wss = new WebSocketServer({ noServer: true });
     wss.on("connection", (socket, req) => {
       const userId = new URL(req.url, "http://localhost").searchParams.get("user");
       if (!userId) return socket.close();
@@ -91,6 +96,7 @@ class LocalWebSocketHub {
         if (set && set.size === 0) this.#clients.delete(userId);
       });
     });
+    return wss;
   }
 
   negotiate(userId) {

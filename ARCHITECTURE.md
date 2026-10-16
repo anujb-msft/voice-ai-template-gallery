@@ -46,7 +46,7 @@ flowchart LR
 ```text
 .github/
   dependabot.yml               Dependency update configuration
-  workflows/validate.yml       Catalogue check and per-template test jobs
+  workflows/validate.yml       Catalogue check, per-template test jobs, and harness tests
   workflows/pages.yml          Regenerates the catalogue and deploys docs/ to Pages
 docs/
   index.html                   Gallery
@@ -57,6 +57,7 @@ docs/
   templates/<id>/              One self-contained package per template
 scripts/
   generate-template-index.js   Catalogue validator and generator
+  voice-harness/               Live-call tests: a second phone number calls each template
 ARCHITECTURE.md                This document
 CONTRIBUTING.md                Contribution workflow
 ```
@@ -537,7 +538,7 @@ anywhere in this table.
 
 | Template | Demo port | Smoke test port |
 |---|---|---|
-| `it-helpdesk-password-reset` | 8090 | No smoke test |
+| `it-helpdesk-password-reset` | 8090 | 8190 |
 | `intent-based-call-routing` | 8091 | 8199 |
 | `general-inquiry-agent` | 8092 | 8292 |
 | `after-hours-sales-lead-capture` | 8093 | 8193 |
@@ -549,6 +550,9 @@ anywhere in this table.
 | `appointment-reminder-agent` | 8099 | Needs a running server |
 | `appointment-scheduling-agent` | 8100 | Needs a running server; defaults to 8099 |
 
+The live-call harness listens on 8089, and starts each template it tests on 8091, one
+at a time.
+
 ## 5. Testing
 
 Run the cheapest checks first:
@@ -559,6 +563,7 @@ Run the cheapest checks first:
 | Syntax | `npm run check` | No | Every server module parses |
 | Smoke | `npm run smoke` | Yes | The server boots, `/health` answers, and every WebSocket path accepts an upgrade |
 | Manual | `code/DEMO-SCRIPT.md` | Yes | The scripted demo in simulation mode, then a real call |
+| Live | `node run.mjs run` in `scripts/voice-harness` | Yes | The demo script and its fallbacks over real phone calls, checked against what the server recorded |
 
 Unit tests:
 
@@ -579,6 +584,23 @@ Smoke tests:
   run passed or failed.
 - MUST NOT need an already running server or any network access beyond localhost.
 
+Live tests:
+
+- Run in [`scripts/voice-harness`](scripts/voice-harness/README.md). A second ACS phone
+  number calls the template's number, or answers an outbound template's call. It speaks
+  the caller's lines, listens to the agent, and checks the audit events, state, and
+  outcome the server recorded, and the language the agent spoke.
+- Every runnable template MUST have a suite in
+  `scripts/voice-harness/scenarios/<template-id>.mjs`. Base it on `code/DEMO-SCRIPT.md`:
+  the demo first, then each documented fallback. The harness's unit tests fail when a
+  runnable template has no suite.
+- Make hard checks on server state. Check the agent's wording only as a soft check: it
+  varies from call to call.
+- The harness starts the template without its `.env`, so the suite must pin every
+  configuration value its scenarios depend on.
+- Live tests need Azure resources, two phone numbers, and dev tunnels, and every call is
+  billed, so CI doesn't run them.
+
 ## 6. Continuous integration
 
 `.github/workflows/validate.yml` runs on every pull request and on pushes to `main`,
@@ -588,7 +610,10 @@ with read-only `contents` permission:
   committed catalogue is current.
 - `call-routing-demo` is the model template job. It runs `npm test` before `npm ci`,
   which proves the policy core needs no dependencies, then `npm ci`, `npm run check`,
-  and `npm run smoke`. `password-reset-demo` predates it and has no smoke step.
+  and `npm run smoke`. `password-reset-demo` runs the same steps.
+- `voice-harness` runs `npm ci`, `npm run check`, and `npm test` in
+  `scripts/voice-harness`. It never places a call: its unit tests validate every
+  live-call suite, and fail when a runnable template has none.
 
 A new template MUST add its own job, copied from `call-routing-demo` with `cache: npm`
 and `cache-dependency-path` added, and an `npm` entry for its `code/` directory in
@@ -604,9 +629,9 @@ templates. Fixes are welcome as separate pull requests.
 
 | Area | Deviation |
 |---|---|
-| Password reset | `it-helpdesk-password-reset` predates the standard: it has no `SPEC.md`, no `config/`, no smoke test, and no `/api/simulate` or `/api/calls/:id/events` routes, and its modules are laid out differently. |
+| Password reset | `it-helpdesk-password-reset` predates the standard: it has no `SPEC.md`, no `config/`, and no `/api/simulate` or `/api/calls/:id/events` routes, and its modules are laid out differently. |
 | On-call pager | `contextual-on-call-pager` has no `/api/simulate` or `/api/calls/:id/events` routes. |
-| CI | Only `intent-based-call-routing` and `it-helpdesk-password-reset` have CI jobs, and Dependabot covers only `it-helpdesk-password-reset`. |
+| CI | Of the templates, only `intent-based-call-routing` and `it-helpdesk-password-reset` have CI jobs, and Dependabot covers only `it-helpdesk-password-reset`. |
 | Package READMEs | Nine package `README.md` files are a generic paragraph. `intent-based-call-routing` shows the expected content. |
 | `code/README.md` | Headings vary between templates. |
 | Smoke tests | Smoke ports don't consistently follow the demo port plus 100 rule: `intent-based-call-routing` and `bid-price-lookup-agent` both use 8199, and `general-inquiry-agent` uses 8292. Five smoke tests need an already running server, and the `appointment-scheduling-agent` smoke test defaults to port 8099 instead of 8100. |
