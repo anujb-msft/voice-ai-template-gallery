@@ -84,6 +84,8 @@ Teams Phone / ACS number
 
 The model never receives Teams targets, phone numbers, callback numbers, or reporter names. `set_contact` stores only consent indicators in the tool result.
 
+Handoff fields are sent as VoIP headers with hyphenated keys such as `CallDetails-CallTopic`, because Call Automation rejects keys containing "." or "_" (see `voipKey` in `src/handoff.mjs`). A transfer is only marked `transferred` when the `CallTransferAccepted` callback arrives. The audit events are `transfer_started`, `transfer_requested` (ACS accepted the request), `transfer_succeeded`, and `transfer_failed` (a refused request or `CallTransferFailed`, with the ACS error or result code). After a failure the agent apologises, reads back any case filed on the call or offers to file one, and returns to listening without retrying. While the transfer is out, the agent's `end_call` is refused, so only the transfer's outcome or the caller hanging up ends the call.
+
 ## Tests
 
 ```bash
@@ -91,7 +93,7 @@ npm test
 npm run check
 ```
 
-The `node:test` suite runs without cloud credentials and covers emergency redirects, FAQ freshness, all request types, location matching, duplicates, status privacy, guided pickup, transfer handoff, DTMF, call budget, and prompt-injection guards.
+The `node:test` suite runs without cloud credentials and covers emergency redirects, FAQ freshness, all request types, location matching, duplicates, status privacy, guided pickup, transfer handoff, refused and failed transfers, VoIP header keys, DTMF, call budget, and prompt-injection guards.
 
 ## Security notes before production
 

@@ -10,13 +10,13 @@ import { FixtureGeocoder } from "../src/geocoder.mjs";
 import { MemoryCaseStore } from "../src/db.mjs";
 import { ServiceAssistantFlow, speakCaseNumber, STATES } from "../src/flow.mjs";
 import { handleUtterance, registerSimulatedAgent } from "../src/offline.mjs";
-import { buildCustomCallingContext, buildHandoffContext } from "../src/handoff.mjs";
+import { buildCustomCallingContext, buildHandoffContext, readVoipHeader, voipKey, describeTransferError, describeTransferResult } from "../src/handoff.mjs";
 
 const root = dirname(fileURLToPath(import.meta.url));
 const code = join(root, "..");
 const fixed = Date.parse("2026-09-30T10:00:00-07:00");
 
-function makeFlow(nowValue = fixed, options = {}) {
+function makeFlow(nowValue = fixed, options = {}, { transfer = null } = {}) {
   let current = nowValue;
   const now = () => current;
   const flow = new ServiceAssistantFlow({
@@ -28,6 +28,7 @@ function makeFlow(nowValue = fixed, options = {}) {
     emergency: readJson(join(code, "config/emergency.json")),
     bulkPickup: readJson(join(code, "config/bulk-pickup.json")),
     audit: new MemoryAudit(),
+    transfer,
     now,
     options,
   });
@@ -277,9 +278,252 @@ test("handoff headers include required Teams context and not oversized topic", (
   const context = buildHandoffContext(flow.get(call.id), { department: flow.departments.get("public-works"), reason: "priority" });
   assert.equal(context.callTopic.length <= 48, true);
   const headers = buildCustomCallingContext(context);
-  assert.equal(headers.some((h) => h.key === "CallDetails.SessionId"), true);
-  assert.equal(headers.some((h) => h.key === "CallDetails.CallTopic"), true);
-  assert.equal(headers.some((h) => h.key === "CallDetails.CallContext"), true);
+  assert.equal(headers.some((h) => h.key === "CallDetails-SessionId"), true);
+  assert.equal(headers.some((h) => h.key === "CallDetails-CallTopic"), true);
+  assert.equal(headers.some((h) => h.key === "CallDetails-CallContext"), true);
+});
+
+test("VoIP header keys use only characters Call Automation accepts and round-trip on inbound reads", () => {
+  assert.equal(voipKey("CallDetails.CallTopic"), "CallDetails-CallTopic");
+  assert.equal(voipKey("Call_Details.Topic"), "Call-Details-Topic");
+  const flow = makeFlow();
+  const call = start(flow);
+  handleUtterance(flow, call.id, "Large pothole in the travel lane at Oak and 5th");
+  const context = buildHandoffContext(flow.get(call.id), { department: flow.departments.get("public-works"), reason: "priority" });
+  const headers = buildCustomCallingContext(context);
+  assert.deepEqual(headers.map((h) => h.key), ["CallDetails-SessionId", "CallDetails-CallTopic", "CallDetails-CallContext", "CallDetails-RouteId"]);
+  for (const h of headers) assert.match(h.key, /^[A-Za-z0-9-]{1,64}$/);
+  const inbound = { voipHeaders: Object.fromEntries(headers.map((h) => [h.key, h.value])) };
+  assert.equal(readVoipHeader(inbound, "CallDetails.SessionId"), "aa-session");
+  assert.equal(readVoipHeader(inbound, "CallDetails.RouteId"), "public-works");
+  assert.equal(readVoipHeader({ voipHeaders: { "CallDetails.SessionId": "dotted" } }, "CallDetails.SessionId"), null);
+  assert.equal(readVoipHeader(undefined, "CallDetails.SessionId"), null);
+});
+
+test("transfer errors and results become one audit line", () => {
+  assert.equal(describeTransferError(refusedRequest()), "400 Invalid CustomCallingContext in request, one or more provided voip headers with invalid key.");
+  assert.equal(describeTransferError(Object.assign(new Error("Invalid request"), { statusCode: 400 })), "400 Invalid request");
+  assert.equal(describeTransferError(new Error("no call connection to transfer")), "no call connection to transfer");
+  assert.equal(describeTransferResult({ code: 480, subCode: 10140, message: "Temporarily Unavailable" }), "480/10140 Temporarily Unavailable");
+  assert.equal(describeTransferResult({ code: 0, subCode: 0 }), "0/0");
+  assert.equal(describeTransferResult(null), "transfer failed");
+});
+
+// The live path: a fake stands in for transferToTeams and records each dispatch.
+function refusedRequest() {
+  return Object.assign(new Error("Invalid request"), { statusCode: 400, details: { error: { message: "Invalid request", details: [{ message: "Invalid CustomCallingContext in request, one or more provided voip headers with invalid key.", target: "CustomCallingContext" }] } } });
+}
+
+function fakeTransfer(outcome) {
+  const dispatched = [];
+  const fn = (call, destination) => {
+    dispatched.push({ callId: call.id, target: destination.target });
+    return outcome === "reject" ? Promise.reject(refusedRequest()) : Promise.resolve();
+  };
+  fn.dispatched = dispatched;
+  return fn;
+}
+
+function startLive(flow) {
+  const call = flow.create({ fromPhone: "+1555010199", sessionId: "aa-session" });
+  const spoken = [];
+  flow.registerAgent(call.id, { instruct: (_prompt, line) => spoken.push(line) });
+  flow.setCallConnection(call.id, "connection-placeholder");
+  flow.answered(call.id);
+  return { call, spoken };
+}
+
+async function settle() {
+  for (let i = 0; i < 3; i += 1) await new Promise((resolve) => setImmediate(resolve));
+}
+
+async function withoutUnhandledRejections(body) {
+  const unhandled = [];
+  const record = (reason) => unhandled.push(reason);
+  process.on("unhandledRejection", record);
+  try {
+    await body();
+    await settle();
+  } finally {
+    process.off("unhandledRejection", record);
+  }
+  assert.deepEqual(unhandled, [], "a transfer promise was left unhandled");
+}
+
+const transferEvents = (flow, callId) => flow.audit.eventsFor(callId).filter((e) => e.kind.startsWith("transfer_")).map((e) => [e.kind, e.detail]);
+const APOLOGY = /^I'm sorry, I can't connect you with 311 Live Agent right now\./;
+
+test("keypad 0: a transfer request ACS refuses is logged and recovered instead of crashing", async () => {
+  await withoutUnhandledRejections(async () => {
+    const transfer = fakeTransfer("reject");
+    const flow = makeFlow(fixed, {}, { transfer });
+    const { call, spoken } = startLive(flow);
+    const result = flow.dtmf(call.id, "0");
+    assert.equal(result instanceof Promise, false);
+    assert.equal(result.transferring, true);
+    assert.equal(flow.snapshot(call.id).state, STATES.TRANSFERRING);
+    assert.equal(spoken.at(-1), "I'm connecting you with 311 Live Agent now.");
+    await settle();
+    assert.equal(transfer.dispatched.length, 1);
+    assert.deepEqual(transferEvents(flow, call.id), [
+      ["transfer_started", "dtmf_0"],
+      ["transfer_failed", "400 Invalid CustomCallingContext in request, one or more provided voip headers with invalid key."],
+    ]);
+    const snap = flow.snapshot(call.id);
+    assert.equal(snap.state, STATES.LISTENING);
+    assert.equal(snap.outcome, null);
+    assert.match(spoken.at(-1), APOLOGY);
+    assert.match(spoken.at(-1), /file a case for you now, or you can call back later during business hours/);
+    assert.equal(flow.transferFailed(call.id, { code: 480 }).reason, "no_transfer_pending");
+    assert.equal(spoken.filter((line) => APOLOGY.test(line)).length, 1);
+  });
+});
+
+test("keypad 0: an accepted transfer request only counts once CallTransferAccepted arrives", async () => {
+  await withoutUnhandledRejections(async () => {
+    const transfer = fakeTransfer("resolve");
+    const flow = makeFlow(fixed, {}, { transfer });
+    const { call } = startLive(flow);
+    flow.dtmf(call.id, "0");
+    await settle();
+    assert.deepEqual(transferEvents(flow, call.id), [["transfer_started", "dtmf_0"], ["transfer_requested", "311-live"]]);
+    assert.equal(flow.snapshot(call.id).state, STATES.TRANSFERRING);
+    assert.equal(flow.snapshot(call.id).outcome, null);
+    assert.equal(flow.dtmf(call.id, "0").reason, "transfer_in_progress");
+    assert.equal(transfer.dispatched.length, 1);
+
+    const accepted = flow.transferAccepted(call.id);
+    assert.equal(accepted.ok, true);
+    assert.deepEqual(transferEvents(flow, call.id).at(-1), ["transfer_succeeded", "311-live"]);
+    const snap = flow.snapshot(call.id);
+    assert.equal(snap.state, STATES.TRANSFERRED);
+    assert.equal(snap.outcome, "transferred:311-live");
+    assert.equal(flow.audit.stats().containment, 0);
+    assert.equal(flow.transferAccepted(call.id).reason, "no_transfer_pending");
+    assert.equal(flow.transferFailed(call.id, { code: 480 }).reason, "no_transfer_pending");
+    assert.equal(flow.dtmf(call.id, "0").reason, "call_finished");
+    assert.equal(transfer.dispatched.length, 1);
+  });
+});
+
+test("keypad 0: CallTransferFailed falls back once and duplicate or post-close events are ignored", async () => {
+  await withoutUnhandledRejections(async () => {
+    const transfer = fakeTransfer("resolve");
+    const flow = makeFlow(fixed, {}, { transfer });
+    const { call, spoken } = startLive(flow);
+    flow.dtmf(call.id, "0");
+    await settle();
+    const failed = flow.transferFailed(call.id, { code: 480, subCode: 10140, message: "Temporarily Unavailable" });
+    assert.equal(failed.ok, true);
+    assert.equal(failed.fallback, true);
+    assert.deepEqual(transferEvents(flow, call.id), [
+      ["transfer_started", "dtmf_0"],
+      ["transfer_requested", "311-live"],
+      ["transfer_failed", "480/10140 Temporarily Unavailable"],
+    ]);
+    assert.equal(flow.snapshot(call.id).state, STATES.LISTENING);
+    assert.match(spoken.at(-1), APOLOGY);
+
+    assert.equal(flow.transferFailed(call.id, { code: 480, subCode: 10140, message: "Temporarily Unavailable" }).reason, "no_transfer_pending");
+    assert.equal(flow.transferAccepted(call.id).reason, "no_transfer_pending");
+    flow.endCall(call.id, "caller_hung_up");
+    assert.equal(flow.transferFailed(call.id, { code: 480, subCode: 10140, message: "Temporarily Unavailable" }).reason, "no_transfer_pending");
+    assert.equal(flow.transferFailed("unknown-call", null).reason, "no_transfer_pending");
+    assert.equal(transfer.dispatched.length, 1);
+    assert.equal(flow.audit.eventsFor(call.id).filter((e) => e.kind === "transfer_failed").length, 1);
+    assert.equal(spoken.filter((line) => APOLOGY.test(line)).length, 1);
+    assert.equal(flow.snapshot(call.id).outcome, "caller_hung_up");
+  });
+});
+
+test("keypad 0: the agent's end_call is refused while the transfer is out, so CallTransferFailed still falls back", async () => {
+  await withoutUnhandledRejections(async () => {
+    const transfer = fakeTransfer("resolve");
+    const flow = makeFlow(fixed, {}, { transfer });
+    const { call, spoken } = startLive(flow);
+    flow.dtmf(call.id, "0");
+    await settle();
+    const spokenBefore = spoken.length;
+    assert.deepEqual(flow.endCall(call.id, "agent_ended"), { ok: false, reason: "transfer_in_progress" });
+    assert.equal(spoken.length, spokenBefore);
+    assert.equal(flow.snapshot(call.id).state, STATES.TRANSFERRING);
+    assert.equal(flow.snapshot(call.id).outcome, null);
+
+    const failed = flow.transferFailed(call.id, { code: 480, subCode: 10140, message: "Temporarily Unavailable" });
+    assert.equal(failed.ok, true);
+    assert.equal(failed.fallback, true);
+    assert.deepEqual(transferEvents(flow, call.id), [
+      ["transfer_started", "dtmf_0"],
+      ["transfer_requested", "311-live"],
+      ["transfer_failed", "480/10140 Temporarily Unavailable"],
+    ]);
+    assert.equal(flow.snapshot(call.id).state, STATES.LISTENING);
+    assert.match(spoken.at(-1), APOLOGY);
+
+    assert.deepEqual(flow.endCall(call.id, "agent_ended"), { ok: true });
+    const snap = flow.snapshot(call.id);
+    assert.equal(snap.state, STATES.ENDED);
+    assert.equal(snap.outcome, "agent_ended");
+    assert.equal(transfer.dispatched.length, 1);
+    assert.equal(spoken.filter((line) => APOLOGY.test(line)).length, 1);
+  });
+});
+
+test("a failed priority transfer reads back the filed case and says the city will follow up", async () => {
+  await withoutUnhandledRejections(async () => {
+    const transfer = fakeTransfer("resolve");
+    const flow = makeFlow(fixed, {}, { transfer });
+    const { call, spoken } = startLive(flow);
+    const result = handleUtterance(flow, call.id, "Large pothole in the travel lane at Oak and 5th");
+    assert.equal(result.transferring, true);
+    assert.equal(result.priority, true);
+    assert.equal(result.department, "public-works");
+    await settle();
+    flow.transferFailed(call.id, { code: 480, subCode: 10140, message: "Temporarily Unavailable" });
+    assert.equal(spoken.at(-1), `I'm sorry, I can't connect you with Public Works right now. Your case number is ${speakCaseNumber(result.caseNumber)}, and the city will follow up. Is there anything else?`);
+    assert.equal(flow.snapshot(call.id).state, STATES.LISTENING);
+  });
+});
+
+test("a refused transfer after two failed attempts resets the count instead of re-dispatching", async () => {
+  await withoutUnhandledRejections(async () => {
+    const transfer = fakeTransfer("reject");
+    const flow = makeFlow(fixed, {}, { transfer });
+    const { call } = startLive(flow);
+    flow.fail(call.id);
+    assert.equal(flow.fail(call.id).transferring, true);
+    await settle();
+    assert.equal(flow.snapshot(call.id).state, STATES.LISTENING);
+    assert.equal(flow.fail(call.id).remaining, 1);
+    assert.equal(transfer.dispatched.length, 1);
+  });
+});
+
+test("a transfer outcome that arrives after the caller hung up changes nothing", async () => {
+  await withoutUnhandledRejections(async () => {
+    let refuse;
+    const transfer = () => new Promise((_resolve, reject) => { refuse = reject; });
+    const flow = makeFlow(fixed, {}, { transfer });
+    const { call, spoken } = startLive(flow);
+    flow.dtmf(call.id, "0");
+    flow.endCall(call.id, "caller_hung_up");
+    refuse(refusedRequest());
+    await settle();
+    const snap = flow.snapshot(call.id);
+    assert.equal(snap.state, STATES.ENDED);
+    assert.equal(snap.outcome, "caller_hung_up");
+    assert.equal(spoken.some((line) => APOLOGY.test(line)), false);
+    assert.equal(flow.transferFailed(call.id, null).reason, "no_transfer_pending");
+  });
+});
+
+test("a finished call cannot start a transfer", () => {
+  const flow = makeFlow(fixed, {}, { transfer: fakeTransfer("resolve") });
+  const { call } = startLive(flow);
+  handleUtterance(flow, call.id, "I smell gas");
+  assert.equal(flow.snapshot(call.id).state, STATES.ENDED);
+  assert.equal(flow.dtmf(call.id, "0").reason, "call_finished");
+  assert.equal(flow.audit.eventsFor(call.id).some((e) => e.kind === "transfer_started"), false);
 });
 
 test("case numbers are grouped", () => {

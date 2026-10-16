@@ -42,7 +42,7 @@ export function handleUtterance(flow, callId, text) {
     const type = flow.requests.match(said, call?.language ?? "en-US");
     if (!type) return flow.fail(callId, "unrecognized_intent");
     const start = flow.startRequest(callId, type.id);
-    if (start?.transferred || start?.afterHours) return start;
+    if (start?.transferred || start?.transferring || start?.afterHours) return start;
     const loc = flow.resolveLocation(callId, said);
     fillObviousFields(flow, callId, said, type.id);
     const current = flow.get(callId).current;
