@@ -311,7 +311,7 @@ meet.
   `express`, and `ws`. Explain any new dependency in the pull request. Don't add dev
   dependencies: tests use the built-in `node:test` runner.
 - Commit `package-lock.json` and install with `npm ci`. Lockfiles SHOULD resolve
-  packages from the public npm registry (see [Known deviations](#7-known-deviations)).
+  packages from the public npm registry (`https://registry.npmjs.org/`).
 - Telephony uses Azure Communication Services Call Automation, the voice agent uses the
   Voice Live API, and people are reached through Microsoft Teams.
 - Authenticate without keys by default, with `DefaultAzureCredential` from
@@ -614,4 +614,3 @@ templates. Fixes are welcome as separate pull requests.
 | Clock | `intent-based-call-routing` injects `now` but doesn't read `DEMO_NOW`. |
 | Campaign safety | `appointment-reminder-agent` treats an empty `ALLOWED_TEST_NUMBERS` as "no restriction". Set it before you turn off `CAMPAIGN_DRY_RUN`. |
 | Card scenes | Ten templates use older `VISUAL_SCENES` keys, mapped through `LEGACY_KEY_BY_ID` in `gallery.js`. New templates key scenes by id. |
-| Lockfiles | Ten `package-lock.json` files resolve packages from Microsoft-hosted Azure Artifacts feeds instead of the public npm registry. Fix them together in one pull request, not template by template. |

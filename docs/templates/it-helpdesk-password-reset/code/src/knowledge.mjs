@@ -37,7 +37,7 @@ function parse(markdown) {
     buffer = [];
   };
 
-  for (const line of markdown.split("\n")) {
+  for (const line of markdown.split(/\r?\n/)) {
     const h2 = /^##\s+(.*)$/.exec(line);
     const h3 = /^###\s+(.*)$/.exec(line);
     if (h2) {

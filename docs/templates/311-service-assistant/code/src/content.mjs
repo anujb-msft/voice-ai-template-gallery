@@ -53,8 +53,10 @@ function loadArticles(root, now, expiryGraceDays) {
 }
 
 function parseFrontMatter(raw) {
-  const match = /^---\n([\s\S]*?)\n---\n([\s\S]*)$/m.exec(raw);
-  if (!match) return { meta: {}, body: raw };
+  // Normalise CRLF so Windows checkouts (core.autocrlf=true) parse the same as LF.
+  const text = raw.replace(/\r\n?/g, "\n");
+  const match = /^---\n([\s\S]*?)\n---\n([\s\S]*)$/m.exec(text);
+  if (!match) return { meta: {}, body: text };
   const meta = {};
   for (const line of match[1].split(/\r?\n/)) {
     const idx = line.indexOf(":");

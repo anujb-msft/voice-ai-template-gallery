@@ -19,7 +19,7 @@
   "dependencies": {
     "@azure/communication-call-automation": "^1.6.0",
     "@azure/identity": "^4.5.0",
-    "better-sqlite3": "^11.10.0",
+    "better-sqlite3": "^13.0.3",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
     "ws": "^8.18.0"

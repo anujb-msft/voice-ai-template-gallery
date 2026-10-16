@@ -98,7 +98,8 @@ function scoreArticle(article, terms) {
 }
 
 export function parseArticle(raw, filename = "article.md") {
-  const match = /^---\n([\s\S]*?)\n---\n([\s\S]*)$/m.exec(raw);
+  // Normalise CRLF so Windows checkouts (core.autocrlf=true) parse the same as LF.
+  const match = /^---\n([\s\S]*?)\n---\n([\s\S]*)$/m.exec(raw.replace(/\r\n?/g, "\n"));
   if (!match) throw new Error(`${filename} needs YAML front matter`);
   const meta = parseFrontMatter(match[1]);
   const body = match[2].trim();
