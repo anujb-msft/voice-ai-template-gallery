@@ -1,6 +1,7 @@
 {
   "schedulingAgent": {
     "displayName": "Appointment scheduling agent",
+    "queue": "Scheduling desk",
     "target": "",
     "callContextFields": ["intent", "appointmentId", "patientRef", "verified", "sessionId"]
   },

@@ -5,6 +5,6 @@
     "en": ["leave a message", "after the tone", "at the beep", "can't take your call", "not available"],
     "es": ["deje un mensaje", "después del tono", "no puedo contestar", "no está disponible"]
   },
-  "emergencyPhrases": ["chest pain", "trouble breathing", "can't breathe", "stroke", "suicide", "unconscious"],
-  "clinicalQuestionPhrases": ["fever", "should i still come", "medicine", "symptom", "pain", "rash", "sick"]
+  "emergencyPhrases": ["chest pain", "trouble breathing", "can't breathe", "stroke", "suicide", "unconscious", "dolor de pecho", "no puedo respirar", "dificultad para respirar", "derrame", "suicidio", "inconsciente"],
+  "clinicalQuestionPhrases": ["fever", "should i still come", "medicine", "symptom", "pain", "rash", "sick", "symptoms", "medication", "fiebre", "todavía debo ir", "medicina", "medicamento", "síntoma", "síntomas", "dolor", "sarpullido", "enfermo", "enferma"]
 }

@@ -15,6 +15,7 @@ const bool = (value, fallback = false) => {
 const num = (value, fallback) => Number.isFinite(Number(value)) ? Number(value) : fallback;
 const rel = (p) => resolve(codeRoot, p);
 
+// Two days before the seeded appointments, 10:00 in Seattle: inside the 48-hour reminder window.
 export const DEFAULT_DEMO_NOW = "2026-05-19T10:00:00-07:00";
 
 export const config = {
@@ -44,6 +45,9 @@ export const config = {
     seedPath: process.env.SCHEDULE_SEED_PATH ?? rel("fixtures/appointments-seed.json"),
     handoffTokenSecret: process.env.HANDOFF_TOKEN_SECRET ?? "",
     handoffTokenTtlMs: num(process.env.HANDOFF_TOKEN_TTL_MS, 300_000),
+  },
+  audit: {
+    dbPath: process.env.AUDIT_DB_PATH ?? rel("data/reminder-audit.db"),
   },
   campaign: {
     enabled: bool(process.env.CAMPAIGN_ENABLED, false),
@@ -80,8 +84,13 @@ export const fixtures = {
   routing: loadJson(config.paths.routing),
 };
 
+/** The starting demo clock; an empty DEMO_NOW means real time. */
+export function demoNowDate(value = config.demoNow) {
+  return value ? new Date(value) : new Date();
+}
+
 export function nowDate(now = config.demoNow) {
-  return new Date(now);
+  return demoNowDate(now);
 }
 
 export function assertCallConfig(cfg = config) {

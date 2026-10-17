@@ -14,14 +14,14 @@ async function authHeaders() {
 }
 
 export class VoiceLiveSession {
-  constructor({ instructions, onAgentAudio, onEvent, onToolCall }) { this.baseInstructions = instructions; this.onAgentAudio = onAgentAudio; this.onEvent = onEvent ?? (() => {}); this.onToolCall = onToolCall ?? (async () => ({})); this.pending = []; this.closed = false; this.activeResponse = false; this.pendingResponse = false; }
+  constructor({ instructions, language = "en", onAgentAudio, onEvent, onToolCall }) { this.baseInstructions = instructions; this.language = language; this.onAgentAudio = onAgentAudio; this.onEvent = onEvent ?? (() => {}); this.onToolCall = onToolCall ?? (async () => ({})); this.pending = []; this.closed = false; this.activeResponse = false; this.pendingResponse = false; }
   async connect() {
     const { endpoint, model, apiVersion, voice } = config.voiceLive;
     const url = `${endpoint.replace(/^https:/, "wss:")}/voice-live/realtime?api-version=${encodeURIComponent(apiVersion)}&model=${encodeURIComponent(model)}`;
     this.ws = new WebSocket(url, { headers: await authHeaders() });
     await new Promise((resolve, reject) => {
       const fail = setTimeout(() => reject(new Error("Voice Live connect timeout")), 20000);
-      this.ws.on("open", () => { clearTimeout(fail); this.#send({ type: "session.update", session: { instructions: this.baseInstructions, modalities: ["text", "audio"], input_audio_format: "pcm16", output_audio_format: "pcm16", voice: { name: voice, type: "azure-standard" }, tools: AGENT_TOOLS, tool_choice: "auto", input_audio_transcription: { model: "gpt-4o-transcribe", language: "en" }, turn_detection: { type: "azure_semantic_vad", threshold: 0.3, prefix_padding_ms: 200, silence_duration_ms: 400 }, input_audio_noise_reduction: { type: "azure_deep_noise_suppression" }, input_audio_echo_cancellation: { type: "server_echo_cancellation" } } }); for (const frame of this.pending.splice(0)) this.#send(frame); resolve(); });
+      this.ws.on("open", () => { clearTimeout(fail); this.#send({ type: "session.update", session: { instructions: this.baseInstructions, modalities: ["text", "audio"], input_audio_format: "pcm16", output_audio_format: "pcm16", voice: { name: voice, type: "azure-standard" }, tools: AGENT_TOOLS, tool_choice: "auto", input_audio_transcription: { model: "gpt-4o-transcribe", language: this.language }, turn_detection: { type: "azure_semantic_vad", threshold: 0.3, prefix_padding_ms: 200, silence_duration_ms: 400 }, input_audio_noise_reduction: { type: "azure_deep_noise_suppression" }, input_audio_echo_cancellation: { type: "server_echo_cancellation" } } }); for (const frame of this.pending.splice(0)) this.#send(frame); resolve(); });
       this.ws.on("error", (e) => { clearTimeout(fail); reject(e); });
     });
     this.ws.on("message", (raw) => this.#handleEvent(raw));
