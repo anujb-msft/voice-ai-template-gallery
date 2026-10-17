@@ -1,12 +1,133 @@
 <!doctype html>
 <html lang="en">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Appointment Scheduling Agent</title><link rel="stylesheet" href="/styles.css"></head>
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="icon" href="data:," />
+<title>Contoso Health — Scheduling</title>
+<link rel="stylesheet" href="/presenter-kit.css" />
+<link rel="stylesheet" href="/styles.css" />
+</head>
 <body>
-  <header><h1>Contoso Health appointment scheduling agent</h1><p>Demo presenter console: simulated call, live state, provider grid, and race control.</p></header>
-  <main>
-    <section class="panel"><h2>Controls</h2><button id="reset">Reset data</button><button id="simulate">Simulate booking call</button><button id="compete">Simulate competing caller</button><button id="refresh">Refresh</button><input id="say" placeholder="Type caller utterance"><button id="send">Send</button></section>
-    <section class="panel"><h2>Health</h2><pre id="health"></pre></section>
-    <section class="panel"><h2>Provider schedule grid</h2><table><thead><tr><th>Type</th><th>Provider</th><th>When</th><th>Location</th><th>Status</th></tr></thead><tbody id="grid"></tbody></table></section>
-    <section class="panel wide"><h2>Live call</h2><pre id="call"></pre></section>
-  </main><script src="/app.js"></script>
-</body></html>
+
+<header class="top">
+  <div class="brand"><span class="logo"></span> <strong id="org">Contoso Health</strong> <span class="pill">Scheduling</span></div>
+  <div class="top-right">
+    <span id="clock" hidden></span>
+    <select id="voice" aria-label="Room voice"></select>
+    <span id="mode">checking…</span>
+    <button class="ghost" id="reset" type="button" title="Restore the seeded schedule, clear the simulated calls and metrics, and restore the starting clock">Reset demo</button>
+  </div>
+</header>
+
+<nav id="stack"></nav>
+<section id="director" aria-label="Demo script"></section>
+
+<main class="grid">
+
+  <!-- ------------------------------------------------------------ the call -->
+  <section class="card call">
+    <div class="card-head">
+      <h2>The call</h2>
+      <span id="stateChip">no call</span>
+    </div>
+
+    <div class="caller-row">
+      <label for="callerSelect">Caller ID</label>
+      <select id="callerSelect"></select>
+      <button class="primary" id="newCall" type="button">Answer a call</button>
+    </div>
+
+    <div id="budget" hidden title="The call's time budget. When it runs out, the caller goes to the scheduling team."></div>
+
+    <ol id="transcript"></ol>
+
+    <form class="say" id="sayForm" autocomplete="off">
+      <input id="sayInput" type="text" placeholder="What does the caller say?" disabled />
+      <button class="primary" type="submit" id="sayBtn" disabled>Say</button>
+    </form>
+
+    <div class="controls">
+      <span class="controls-label">Keypad</span>
+      <div class="keys" id="keys">
+        <button type="button" data-digit="1" title="Press 1: yes to the time just read back" disabled>1 <small>yes</small></button>
+        <button type="button" data-digit="2" title="Press 2: no to the time just read back" disabled>2 <small>no</small></button>
+        <button type="button" data-digit="0" title="Press 0: a person on the scheduling team" disabled>0 <small>person</small></button>
+      </div>
+      <button class="ghost" id="silence" type="button" disabled>Silence</button>
+      <button class="ghost danger" id="hangup" type="button" disabled>Hang up</button>
+    </div>
+
+    <div class="controls demo-controls">
+      <span class="controls-label">Demo</span>
+      <button class="ghost" id="takeSlot" type="button" disabled title="Someone at the front desk books the time this caller is about to accept. The caller isn't told. Simulation only.">Front desk books it</button>
+      <button class="ghost" id="modelBook" type="button" disabled title="The model calls a “book” tool through the same dispatcher a live call uses. It has no such tool. Simulation only.">Model calls “book”</button>
+    </div>
+  </section>
+
+  <!-- --------------------------------------------------------- the decision -->
+  <section class="card decision">
+    <div class="card-head">
+      <h2>Booking decision</h2>
+      <span class="tag" title="The model finds and proposes times. Policy code on the server decides whether anything may be written, and writes only on the caller's own yes to the active proposal.">the server decides</span>
+    </div>
+
+    <div id="decision"></div>
+
+    <h3 class="sub-head">Before anything is written <span class="sub-note">all four, checked on the server</span></h3>
+    <ul id="checks"></ul>
+
+    <div id="hold" hidden></div>
+
+    <dl id="facts"></dl>
+  </section>
+
+  <div class="col">
+    <!-- ----------------------------------------------------- the Teams side -->
+    <section class="card teams">
+      <div class="card-head">
+        <h2>What the Teams agent sees</h2>
+        <span class="tag" title="A mock of the Teams incoming-call toast, built from the real handoff context">mock</span>
+      </div>
+
+      <div id="toast" hidden></div>
+      <p class="empty" id="toastEmpty">No call has been handed over yet.</p>
+
+      <div id="wire" hidden>
+        <h3 class="sub-head">VoIP headers on the wire</h3>
+        <pre id="headers">—</pre>
+      </div>
+    </section>
+
+    <!-- ------------------------------------------------------ the schedule -->
+    <section class="card availability">
+      <div class="card-head">
+        <h2>Availability</h2>
+        <span class="sub-note" id="gridWho">Loading the schedule…</span>
+      </div>
+
+      <div id="grid" class="slots" role="img" aria-label="The provider's schedule for the next five clinic days, in 15-minute cells"></div>
+
+      <h3 class="sub-head" id="optionsHead">Offered to the caller <span class="sub-note">two at a time, one held</span></h3>
+      <ul id="options"></ul>
+
+      <div id="booking" class="booking" hidden></div>
+    </section>
+  </div>
+
+  <!-- ------------------------------------------------------------- the trail -->
+  <section class="card trail">
+    <div class="card-head">
+      <h2>Decision trail</h2>
+      <span class="sub-note">every check, proposal, refusal and write is audited</span>
+    </div>
+    <ol id="events"></ol>
+  </section>
+
+</main>
+
+<footer id="metrics"></footer>
+
+<script src="/app.js" type="module"></script>
+</body>
+</html>

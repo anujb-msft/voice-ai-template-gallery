@@ -1,1 +1,97 @@
-:root{font-family:system-ui,Segoe UI,sans-serif;color:#172033;background:#f5f7fb}body{margin:0}header{background:#13335f;color:white;padding:24px 32px}main{display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:16px}.panel{background:white;border:1px solid #d7dfef;border-radius:12px;padding:16px;box-shadow:0 1px 3px #0001}.wide{grid-column:1/-1}button{margin:4px 6px 4px 0;padding:8px 12px;border:0;border-radius:8px;background:#2563eb;color:white;cursor:pointer}input{padding:8px;border:1px solid #b9c4d8;border-radius:8px;min-width:280px}pre{white-space:pre-wrap;max-height:420px;overflow:auto;background:#0f172a;color:#dbeafe;padding:12px;border-radius:8px}table{width:100%;border-collapse:collapse}th,td{border-bottom:1px solid #e5eaf5;padding:8px;text-align:left}tr.hold{background:#fff7ed}tr.released{background:#ecfdf5}
+/*
+ * Scheduling — the appointment console's own styles. The shared look comes
+ * from presenter-kit.css, which loads first; this file holds the template's
+ * accent color, the availability grid and the booking card.
+ */
+
+:root {
+  --accent: #8d5638;
+  /* The accent is dark, so accent-colored text, chips and outlines use this lighter tint. */
+  --accent-2: #e0a27e;
+  --on-accent: #fff;
+  --slot-free: color-mix(in srgb, var(--ok) 26%, #141a2e);
+  --slot-booked: #3a4566;
+  --slot-held: color-mix(in srgb, var(--warn) 45%, #141a2e);
+  --slot-closed: rgba(11, 16, 32, 0.6);
+}
+
+/* Some kit panels set their own display (the options list, the budget bar), which would otherwise beat `hidden`. */
+[hidden] { display: none !important; }
+
+/* A dark accent needs a lighter edge to read on the dark cards. */
+.pk-list li[data-active="true"] { border-color: var(--accent-2); }
+.pk-beats button[data-state="current"] { border-color: var(--accent-2); }
+.pk-talk { border-left-color: var(--accent-2); }
+/* The kit lightens a hovered button to --accent-2, which is too pale under white text; lighten a little instead. */
+.primary:hover:not(:disabled) { background: color-mix(in srgb, var(--accent) 88%, white); }
+
+/* Keypad buttons carry their meaning, so nobody has to remember the menu. */
+.keys button small { color: var(--muted); font-size: 10px; font-weight: 500; margin-left: 2px; }
+
+.demo-controls { margin-top: 10px; }
+
+/* Bookkeeping is in the trail for completeness; the decisions are the story. */
+.pk-trail li[data-kind="state"],
+.pk-trail li[data-kind="call_created"],
+.pk-trail li[data-kind="tool"],
+.pk-trail li[data-kind="upcoming"] { opacity: 0.55; }
+
+.pk-caller-card .muted { font-size: 11.5px; }
+
+/* The right-hand column stacks the Teams side over the schedule. */
+.col { display: grid; gap: 18px; align-content: start; min-width: 0; }
+
+/* -------------------------------------------------------------- availability */
+
+.slots { display: grid; gap: 4px; }
+.slots-row { display: grid; grid-template-columns: 68px minmax(0, 1fr); gap: 8px; align-items: center; }
+.slots-day { font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.slots-row[data-today="true"] .slots-day { color: var(--text); font-weight: 650; }
+.slots-cells { display: grid; grid-template-columns: repeat(var(--cells, 36), minmax(0, 1fr)); gap: 1px; }
+.slots-axis span { font-size: 10px; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+.slot { display: block; height: 16px; border-radius: 2px; background: var(--slot-closed); }
+.slot[data-hour="true"] { margin-left: 2px; }
+.slot[data-state="free"] { background: var(--slot-free); }
+.slot[data-state="booked"] { background: var(--slot-booked); }
+.slot[data-state="held"] { background: var(--slot-held); }
+.slot[data-state="holiday"] {
+  background: repeating-linear-gradient(135deg, rgba(154, 166, 196, 0.22) 0 3px, transparent 3px 6px);
+}
+/* Not past yet, but too soon to book: the minimum lead time. */
+.slot[data-state="lead"] {
+  background:
+    repeating-linear-gradient(135deg, color-mix(in srgb, var(--warn) 35%, transparent) 0 2px, transparent 2px 5px),
+    var(--slot-closed);
+}
+/* This call's marks win over the schedule's own state. */
+.slot[data-mark="offer"] { box-shadow: inset 0 0 0 1px var(--accent-2); }
+.slot[data-mark="hold"] { background: var(--accent-2); animation: slot-pulse 1.6s ease-in-out infinite; }
+.slot[data-mark="mine"] { background: var(--ok); }
+.slot[data-mark="taken"] { background: var(--err); }
+@keyframes slot-pulse { 50% { opacity: 0.5; } }
+
+.slots-legend { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 8px; font-size: 11px; color: var(--muted); }
+.slots-legend span { display: inline-flex; align-items: center; gap: 5px; }
+.slots-legend .slot { width: 10px; height: 10px; margin: 0; animation: none; }
+
+/* ------------------------------------------------------------- booking card */
+
+.booking {
+  margin-top: 16px; padding: 12px 14px; border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--ok) 45%, var(--line));
+  background: color-mix(in srgb, var(--ok) 8%, transparent);
+  animation: pk-in 0.35s ease-out;
+}
+.booking[data-kind="cancel"] {
+  border-color: color-mix(in srgb, var(--warn) 45%, var(--line));
+  background: color-mix(in srgb, var(--warn) 8%, transparent);
+}
+.booking-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.booking-head strong { font-size: 11.5px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--ok); }
+.booking[data-kind="cancel"] .booking-head strong { color: var(--warn); }
+.booking-id { font: 650 15px/1.3 var(--mono); }
+.booking-when { font-size: 18px; font-weight: 680; margin: 6px 0 0; line-height: 1.3; }
+.booking .pk-facts { margin-top: 10px; gap: 5px; }
+.booking .pk-facts > div { grid-template-columns: 92px 1fr; }
+.booking .pk-chip { margin-top: 10px; text-transform: none; letter-spacing: 0; }

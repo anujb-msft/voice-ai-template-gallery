@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "Voice agent template: inbound appointment scheduling with verification, eligibility checks, slot holds, booking, rescheduling, cancellation, and reminder handoff.",
+  "description": "Voice agent template: inbound appointment scheduling on Teams Phone with identity verification, eligibility checks and slot holds; a booking, reschedule or cancellation is written only when the caller confirms the active proposal.",
   "engines": {
     "node": ">=22"
   },
@@ -12,8 +12,8 @@
     "dev": "node --watch src/server.mjs",
     "test": "node --test test/*.test.mjs",
     "tunnel": "devtunnel host -p 8100 --allow-anonymous",
-    "check": "for f in src/*.mjs src/voice/*.mjs scripts/*.mjs test/*.mjs; do node --check \"$f\" || exit 1; done; echo \"syntax ok\"",
-    "smoke": "node scripts/smoke-websockets.mjs ws://127.0.0.1:8100/ws/hub?user=*",
+    "check": "for f in src/*.mjs src/voice/*.mjs scripts/*.mjs test/*.mjs public/*.js; do node --check \"$f\" || exit 1; done; echo \"syntax ok\"",
+    "smoke": "node scripts/smoke-websockets.mjs",
     "offline": "node src/offline.mjs"
   },
   "dependencies": {

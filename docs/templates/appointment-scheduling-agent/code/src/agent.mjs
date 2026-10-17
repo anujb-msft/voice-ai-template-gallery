@@ -1,118 +1,165 @@
-export const SYSTEM_PROMPT = `You are Contoso Health's appointment scheduling voice assistant. You must use only server-owned tools for verification, eligibility, slot search, holds, booking, rescheduling, cancellation, waitlist, callback, transfer, repeat, and end-call. Never ask for or repeat phone numbers, dates of birth, MRNs, insurance details, or stored reason text back to the model context.`;
+/**
+ * What the model is allowed to do, and what it is told.
+ *
+ * Deliberately free of imports so the tool surface and the standing
+ * instructions can be inspected and tested without the WebSocket or Azure
+ * SDKs. `src/voice/voice-live.mjs` puts them on the wire; `src/tools.mjs` is
+ * the only path from a tool call to the scheduling flow.
+ */
 
-export const TOOLS = [
-  "verify_patient", "redeem_handoff", "list_upcoming", "note_reason", "choose_visit_type", "search_slots", "hold_slot", "book", "reschedule", "propose_cancel", "cancel", "add_waitlist", "request_callback", "transfer", "repeat_last", "end_call"
-];
+/**
+ * THE BOOKING INVARIANT. Read this before adding or changing a tool.
+ *
+ * Model tools can never book. The model can verify, search and *propose* a
+ * slot (hold_slot), but no tool books, reschedules or cancels: those three
+ * names are refused by src/tools.mjs even if a model calls them anyway.
+ *
+ * Only the caller's trusted confirmation of the ACTIVE proposal may write: a
+ * "yes" the server reads in the caller's own transcript, or keypad 1, while
+ * that proposal is the one on the table (SchedulingFlow.callerSaid, #commit).
+ *
+ * If the slot was taken in the meantime (slot_taken), the proposal is void:
+ * the caller must make a fresh selection and give fresh consent. The server
+ * never silently books a different slot.
+ */
+export const WRITE_ACTIONS = Object.freeze(["book", "reschedule", "cancel"]);
+
+export const VISIT_TYPE_CODES = Object.freeze([
+  "NEW_PROBLEM",
+  "FOLLOW_UP",
+  "ANNUAL_PHYSICAL",
+  "DERM_SKIN_CHECK",
+  "DERM_NEW_PROBLEM",
+  "XRAY",
+  "ULTRASOUND",
+  "MRI",
+]);
 
 const object = (properties, required = []) => ({ type: "object", properties, required, additionalProperties: false });
 const string = (description, extra = {}) => ({ type: "string", description, ...extra });
 const bool = (description) => ({ type: "boolean", description });
+const integer = (description) => ({ type: "integer", description });
 
+/**
+ * The only levers the model has. Note what is absent: there is no tool that
+ * books, takes a phone number for a transfer, or names a Teams target. The
+ * worst a confused (or deliberately misled) model can do is propose a time the
+ * caller then declines, or hand the call to the wrong internal queue.
+ */
 export const TOOL_DEFINITIONS = {
   verify_patient: {
-    description: "Verify an existing patient or authorized proxy using caller-provided full name and date of birth. Caller ID never counts as verification.",
-    parameters: object({
-      firstName: string("Patient first/given name as spoken by the caller."),
-      lastName: string("Patient last/family name as spoken by the caller."),
-      fullName: string("Full patient name if the model captured it as one phrase."),
-      dob: string("Date of birth exactly as spoken or keyed, e.g. MMDDYYYY or YYYY-MM-DD."),
-      proxyName: string("Optional proxy/caregiver full name if someone else is calling."),
-    }, ["dob"]),
+    description:
+      "Check the full name and date of birth the caller just gave. Caller ID never counts. The result only says whether they matched; it never says whether a name is on file.",
+    parameters: object(
+      {
+        fullName: string("The patient's full name as the caller said it."),
+        firstName: string("The patient's first name, if you captured it separately."),
+        lastName: string("The patient's last name, if you captured it separately."),
+        dob: string("Date of birth as spoken, for example 03/12/1984 or March 12, 1984."),
+        proxyName: string("The caller's own full name, only when they are calling for someone else."),
+      },
+      ["dob"],
+    ),
   },
   redeem_handoff: {
-    description: "Redeem the reminder agent patientRef for a reschedule transfer. Success skips normal verification; failure must fall back to verify_patient.",
-    parameters: object({
-      patientRef: string("Opaque handoff token from CallContext."),
-      appointmentId: string("Appointment id from CallContext."),
-      sessionId: string("Transferred call/session correlation id that the token is bound to."),
-      intent: string("Inbound intent, usually reschedule.", { enum: ["reschedule", "book", "cancel"] }),
-    }, ["patientRef"]),
+    description:
+      "Use when the call was transferred from a reminder call. The server already holds and redeems the handoff; this tells you whether it worked and which appointment to move. Never ask the caller for a code.",
+    parameters: object({}),
   },
   list_upcoming: {
-    description: "List upcoming appointments for the verified patient as opaque appointment handles and spoken summaries.",
-    parameters: object({
-      includeCancelled: bool("Whether to include cancelled appointments; normally false."),
-    }),
+    description: "List the verified patient's upcoming appointments as short handles and spoken summaries.",
+    parameters: object({}),
   },
   note_reason: {
-    description: "Store the visit reason server-side and run emergency/urgent phrase checks. The reason text is not returned to model context.",
-    parameters: object({ text: string("Caller-provided reason for visit or symptom description.") }, ["text"]),
+    description:
+      "Record what the visit is for, in the caller's words. The server keeps it and checks it for urgent symptoms; it is not repeated back to you.",
+    parameters: object({ text: string("What the caller said the visit is for.") }, ["text"]),
   },
   choose_visit_type: {
-    description: "Select the visit type code and run ordered server-side eligibility rules before any slot search.",
-    parameters: object({
-      code: string("Visit type code.", { enum: ["NEW_PROBLEM", "FOLLOW_UP", "ANNUAL_PHYSICAL", "DERM_SKIN_CHECK", "DERM_NEW_PROBLEM", "XRAY", "ULTRASOUND", "MRI"] }),
-      selfPayAcknowledged: bool("True only if the caller explicitly accepts self-pay for inactive insurance."),
-    }, ["code"]),
+    description:
+      "Choose the visit type. The server checks eligibility (referrals, orders, frequency) before any search and tells you what to say if it cannot be booked by voice.",
+    parameters: object(
+      {
+        code: string("Visit type code.", { enum: [...VISIT_TYPE_CODES] }),
+        selfPayAcknowledged: bool("True only if the caller explicitly accepted paying for the visit themselves."),
+      },
+      ["code"],
+    ),
   },
   search_slots: {
-    description: "Search available slots for the verified patient and eligible visit type, applying provider/location/day/time preferences.",
+    description:
+      "Find openings for the chosen visit type that fit the caller's preferences. Returns at most two times to offer. Searching never books or holds anything.",
     parameters: object({
-      visitType: string("Optional visit type code if not already selected."),
-      department: string("Preferred department, e.g. Primary Care, Dermatology, Imaging."),
-      providerPreference: string("Natural language provider preference, e.g. my usual doctor, Dr. Patel, any provider."),
-      providerId: string("Exact provider id when known."),
-      location: string("Preferred clinic/location id."),
-      dayPart: string("Preferred time of day.", { enum: ["morning", "afternoon", "any"] }),
-      date: string("Preferred date in YYYY-MM-DD when stated."),
-      more: bool("True when caller asks for more options."),
+      providerPreference: string("The caller's provider preference in their words, for example 'my usual doctor' or 'Dr. Patel'."),
+      providerId: string("An exact provider id, only if the server gave you one."),
+      location: string("A clinic id, only if the server gave you one."),
+      dayPart: string("Preferred part of the day.", { enum: ["morning", "afternoon", "any"] }),
+      date: string("A specific date in YYYY-MM-DD, only when the caller named one."),
+      weekday: string("A weekday the caller asked for, for example 'Thursday'."),
+      more: bool("True when the caller wants different times from the ones just offered."),
+      appointmentHandle: string("When moving an existing appointment, its handle from list_upcoming."),
     }),
   },
   hold_slot: {
-    description: "Place a five-minute hold on an offered option before read-back. Returns slot_taken if another caller got it first.",
-    parameters: object({ optionId: string("Opaque option id returned by search_slots."), optionIndex: { type: "integer", description: "Zero-based offered option index when selected by keypad." } }, ["optionId"]),
-  },
-  book: {
-    description: "Book a held slot only after the caller gives an explicit yes to the full read-back.",
+    description:
+      "Propose one of the times you just offered. The server holds it for five minutes and returns a read-back. This does NOT book. Read the read-back word for word, ask 'Shall I book it?', and wait: the server books only when it hears the caller say yes.",
     parameters: object({
-      holdId: string("Hold id returned by hold_slot."),
-      optionId: string("Original option id if the client tracks that instead of holdId."),
-      confirmed: bool("True only for an explicit yes; false for maybe/no/unclear."),
-      confirmation: string("Caller's last utterance confirming or declining the read-back."),
-      idempotencyKey: string("Optional idempotency key for a repeated booking request."),
-    }, ["confirmed"]),
-  },
-  reschedule: {
-    description: "Atomically book the held new slot and cancel the old appointment only after explicit read-back confirmation.",
-    parameters: object({
-      holdId: string("Hold id for the new slot."),
-      appointmentHandle: string("Opaque appointment handle returned by list_upcoming or handoff."),
-      confirmed: bool("True only for an explicit yes to the reschedule read-back."),
-      confirmation: string("Caller's last utterance confirming or declining."),
-      idempotencyKey: string("Optional idempotency key for repeat calls."),
-    }, ["confirmed"]),
+      optionIndex: integer("1 for the first time you offered, 2 for the second."),
+      optionId: string("The option id from search_slots, if you have it."),
+    }),
   },
   propose_cancel: {
-    description: "Prepare a cancellation read-back, including late-cancellation notice when applicable. Does not cancel yet.",
-    parameters: object({ appointmentHandle: string("Opaque appointment handle to cancel."), reasonCode: string("Cancellation reason code, e.g. schedule_conflict, feeling_sick, transportation, patient_requested.") }),
-  },
-  cancel: {
-    description: "Cancel an appointment only after propose_cancel and an explicit yes to the read-back.",
-    parameters: object({ proposalId: string("Cancellation proposal id returned by propose_cancel."), confirmed: bool("True only for explicit yes."), confirmation: string("Caller confirmation utterance."), idempotencyKey: string("Optional idempotency key.") }, ["proposalId", "confirmed"]),
+    description:
+      "Prepare a cancellation read-back for one upcoming appointment. This does NOT cancel. Read it back and wait: the server cancels only when it hears the caller say yes.",
+    parameters: object(
+      {
+        appointmentHandle: string("The appointment handle from list_upcoming."),
+        reasonCode: string("Why, for example schedule_conflict, feeling_better or patient_requested."),
+      },
+      ["appointmentHandle"],
+    ),
   },
   add_waitlist: {
-    description: "Add the verified patient to the waitlist when no acceptable slot is available.",
-    parameters: object({ preferences: { type: "object", description: "Preferred providers, locations, dates, or day parts.", additionalProperties: true } }),
+    description: "Put the verified patient on the waitlist for the chosen visit type when none of the offered times work.",
+    parameters: object({}),
   },
   request_callback: {
-    description: "File a callback request for registration, scheduling, referral coordination, or after-hours human help.",
-    parameters: object({ queue: string("Callback queue.", { enum: ["registration_callback", "scheduling_team", "referral_coordinator"] }), preferredTime: string("Caller-stated preferred callback time."), callbackNumber: string("Caller-provided callback number for new-patient registration only.") }, ["queue"]),
+    description: "File a callback: new-patient registration, or a scheduler or referral coordinator when they are closed.",
+    parameters: object(
+      {
+        queue: string("Who should call back.", { enum: ["registration_callback", "scheduling_team", "referral_coordinator"] }),
+        preferredTime: string("When the caller would like the call, in their words."),
+        callbackNumber: string("The number the caller gave for the callback."),
+      },
+      ["queue"],
+    ),
   },
   transfer: {
-    description: "Escalate or transfer to an allowlisted destination with minimal CallContext.",
-    parameters: object({ destination: string("Allowlisted destination.", { enum: ["scheduling_team", "nurse_line", "referral_coordinator", "registration_callback"] }), reason: string("Short reason code for the transfer.") }, ["destination"]),
+    description:
+      "Hand the call to a person. Call it straight away when the caller asks for a person. The server picks the queue's target and builds the context the person sees.",
+    parameters: object(
+      {
+        destination: string("Who to transfer to.", { enum: ["scheduling_team", "nurse_line", "referral_coordinator"] }),
+        reason: string("Short machine-readable reason, for example caller_request or referral_required."),
+      },
+      ["destination"],
+    ),
   },
   repeat_last: {
-    description: "Repeat the last agent phrase or offered options.",
+    description: "Repeat the last thing said, or the times on offer.",
     parameters: object({}),
   },
   end_call: {
-    description: "End the call politely and release any active hold.",
-    parameters: object({ reason: string("Outcome reason, e.g. completed, caller_hung_up, call_cap, agent_ended.") }),
+    description: "End the call politely once there is nothing further to do. Any held time is released.",
+    parameters: object({ reason: string("Short reason, for example completed or caller_done.") }),
   },
 };
 
-export function describeTools() { return TOOLS.map((name) => ({ name, strict: true, ...TOOL_DEFINITIONS[name] })); }
+export const TOOLS = Object.freeze(Object.keys(TOOL_DEFINITIONS));
+
+export function describeTools() {
+  return TOOLS.map((name) => ({ name, ...TOOL_DEFINITIONS[name] }));
+}
 
 export const AGENT_TOOLS = TOOLS.map((name) => ({
   type: "function",
@@ -121,13 +168,57 @@ export const AGENT_TOOLS = TOOLS.map((name) => ({
   parameters: TOOL_DEFINITIONS[name].parameters,
 }));
 
+/** LOCALE drives both the spoken language and the transcription hint. */
 export function localeLanguage(locale = "en-US") {
-  return String(locale).toLowerCase().startsWith("es") ? "es" : "en";
+  const fallback = String(locale || "en-US");
+  try {
+    const parsed = new Intl.Locale(fallback);
+    const label = new Intl.DisplayNames(["en"], { type: "language" }).of(parsed.baseName);
+    return { locale: parsed.baseName, code: parsed.language, label: label ?? parsed.baseName };
+  } catch {
+    return { locale: fallback, code: fallback.split("-")[0], label: fallback };
+  }
 }
 
-export function buildInstructions(context = {}) {
-  const locale = typeof context === "string" ? context : context?.locale ?? "en-US";
-  const language = localeLanguage(locale) === "es" ? "Spanish" : "English";
-  const handoff = context?.handoff?.ok ? `\nThe caller arrived from a reminder handoff for ${context.handoff.appointmentSummary}; start by helping reschedule it.` : "";
-  return `${SYSTEM_PROMPT}\nSpeak ${language}. Open with the required AI disclosure and wait for the caller.${handoff}`;
+/**
+ * The standing instructions. The flow adds a fresh instruction after every
+ * server decision, so the prompt only has to say how to behave, not what the
+ * schedule looks like.
+ */
+export function buildInstructions({ locale = "en-US", handoff = null } = {}) {
+  const language = localeLanguage(locale);
+  const resumed = handoff?.firstName
+    ? `
+
+This call was transferred from a reminder call, and the server has already confirmed who the caller is. Greet ${handoff.firstName} by first name, do not ask for a date of birth, and help them find a new time for their ${handoff.summary ?? "appointment"}.`
+    : "";
+  return `You are Contoso Health's automated scheduling assistant. You answer the scheduling line, confirm who the caller is, and help them find and book an appointment that fits.
+
+Disclose what you are in your first sentence: say you are Contoso Health's automated scheduling assistant. Never pretend to be a person; say it once and move on.
+
+Conversation language: Start every call in ${language.label} (${language.locale}), including the very first word of the greeting. Continue speaking only ${language.label} unless the caller explicitly asks you to switch languages.
+
+Style: warm, brief, plain. One or two short sentences per turn. This is a phone call, so never read out lists, markdown, ids or codes, and offer at most two times at once.
+
+Identity:
+- Before you discuss any appointment, ask for the patient's full name and date of birth and call verify_patient. Caller ID is a convenience, never proof.
+- Never say whether a name is on file, and never read back a date of birth, phone number, record number or insurance detail.
+- If verification fails, say only what the server tells you to say.
+- If the caller says they are a new patient, call request_callback with the queue registration_callback.
+
+Booking. You cannot book:
+- There is no booking tool. You search and propose; the server books, and only after the caller says yes to the exact time you read back.
+- To propose a time, call hold_slot for the option the caller chose, read the read-back you get word for word, ask "Shall I book it?" and wait.
+- When the caller answers that question, do not say it is booked and do not call a tool. Say only "One moment." The server hears their answer and tells you what happened.
+- If the caller says "just book anything", explain that you can only book a specific time they have heard and agreed to, then offer times.
+- If you are told the time was just taken, nothing is booked: offer the fresh times you are given and let the caller choose again.
+
+How to help:
+- Ask what kind of visit they need and what it is for. Call note_reason with their words, then choose_visit_type.
+- If the server says a visit cannot be booked by voice, explain it in a sentence and offer the alternatives it gives you.
+- Call search_slots with any preferences they mentioned: their usual doctor, a clinic, mornings or afternoons, a day.
+- If the caller asks for a person, call transfer with the destination scheduling_team straight away.
+- Never give medical advice. If the caller describes an emergency, the server takes over.${resumed}
+
+You will be given a fresh instruction after each step. Always follow the most recent one.`;
 }

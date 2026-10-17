@@ -1,41 +1,57 @@
-import Database from "better-sqlite3";
-import { mkdirSync } from "node:fs";
-import { dirname } from "node:path";
 import { config } from "./config.mjs";
+import { openDatabase } from "./sqlite.mjs";
+import { summarize } from "./audit.mjs";
 
 /**
  * SQLite implementation of the audit sink.
  *
- * Same interface as `MemoryAudit`, so the state machine cannot tell the
- * difference and the tests never touch a database. What gets stored is the
- * routing decision — masked number, chosen route, topic, summary, outcome,
- * and every state transition. Utterance text is written only when
- * PERSIST_TRANSCRIPTS is explicitly turned on.
+ * Same interface as `MemoryAudit`, so the scheduling flow cannot tell the
+ * difference and the tests never need a database file. What gets stored is
+ * the decision trail: the masked number, whether identity was confirmed, the
+ * outcome and the appointment written, and every event. Caller text (already
+ * masked by the flow) is written only when TRANSCRIPT_RETENTION is on.
+ *
+ * Opened with `await SqliteAudit.open(path)`, which prefers better-sqlite3
+ * and falls back to Node's built-in node:sqlite.
  */
 export class SqliteAudit {
   name = "sqlite";
 
-  constructor(path = config.dbPath) {
-    mkdirSync(dirname(path), { recursive: true });
-    this.db = new Database(path);
-    this.db.pragma("journal_mode = WAL");
+  static async open(path = config.dbPath, { driver = "auto", persistTranscripts = config.persistTranscripts } = {}) {
+    const db = await openDatabase(path, { driver });
+    return new SqliteAudit(db, { persistTranscripts });
+  }
+
+  constructor(db, { persistTranscripts = false } = {}) {
+    this.db = db;
+    try {
+      this.db.pragma("journal_mode = WAL");
+    } catch {}
     this.db.exec(SCHEMA);
-    this.persistTranscripts = config.persistTranscripts;
+    this.#migrate();
+    this.persistTranscripts = persistTranscripts;
+  }
+
+  /** An audit file from an earlier version of this sample gains the new columns; nothing is dropped. */
+  #migrate() {
+    const have = new Set(this.db.prepare(`PRAGMA table_info(calls)`).all().map((c) => c.name));
+    for (const [column, type] of Object.entries(ADDED_COLUMNS)) {
+      if (!have.has(column)) this.db.exec(`ALTER TABLE calls ADD COLUMN ${column} ${type}`);
+    }
   }
 
   startCall(call) {
     this.db
       .prepare(
-        `INSERT OR REPLACE INTO calls
-           (id, masked_phone, caller_name, caller_verified, state, started_at)
-         VALUES (@id, @maskedPhone, @callerName, @callerVerified, @state, @startedAt)`,
+        `INSERT OR REPLACE INTO calls (id, masked_phone, arrival, state, simulated, started_at)
+         VALUES (@id, @maskedPhone, @arrival, @state, @simulated, @startedAt)`,
       )
       .run({
         id: call.id,
         maskedPhone: call.maskedPhone ?? null,
-        callerName: call.callerName ?? null,
-        callerVerified: call.callerVerified ? 1 : 0,
+        arrival: call.arrival ?? null,
         state: call.state,
+        simulated: call.simulated ? 1 : 0,
         startedAt: call.startedAt,
       });
   }
@@ -44,18 +60,18 @@ export class SqliteAudit {
   updateCall(id, patch) {
     const columns = {
       state: "state",
-      confirmedRouteId: "confirmed_route_id",
+      verified: "verified",
+      patientRef: "patient_ref",
       outcome: "outcome",
+      appointmentId: "appointment_id",
+      answeredAt: "answered_at",
       endedAt: "ended_at",
       durationMs: "duration_ms",
-      topic: "topic",
-      summary: "summary",
-      sentiment: "sentiment",
       simulated: "simulated",
     };
 
     const sets = [];
-    const values = {};
+    const values = { id };
     for (const [key, column] of Object.entries(columns)) {
       if (patch[key] === undefined) continue;
       sets.push(`${column} = @${key}`);
@@ -63,73 +79,62 @@ export class SqliteAudit {
     }
     if (!sets.length) return;
 
-    this.db.prepare(`UPDATE calls SET ${sets.join(", ")} WHERE id = @id`).run({ ...values, id });
+    this.db.prepare(`UPDATE calls SET ${sets.join(", ")} WHERE id = @id`).run(values);
   }
 
   recordEvent(callId, source, kind, detail = null) {
     this.db
-      .prepare(
-        `INSERT INTO call_events (call_id, source, kind, detail, created_at)
-         VALUES (?, ?, ?, ?, ?)`,
-      )
+      .prepare(`INSERT INTO call_events (call_id, source, kind, detail, created_at) VALUES (?, ?, ?, ?, ?)`)
       .run(callId, source, kind, detail == null ? null : String(detail), new Date().toISOString());
   }
 
   recordTranscript(callId, role, text) {
     if (!this.persistTranscripts) return;
     this.db
-      .prepare(
-        `INSERT INTO transcripts (call_id, role, text, created_at)
-         VALUES (?, ?, ?, ?)`,
-      )
+      .prepare(`INSERT INTO transcripts (call_id, role, text, created_at) VALUES (?, ?, ?, ?)`)
       .run(callId, role, text, new Date().toISOString());
   }
 
   eventsFor(callId) {
     return this.db
       .prepare(`SELECT source, kind, detail, created_at AS at FROM call_events WHERE call_id = ? ORDER BY id`)
-      .all(callId);
+      .all(callId)
+      .map((r) => ({ ...r }));
+  }
+
+  /**
+   * Delete simulated calls and everything recorded about them: the demo
+   * console's reset between run-throughs. Calls from a real phone stay.
+   */
+  reset() {
+    const simulated = `SELECT id FROM calls WHERE simulated = 1`;
+    this.db.transaction(() => {
+      this.db.prepare(`DELETE FROM call_events WHERE call_id IN (${simulated})`).run();
+      this.db.prepare(`DELETE FROM transcripts WHERE call_id IN (${simulated})`).run();
+      this.db.prepare(`DELETE FROM calls WHERE simulated = 1`).run();
+    })();
   }
 
   /** What the presenter console shows on the metrics strip. */
   stats() {
-    const tally = (column) =>
-      Object.fromEntries(
-        this.db
-          .prepare(`SELECT COALESCE(${column}, 'none') AS k, COUNT(*) AS n FROM calls GROUP BY k`)
-          .all()
-          .map((r) => [r.k, r.n]),
-      );
-
-    const eventCount = (kind) =>
-      this.db.prepare(`SELECT COUNT(*) AS n FROM call_events WHERE kind = ?`).get(kind).n;
-
-    return {
-      calls: this.db.prepare(`SELECT COUNT(*) AS n FROM calls`).get().n,
-      byOutcome: tally("outcome"),
-      byRoute: tally("confirmed_route_id"),
-      clarifications: eventCount("clarification"),
-      fallbacks: eventCount("fallback"),
-      transfers: eventCount("transfer_succeeded") + eventCount("transfer_simulated"),
-      failedTransfers: eventCount("transfer_failed"),
-      messagesTaken: eventCount("message_taken"),
-      medianSecondsToRoute: this.#medianSecondsToRoute(),
-    };
-  }
-
-  /**
-   * Answer to confirmed route, which is the number this template is actually
-   * trying to move. Computed over completed calls only.
-   */
-  #medianSecondsToRoute() {
-    const rows = this.db
-      .prepare(`SELECT duration_ms FROM calls WHERE duration_ms IS NOT NULL ORDER BY duration_ms`)
-      .all();
-    if (!rows.length) return null;
-    const mid = Math.floor(rows.length / 2);
-    const ms =
-      rows.length % 2 ? rows[mid].duration_ms : (rows[mid - 1].duration_ms + rows[mid].duration_ms) / 2;
-    return Math.round(ms / 100) / 10;
+    const byOutcome = Object.fromEntries(
+      this.db
+        .prepare(`SELECT COALESCE(outcome, 'in_progress') AS k, COUNT(*) AS n FROM calls GROUP BY k`)
+        .all()
+        .map((r) => [r.k, Number(r.n)]),
+    );
+    const counts = Object.fromEntries(
+      this.db
+        .prepare(`SELECT kind, COUNT(*) AS n FROM call_events GROUP BY kind`)
+        .all()
+        .map((r) => [r.kind, Number(r.n)]),
+    );
+    return summarize({
+      calls: Number(this.db.prepare(`SELECT COUNT(*) AS n FROM calls`).get().n),
+      verified: Number(this.db.prepare(`SELECT COUNT(*) AS n FROM calls WHERE verified = 1`).get().n),
+      byOutcome,
+      count: (kind) => counts[kind] ?? 0,
+    });
   }
 
   close() {
@@ -137,22 +142,29 @@ export class SqliteAudit {
   }
 }
 
+const ADDED_COLUMNS = {
+  arrival: "TEXT",
+  verified: "INTEGER NOT NULL DEFAULT 0",
+  patient_ref: "TEXT",
+  appointment_id: "TEXT",
+  answered_at: "TEXT",
+};
+
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS calls (
-  id                TEXT PRIMARY KEY,
-  masked_phone      TEXT,
-  caller_name       TEXT,
-  caller_verified   INTEGER NOT NULL DEFAULT 0,
-  state             TEXT NOT NULL,
-  confirmed_route_id TEXT,
-  topic             TEXT,
-  summary           TEXT,
-  sentiment         TEXT,
-  outcome           TEXT,
-  simulated         INTEGER NOT NULL DEFAULT 0,
-  started_at        TEXT NOT NULL,
-  ended_at          TEXT,
-  duration_ms       INTEGER
+  id             TEXT PRIMARY KEY,
+  masked_phone   TEXT,
+  arrival        TEXT,
+  state          TEXT NOT NULL,
+  simulated      INTEGER NOT NULL DEFAULT 0,
+  verified       INTEGER NOT NULL DEFAULT 0,
+  patient_ref    TEXT,
+  outcome        TEXT,
+  appointment_id TEXT,
+  started_at     TEXT NOT NULL,
+  answered_at    TEXT,
+  ended_at       TEXT,
+  duration_ms    INTEGER
 );
 
 CREATE TABLE IF NOT EXISTS call_events (
