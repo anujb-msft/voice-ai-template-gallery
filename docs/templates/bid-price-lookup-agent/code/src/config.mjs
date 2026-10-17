@@ -30,7 +30,8 @@ export const config = {
     futuresStaleMinutes: Number(process.env.FUTURES_STALE_MINUTES ?? 20),
     futuresHardLimitMinutes: Number(process.env.FUTURES_HARD_LIMIT_MINUTES ?? 240),
     callTimeBudgetMs: Number(process.env.CALL_TIME_BUDGET_MS ?? 180_000),
-    demoNow: process.env.DEMO_NOW ?? "2026-09-08T15:42:00Z",
+    // Pins the demo clock in simulation only; the server ignores it on real calls.
+    demoNow: (process.env.DEMO_NOW ?? "").trim(),
     minutesPerAutomatedCall: Number(process.env.MINUTES_PER_AUTOMATED_CALL ?? 3),
   },
   persistTranscripts: /^(1|true|yes)$/i.test(process.env.PERSIST_TRANSCRIPTS ?? ""),
