@@ -1,6 +1,5 @@
-import { randomUUID } from "node:crypto";
-import { db, nowIso } from "../db.mjs";
-import { config } from "../config.mjs";
+import { getDb, nowIso } from "../db.mjs";
+import { MemoryTicketing } from "../store.mjs";
 
 /**
  * Ticketing provider contract.
@@ -11,7 +10,7 @@ import { config } from "../config.mjs";
  * @typedef {object} TicketingProvider
  * @property {(input: {userId: string, sessionId: string, category: string, summary: string}) => Promise<{id: string}>} openTicket
  * @property {(id: string, resolution: {deflected: boolean, summary: string}) => Promise<void>} closeTicket
- * @property {() => Promise<object>} deflectionStats
+ * @property {() => Promise<{total: number, deflected: number}>} deflectionStats
  */
 
 /** Reference implementation backed by the local SQLite table. */
@@ -20,57 +19,35 @@ export class SqliteTicketingProvider {
 
   async openTicket({ userId, sessionId, category, summary }) {
     const id = `INC${String(Date.now()).slice(-7)}`;
-    db.prepare(
-      `INSERT INTO tickets (id, session_id, user_id, category, status, deflected, cost_usd, minutes_saved, summary, created_at)
-       VALUES (?, ?, ?, ?, 'open', 0, 0, 0, ?, ?)`,
-    ).run(id, sessionId, userId, category, summary, nowIso());
+    getDb()
+      .prepare(
+        `INSERT INTO tickets (id, session_id, user_id, category, status, deflected, summary, created_at)
+         VALUES (?, ?, ?, ?, 'open', 0, ?, ?)`,
+      )
+      .run(id, sessionId, userId, category, summary, nowIso());
     return { id };
   }
 
-  /**
-   * A ticket closed by the agent without human touch is a *deflected* ticket:
-   * that is the number the business case is built on.
-   */
+  /** A ticket the agent closes with no human involved is a *deflected* ticket. */
   async closeTicket(id, { deflected, summary }) {
-    db.prepare(
-      `UPDATE tickets
-          SET status = ?, deflected = ?, cost_usd = ?, minutes_saved = ?, summary = ?
-        WHERE id = ?`,
-    ).run(
-      deflected ? "closed_deflected" : "closed_escalated",
-      deflected ? 1 : 0,
-      deflected ? config.demo.ticketCostUsd : 0,
-      deflected ? config.demo.ticketMinutes : 0,
-      summary,
-      id,
-    );
+    getDb()
+      .prepare(`UPDATE tickets SET status = ?, deflected = ?, summary = ? WHERE id = ?`)
+      .run(deflected ? "closed_deflected" : "closed_escalated", deflected ? 1 : 0, summary, id);
   }
 
   async deflectionStats() {
-    const row = db
-      .prepare(
-        `SELECT COUNT(*) AS total,
-                SUM(deflected) AS deflected,
-                COALESCE(SUM(cost_usd), 0) AS saved_usd,
-                COALESCE(SUM(minutes_saved), 0) AS saved_minutes
-           FROM tickets`,
-      )
-      .get();
-    return {
-      total: row.total ?? 0,
-      deflected: row.deflected ?? 0,
-      savedUsd: row.saved_usd ?? 0,
-      savedMinutes: row.saved_minutes ?? 0,
-      costPerTicketUsd: config.demo.ticketCostUsd,
-      minutesPerTicket: config.demo.ticketMinutes,
-    };
+    const row = getDb().prepare(`SELECT COUNT(*) AS total, COALESCE(SUM(deflected), 0) AS deflected FROM tickets`).get();
+    return { total: row.total ?? 0, deflected: row.deflected ?? 0 };
   }
 }
 
-export function createTicketingProvider(kind = process.env.TICKETING_PROVIDER ?? "sqlite") {
+export function createTicketingProvider(kind = process.env.TICKETING_PROVIDER || "sqlite") {
   switch (kind) {
     case "sqlite":
       return new SqliteTicketingProvider();
+
+    case "memory":
+      return new MemoryTicketing();
 
     // case "servicenow":
     //   return new ServiceNowTicketingProvider({ instance, user, password });
@@ -81,5 +58,3 @@ export function createTicketingProvider(kind = process.env.TICKETING_PROVIDER ??
       throw new Error(`Unknown TICKETING_PROVIDER "${kind}"`);
   }
 }
-
-export { randomUUID };

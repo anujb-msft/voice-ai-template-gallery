@@ -123,6 +123,12 @@ Right away for signing in. Some other apps may take a couple of minutes to catch
 Yes — your phone will likely prompt you for mail and Teams shortly. Just enter the new
 password when it asks.
 
+### My VPN still says my password is wrong.
+
+That's usually the VPN app still holding on to your old password. Sign out of the VPN
+app and sign back in with the new one; if it still says wrong password after a few
+minutes, I can put you through to the IT service desk.
+
 ### Will this sign me out everywhere?
 
 It may sign you out of some apps, and you'll simply sign back in with the new password.
@@ -145,7 +151,8 @@ The agent should call the `escalate` tool, rather than improvise, whenever:
 - the caller says they did **not** request this reset (possible account compromise — treat
   as urgent)
 - the caller reports they're locked out of MFA as well
-- the caller asks about anything outside password reset (VPN, hardware, software installs)
+- the caller asks about anything outside password reset (VPN connection problems, hardware,
+  software installs); a VPN that is only asking for the new password is covered above
 - the caller is distressed or explicitly asks for a person
 
 Suggested wording:
@@ -167,6 +174,7 @@ thread of the reset:
 4. "What are the password rules again?"
 5. "Can you suggest a password for me?"
 6. "Will this sign me out on my phone?"
-7. "I didn't request this." *(should escalate)*
+7. "My VPN still says my password is wrong." *(after the reset)*
+8. "I didn't request this." *(should escalate)*
 
 After answering, the agent is instructed to steer straight back to the current step.

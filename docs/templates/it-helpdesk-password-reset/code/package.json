@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "Voice agent template: proactive IT help desk password reset over an outbound PSTN call, with a live web wizard the agent monitors via SignalR.",
+  "description": "Voice agent template: an IT help desk agent that calls an employee back through Teams Phone extensibility after they ask for a password reset, verifies them on the call, and completes the reset on a web page that moves in step with the call.",
   "engines": {
     "node": ">=22"
   },
@@ -13,7 +13,8 @@
     "seed": "node scripts/seed.mjs",
     "test": "node --test test/*.test.mjs",
     "tunnel": "devtunnel host -p 8090 --allow-anonymous",
-    "check": "for f in src/*.mjs src/providers/*.mjs src/voice/*.mjs; do node --check \"$f\" || exit 1; done; echo \"syntax ok\""
+    "check": "for f in src/*.mjs src/providers/*.mjs src/voice/*.mjs scripts/*.mjs public/*.js; do node --check \"$f\" || exit 1; done; echo \"syntax ok\"",
+    "smoke": "node scripts/smoke-websockets.mjs"
   },
   "dependencies": {
     "@azure/communication-call-automation": "^1.6.0",

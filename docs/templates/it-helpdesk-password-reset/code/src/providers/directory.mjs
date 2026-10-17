@@ -25,11 +25,20 @@
  */
 
 import { SqliteDirectoryProvider } from "./sqlite-directory.mjs";
+import { MemoryDirectory } from "../store.mjs";
 
-export function createDirectoryProvider(kind = process.env.DIRECTORY_PROVIDER ?? "sqlite") {
+/**
+ * @param {string} [kind] sqlite (the default), memory, or your own provider.
+ * @param {{ phone?: string }} [options] `phone` overrides every callback number in the memory directory.
+ */
+export function createDirectoryProvider(kind = process.env.DIRECTORY_PROVIDER || "sqlite", { phone = "" } = {}) {
   switch (kind) {
     case "sqlite":
       return new SqliteDirectoryProvider();
+
+    // The offline simulation's directory: the two fictional Contoso employees, in memory.
+    case "memory":
+      return new MemoryDirectory({ phone });
 
     // case "entra":
     //   return new EntraDirectoryProvider({ tenantId, clientId, clientSecret });

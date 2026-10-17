@@ -1,70 +1,13 @@
 import WebSocket from "ws";
 import { config } from "../config.mjs";
 import { knowledgeBase } from "../knowledge.mjs";
+import { AGENT_TOOLS, buildInstructions, localeLanguage } from "../agent.mjs";
 
-/**
- * Tools the model can call to drive the reset flow. These are the *only* way the
- * agent can change state, which keeps the security-sensitive logic on the server.
- */
-export const AGENT_TOOLS = [
-  {
-    type: "function",
-    name: "confirm_identity",
-    description:
-      "Verify the caller by the last four digits of their employee ID. Call this as soon as they say the digits.",
-    parameters: {
-      type: "object",
-      properties: { digits: { type: "string", description: "The four digits the caller said, e.g. '4417'." } },
-      required: ["digits"],
-    },
-  },
-  {
-    type: "function",
-    name: "issue_verification_code",
-    description:
-      "Generate the six-digit code to read aloud to the caller so they can type it into the browser. Call once.",
-    parameters: { type: "object", properties: {}, required: [] },
-  },
-  {
-    type: "function",
-    name: "escalate",
-    description: "Hand the caller to a human IT specialist.",
-    parameters: {
-      type: "object",
-      properties: { reason: { type: "string", description: "Short machine-readable reason." } },
-      required: ["reason"],
-    },
-  },
-  {
-    type: "function",
-    name: "end_call",
-    description: "Politely end the call once the caller has nothing further.",
-    parameters: { type: "object", properties: {}, required: [] },
-  },
-];
+export { AGENT_TOOLS };
 
-const BASE_INSTRUCTIONS = `You are the Contoso IT assistant, making an OUTBOUND phone call to an employee who just clicked "Forgot password" on the corporate sign-in page. They are expecting you.
-
-Style: warm, efficient, human. One or two short sentences per turn — this is a phone call, not a chat window. Never read out lists or markdown. Never say "as an AI".
-
-Security rules you must never break:
-- Never ask the caller to say a password out loud. If they start to, interrupt politely and ask them to type it instead.
-- Never reveal the caller's full employee ID, and never accept a password over the phone.
-- Only ever change state by calling the provided tools.
-
-Answering questions mid-call:
-- Callers will interrupt the reset with questions. Answer them — a rushed agent that ignores questions is the reason people phone the help desk instead.
-- Answer from the KNOWLEDGE BASE below, in your own words, in one or two spoken sentences. Never read it out verbatim and never mention that you have a document.
-- If the question is not covered there, say honestly that you are not sure, and offer to hand off to a specialist. Never invent IT policy.
-- After answering, steer straight back to the current step in the same breath, e.g. "...so, whenever you're ready, the last four digits?"
-- Call \`escalate\` instead of improvising if they say they did NOT request this reset, if they are locked out of MFA as well, if they ask about something unrelated to passwords, or if they ask for a human.
-
-You will be given step-by-step instructions as the call progresses. Always follow the most recent instruction you were given.`;
-
-/** Base instructions plus the FAQ. Read lazily so edits to the markdown apply to the next call. */
+/** The standing instructions plus the FAQ. Read on every update, so edits to the markdown apply to the next turn. */
 export function baseInstructions() {
-  const kb = knowledgeBase().text;
-  return kb ? `${BASE_INSTRUCTIONS}\n\n=== KNOWLEDGE BASE ===\n${kb}\n=== END KNOWLEDGE BASE ===` : BASE_INSTRUCTIONS;
+  return buildInstructions({ locale: config.locale, knowledge: knowledgeBase().text });
 }
 
 const log = (...a) => console.log(new Date().toISOString(), "[voice-live]", ...a);
@@ -87,10 +30,13 @@ export class VoiceLiveSession {
     this.pending = [];
     this.activeResponse = false;
     this.pendingResponse = false;
+    /** Tool calls in flight. Their result asks for the next response, so nothing else may. */
+    this.toolCalls = 0;
   }
 
   async connect() {
     const { endpoint, apiKey, model, apiVersion, voice } = config.voiceLive;
+    const language = localeLanguage(config.locale);
     const url =
       `${endpoint.replace(/^https:/, "wss:")}/voice-live/realtime` +
       `?api-version=${encodeURIComponent(apiVersion)}&model=${encodeURIComponent(model)}`;
@@ -102,7 +48,7 @@ export class VoiceLiveSession {
 
       this.ws.on("open", () => {
         clearTimeout(fail);
-        log(`connected (${model})`);
+        log(`connected (${model}, ${language.locale})`);
         this.#send({
           type: "session.update",
           session: {
@@ -113,7 +59,9 @@ export class VoiceLiveSession {
             voice: { name: voice, type: "azure-standard" },
             tools: AGENT_TOOLS,
             tool_choice: "auto",
-            input_audio_transcription: { model: "whisper-1" },
+            // Pinning the language keeps a short answer such as a run of digits
+            // from being transcribed as another language.
+            input_audio_transcription: { model: "gpt-4o-transcribe", language: language.code },
             turn_detection: {
               type: "azure_semantic_vad",
               threshold: 0.3,
@@ -150,14 +98,18 @@ export class VoiceLiveSession {
    * Voice Live allows exactly one in-flight response per conversation. A step
    * transition and a tool result can easily both want the agent to speak, so
    * requests are coalesced here instead of racing and erroring with
-   * `conversation_already_has_active_response`.
+   * `conversation_already_has_active_response`. While a tool call is in
+   * flight, its result asks for the next response, so the model hears the
+   * result and any new step together instead of answering before the result.
    */
   #requestResponse() {
-    if (this.activeResponse) this.pendingResponse = true;
-    else {
-      this.activeResponse = true;
-      this.#send({ type: "response.create" });
+    if (this.activeResponse || this.toolCalls) {
+      this.pendingResponse = true;
+      return;
     }
+    this.activeResponse = true;
+    this.pendingResponse = false;
+    this.#send({ type: "response.create" });
   }
 
   async #handleEvent(raw) {
@@ -176,10 +128,7 @@ export class VoiceLiveSession {
       case "response.done":
       case "response.cancelled":
         this.activeResponse = false;
-        if (this.pendingResponse) {
-          this.pendingResponse = false;
-          this.#requestResponse();
-        }
+        if (this.pendingResponse) this.#requestResponse();
         break;
 
       case "response.audio.delta":
@@ -217,13 +166,17 @@ export class VoiceLiveSession {
     } catch {
       /* tolerate malformed tool args */
     }
-    log("tool", msg.name, JSON.stringify(args));
+    // The name only: arguments can hold the digits the caller said.
+    log("tool", msg.name);
 
     let result;
+    this.toolCalls += 1;
     try {
       result = await this.onToolCall(msg.name, args);
     } catch (e) {
       result = { error: e.message };
+    } finally {
+      this.toolCalls -= 1;
     }
 
     this.#send({

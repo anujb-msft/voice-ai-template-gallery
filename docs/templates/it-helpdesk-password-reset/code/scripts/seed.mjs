@@ -1,7 +1,9 @@
 import { randomBytes } from "node:crypto";
-import { db, nowIso } from "../src/db.mjs";
+import { openDb, nowIso } from "../src/db.mjs";
 import { hashPassword } from "../src/providers/sqlite-directory.mjs";
 import { config } from "../src/config.mjs";
+
+const db = await openDb();
 
 const demoPassword = () => `${randomBytes(12).toString("base64url")}Aa1!`;
 
