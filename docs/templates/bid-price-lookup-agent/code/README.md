@@ -423,6 +423,9 @@ trust are the parts that run without installing anything.
 - **`CallTransferFailed` reopens the call.** With a caller ID the agent offers a callback;
   without one it gives the merchandiser's hours and closes. The caller is never left in
   silence.
+- **The model can't hang up on a transfer.** While a transfer is in progress or complete,
+  `end_call` is refused and the bridge closes without hanging up, so an early goodbye
+  can't drop the caller on the way to a person.
 - **Barge-in** sends `StopAudio` to ACS and `response.cancel` to Voice Live, so the agent
   stops mid-word rather than talking over the caller.
 - **Voice Live allows one in-flight response.** A state change and a tool result can both

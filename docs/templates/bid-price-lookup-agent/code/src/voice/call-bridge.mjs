@@ -3,11 +3,15 @@ import { VoiceLiveSession, buildInstructions } from "./voice-live.mjs";
 import { forModel } from "../agent.mjs";
 import { hangUp } from "./acs.mjs";
 import { config } from "../config.mjs";
+import { STATES } from "../flow.mjs";
 
 const log = (...a) => console.log(new Date().toISOString(), "[bridge]", ...a);
 
 /** Time for a closing line (goodbye, after hours, a callback confirmed) to play before the line is hung up. */
 const CLOSING_GRACE_MS = 6000;
+
+/** Once a transfer has started, the call is on its way to a person and is not the agent's to end. */
+const HANDED_OFF = new Set([STATES.TRANSFERRING, STATES.TRANSFERRED]);
 
 class CallBridge {
   constructor({ callId, acsSocket, flow }) {
@@ -80,6 +84,8 @@ class CallBridge {
       case "repeat_last":
         return this.flow.repeatLast(this.callId);
       case "end_call":
+        // Ending now would drop the caller on the way to a person.
+        if (HANDED_OFF.has(this.flow.get(this.callId)?.state)) return { ok: false, reason: "transfer_in_progress" };
         return this.flow.endCall(this.callId, "caller_done");
       default:
         return { ok: false, error: `Unknown tool ${name}` };
@@ -112,7 +118,9 @@ class CallBridge {
     } catch {
       /* already closed */
     }
-    hangUp(this.flow.get(this.callId)?.callConnectionId);
+    // A call handed to a person belongs to Teams now, so it is not ours to hang up.
+    const call = this.flow.get(this.callId);
+    if (call && !HANDED_OFF.has(call.state)) hangUp(call.callConnectionId);
   }
 }
 

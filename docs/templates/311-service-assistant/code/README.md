@@ -428,6 +428,9 @@ store needs them.
   number if there is one, and ends the call with the outcome `transfer_failed`. It never
   dials the queue again, so a queue that keeps failing cannot cause a loop, and the call
   is not counted as handed off.
+- **The model can't hang up on a transfer.** While a transfer is in progress or
+  complete, `end_call` is refused and the bridge closes without hanging up, so an early
+  goodbye can't drop the caller on the way to a person.
 - **Barge-in** sends `StopAudio` to ACS and `response.cancel` to Voice Live, so the agent
   stops mid-word rather than talking over the caller.
 - **An emergency phrase cancels the current response.** On a live call, the rule runs

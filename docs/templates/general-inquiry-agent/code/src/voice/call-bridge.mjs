@@ -2,8 +2,12 @@ import { WebSocketServer } from "ws";
 import { VoiceLiveSession, buildInstructions } from "./voice-live.mjs";
 import { hangUp } from "./acs.mjs";
 import { config } from "../config.mjs";
+import { STATES } from "../flow.mjs";
 
 const log = (...a) => console.log(new Date().toISOString(), "[bridge]", ...a);
+
+/** Once a transfer has started, the call is on its way to a person and is not the agent's to end. */
+const HANDED_OFF = new Set([STATES.TRANSFERRING, STATES.TRANSFERRED]);
 
 class CallBridge {
   constructor({ callId, acsSocket, flow }) {
@@ -73,6 +77,8 @@ class CallBridge {
       case "request_human":
         return this.flow.requestHuman(this.callId, args);
       case "end_call":
+        // Hanging up now would drop the caller on the way to a person.
+        if (HANDED_OFF.has(this.flow.get(this.callId)?.state)) return { ok: false, reason: "transfer_in_progress" };
         setTimeout(() => this.stop(), 4000);
         return this.flow.endCall(this.callId, args?.reason ?? "agent_ended");
       default:
@@ -91,7 +97,9 @@ class CallBridge {
     this.flow.unregisterAgent(this.callId);
     this.voice?.close();
     try { this.acs.close(); } catch {}
-    hangUp(this.flow.get(this.callId)?.callConnectionId);
+    // A call handed to a person belongs to Teams now, so it is not ours to hang up.
+    const call = this.flow.get(this.callId);
+    if (call && !HANDED_OFF.has(call.state)) hangUp(call.callConnectionId);
   }
 }
 

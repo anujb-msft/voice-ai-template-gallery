@@ -127,7 +127,7 @@ With Azure configured, the console's mode chip says **live · Teams Phone**, the
 
 ## Architecture
 
-`src/flow.mjs` owns the state machine and imports no Azure or Express modules. `src/offline.mjs` maps typed utterances to the same server tools the model uses. `src/server.mjs` hosts Express, `/health`, `/api/stats`, the demo controls, the local WebSocket presenter console, Event Grid intake, ACS callbacks, and simulation APIs. `src/voice/*` bridges ACS bidirectional media to Voice Live as PCM16 24 kHz and supports barge-in.
+`src/flow.mjs` owns the state machine and imports no Azure or Express modules. `src/offline.mjs` maps typed utterances to the same server tools the model uses. `src/server.mjs` hosts Express, `/health`, `/api/stats`, the demo controls, the local WebSocket presenter console, Event Grid intake, ACS callbacks, and simulation APIs. `src/voice/*` bridges ACS bidirectional media to Voice Live as PCM16 24 kHz and supports barge-in. While a transfer is in progress or complete, the bridge refuses the model's `end_call` and closes without hanging up, so an early goodbye can't drop the caller on the way to a person.
 
 ## Tests
 

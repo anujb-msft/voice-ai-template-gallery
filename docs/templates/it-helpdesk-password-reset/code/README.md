@@ -468,6 +468,10 @@ test/                     72 cases, no Azure required
 - **Barge-in is handled.** When the caller starts speaking, the bridge sends ACS a
   `StopAudio` frame and cancels the in-flight model response, so the agent stops at once
   rather than talking over them.
+- **The model can't hang up on a transfer.** Once an escalation has started a transfer to
+  the service desk, `end_call` is refused and the bridge closes without hanging up, so an
+  early goodbye can't drop the employee on the way to a person. If the transfer fails, the
+  agent apologizes and ends the call as usual.
 - **Session correlation** rides in the media streaming transport URL's query string
   (`?session=<id>`). That is how one audio socket is matched to one reset page.
 - **A dropped call can be redialed.** After the call ends mid-reset, **Call me again** on

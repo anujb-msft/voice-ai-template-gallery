@@ -437,9 +437,13 @@ and trust are the parts that run without installing anything.
   press 0 for a person at any point; the reprompt after a silence mentions it. Other digits
   are ignored.
 - **The transfer is blind.** The agent's job ends once the context is delivered.
-- **`CallTransferFailed` sends the transfer again,** to the same queue and with no attempt
-  limit. Add a cap before production. A transfer that ACS rejects outright ends the call
-  with an apology and where to go next.
+- **`CallTransferFailed` closes the call honestly.** It means ACS accepted the transfer and
+  then nobody answered. The agent apologizes and says where to go next, and the queue is
+  never dialed again, so a queue that keeps failing cannot cause a loop. A transfer that ACS
+  rejects outright closes the same way.
+- **The model can't hang up on a transfer.** While a transfer is in progress or complete,
+  `end_call` is refused and the bridge closes without hanging up, so an early goodbye can't
+  drop the caller on the way to a person.
 - **Barge-in** sends `StopAudio` to ACS and `response.cancel` to Voice Live, so the agent
   stops mid-word rather than talking over the caller.
 - **Voice Live allows one in-flight response.** A state transition and a tool result can

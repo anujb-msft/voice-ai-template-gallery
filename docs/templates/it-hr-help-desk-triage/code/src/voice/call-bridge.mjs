@@ -10,6 +10,9 @@ const log = (...a) => console.log(new Date().toISOString(), "[bridge]", ...a);
 /** Only the sensitive-topic guard sends a call to confidential HR; resets have their own tool. */
 const SERVER_ONLY_DESTINATIONS = new Set(["confidential-hr", "password-reset-agent"]);
 
+/** Once a transfer has started, the call is on its way to a person and is not the agent's to end. */
+const HANDED_OFF = new Set([STATES.TRANSFERRING, STATES.TRANSFERRED]);
+
 /** Tool results go to the model, so they get the same redaction as anything it is asked to say. */
 function forModelDeep(value) {
   if (typeof value === "string") return forModel(value);
@@ -171,6 +174,8 @@ class CallBridge {
       case "handoff_password_reset": return flow.handoffPasswordReset(id, args.intent);
       case "route": return this.#route(args);
       case "end_call":
+        // Hanging up now would drop the caller on the way to a person.
+        if (HANDED_OFF.has(flow.get(id)?.state)) return { ok: false, reason: "transfer_in_progress" };
         setTimeout(() => this.stop(), 4000);
         flow.endCall(id, args.reason ?? "agent_ended");
         return { ending: true };
@@ -223,7 +228,9 @@ class CallBridge {
     try {
       this.acs.close();
     } catch {}
-    hangUp(this.flow.get(this.callId)?.callConnectionId);
+    // A call handed to a person belongs to Teams now, so it is not ours to hang up.
+    const call = this.flow.get(this.callId);
+    if (call && !HANDED_OFF.has(call.state)) hangUp(call.callConnectionId);
   }
 }
 

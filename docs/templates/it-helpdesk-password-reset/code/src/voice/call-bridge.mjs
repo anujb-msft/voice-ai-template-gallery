@@ -108,6 +108,8 @@ class CallBridge {
       case "escalate":
         return queued(() => flow.escalate(id, String(args.reason ?? "agent_requested")));
       case "end_call":
+        // Hanging up now would drop the caller on the way to the service desk.
+        if (this.#handedOff()) return { ok: false, reason: "transfer_in_progress" };
         // Let the closing line finish playing first.
         setTimeout(() => this.stop("agent_ended"), 4000).unref?.();
         return { ending: true };
@@ -133,18 +135,26 @@ class CallBridge {
     }
   }
 
+  /** Escalated with a transfer configured, and the transfer hasn't failed: the call is on its way to a person. */
+  #handedOff() {
+    const s = this.flow.get(this.sessionId);
+    return Boolean(s?.escalation && !s.transferFailedAt && this.flow.options.transfer);
+  }
+
   async stop(reason = "ended") {
     if (this.stopped) return;
     this.stopped = true;
     const id = this.sessionId;
     const s = this.flow.get(id);
+    const handedOff = this.#handedOff();
     if (s && !s.callEnded) await this.flow.run(id, () => this.flow.endCall(id, reason)).catch(() => {});
     this.flow.unregisterAgent(id);
     this.voice?.close();
     try {
       this.acs.close();
     } catch {}
-    await hangUp(s?.callConnectionId);
+    // A call handed to the service desk belongs to Teams now, so it is not ours to hang up.
+    if (!handedOff) await hangUp(s?.callConnectionId);
   }
 }
 

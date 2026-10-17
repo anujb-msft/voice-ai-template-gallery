@@ -354,6 +354,9 @@ and trust are the parts that run without installing anything.
   Staying on the line would put a silent third party on every routed call.
 - **`CallTransferFailed` re-enters the flow's own retry ladder** rather than starting a
   second, competing recovery path.
+- **The model can't hang up on a transfer.** While a transfer is in progress or
+  complete, `end_call` is refused and the bridge closes without hanging up, so an early
+  goodbye can't drop the caller on the way to a person.
 - **Barge-in** sends `StopAudio` to ACS and `response.cancel` to Voice Live, so the
   agent stops mid-word rather than talking over the caller.
 - **Voice Live allows one in-flight response.** A state transition and a tool result
