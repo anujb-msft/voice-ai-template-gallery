@@ -63,7 +63,8 @@ npm start
 The console runs a scripted demo: press **→** (or **Next ▶**) and it plays six short beats,
 typing the caller's lines for you; set the voice menu to **Speak agent + caller** to hear
 both sides. Each beat sets the demo clock it needs. [DEMO-SCRIPT.md](DEMO-SCRIPT.md) is the
-running order, with what to say at each step.
+running order, with what to say at each step, and `npm run rehearse` plays it end to end
+before you do.
 
 Or drive it yourself. The demo clock starts on real time unless `DEMO_NOW` or `DEMO_TODAY`
 is set, so first click **Business hours** in the top bar. Then pick a **Caller ID**, click
@@ -102,9 +103,10 @@ The response has each turn's result and the final call snapshot.
 Run the tests — they need no Azure and no network:
 
 ```bash
-npm test        # 46 cases across content, freshness, hours, the flow and the Teams handoff
-npm run check   # syntax check of src/, scripts/, test/ and the console scripts
-npm run smoke   # boots its own simulation server on port 8192 and checks both WebSockets and the demo controls
+npm test          # 48 cases across content, freshness, hours, the flow and the Teams handoff
+npm run check     # syntax check of src/, scripts/, test/ and the console scripts
+npm run smoke     # boots its own simulation server on port 8192 and checks both WebSockets and the demo controls
+npm run rehearse  # plays the six beats on port 8292 as the console does, three ways (~1 min)
 ```
 
 The tests cover fresh, stale and expired retrieval, misses and service requests,
@@ -113,6 +115,14 @@ repeat and slower, DTMF `0`, human requests in and out of staffed hours, no-inpu
 call cap, a failed transfer, an invalid `record_answer`, a prompt-injection attempt, the
 demo clock and the handoff headers. `npm run check` is a POSIX shell loop, so on Windows
 run it from Git Bash or WSL. `npm run dev` starts the server in Node's watch mode.
+
+`npm run rehearse` fails if a beat would land anywhere [DEMO-SCRIPT.md](DEMO-SCRIPT.md)
+doesn't say: each beat's outcome, sources and decision trail is pinned in
+`scripts/rehearse.mjs`. It plays the script in order, again after a reset, and last beat
+first with each beat twice, at Auto-play's pace and at full speed, and checks that a live
+server refuses the demo controls. Neither `.env` nor your shell's settings reach its
+server. Changed a beat on purpose? It prints the outcomes it reached, ready to paste over
+the pins once you've checked them against the script.
 
 ### Demo controls
 
@@ -420,8 +430,10 @@ public/           the presenter console
 scripts/
   smoke-websockets.mjs       boots a simulation server on port 8192 and checks the
                              WebSockets and the demo controls
+  rehearse.mjs               plays every beat as the console does; pins what each one shows
+  presenter-kit-rehearsal.mjs  the rehearsal engine, vendored like presenter-kit.*
   provision-teams-phone.ps1  binds the resource account to ACS and resolves the queue
-test/             46 cases, no Azure required
+test/             48 cases, no Azure required
 ```
 
 `flow.mjs`, `content.mjs`, `hours.mjs`, `handoff.mjs`, `agent.mjs`, `offline.mjs` and
