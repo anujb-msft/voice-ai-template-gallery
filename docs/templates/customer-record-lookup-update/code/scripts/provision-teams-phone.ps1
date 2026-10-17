@@ -51,12 +51,12 @@
   account identity — the sample logs that arrival as "acs-direct".
 
   Acquiring a Microsoft number additionally requires at least one Calling Plan
-  licence somewhere in the tenant; toll-free also needs funded pay-as-you-go
+  license somewhere in the tenant; toll-free also needs funded pay-as-you-go
   billing. PHONESYSTEM_VIRTUALUSER alone is not sufficient to acquire a number,
-  though it is the correct (free) licence for the resource account itself.
+  though it is the correct (free) license for the resource account itself.
 
   Run as a Teams Administrator or Global Administrator, plus User Administrator
-  for the licence assignment.
+  for the license assignment.
 
   References:
   https://learn.microsoft.com/azure/communication-services/concepts/interop/tpe/teams-phone-extensibility-faq
@@ -147,7 +147,7 @@ if ($TelephoneNumber) {
   }
   catch {
     Write-Warning "Could not assign the number: $($_.Exception.Message)"
-    Write-Warning "Confirm it is a Teams *service* number and that the resource account holds a Microsoft Teams Phone Resource Account licence."
+    Write-Warning "Confirm it is a Teams *service* number and that the resource account holds a Microsoft Teams Phone Resource Account license."
   }
 }
 else {
@@ -181,7 +181,7 @@ $rows = foreach ($upn in $TransferTargetUpns) {
 $rows | Format-Table -AutoSize
 
 if ($rows | Where-Object { $_.ObjectId -eq "NOT FOUND" }) {
-  Write-Warning "Some transfer targets were not found. Create them with New-CsOnlineApplicationInstance, assign a Microsoft Teams Phone Resource Account licence, and associate each with its call queue using New-CsOnlineApplicationInstanceAssociation."
+  Write-Warning "Some transfer targets were not found. Create them with New-CsOnlineApplicationInstance, assign a Microsoft Teams Phone Resource Account license, and associate each with its call queue using New-CsOnlineApplicationInstanceAssociation."
 }
 
 Write-Host @"

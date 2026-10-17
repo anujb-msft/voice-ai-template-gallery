@@ -1,18 +1,12 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { SqliteCrmAdapter } from "../src/db.mjs";
-import { MemoryAudit } from "../src/audit.mjs";
-import { CustomerRecordFlow, STATES, isExplicitSave } from "../src/flow.mjs";
-import { RepDirectory } from "../src/providers/crm.mjs";
+import { STATES, isExplicitSave } from "../src/flow.mjs";
 import { handleUtterance } from "../src/offline.mjs";
+import { DEBRIEF, DEMO_DAY, lastAgentLine, makeFlow as makeTestFlow, startMobile } from "./support.mjs";
 
-function makeFlow({ now = Date.parse("2026-06-10T19:00:00Z") } = {}) {
-  const crm = new SqliteCrmAdapter({ path: ":memory:" });
-  const audit = new MemoryAudit({ persistTranscripts: false, afterCallMinutesBaseline: 6 });
-  const reps = RepDirectory.load();
-  const flow = new CustomerRecordFlow({ crm, reps, audit, now: typeof now === "function" ? now : () => now, options: { callTimeBudgetMs: 480000, wrapUpMs: 420000 } });
-  return { flow, crm, audit, reps };
+function makeFlow({ now = DEMO_DAY } = {}) {
+  return makeTestFlow({ now });
 }
 
 function start(flow) {
@@ -22,7 +16,7 @@ function start(flow) {
 
 function fullProposal(flow, id) {
   flow.findAccount(id, "Fabrikam");
-  return flow.proposeUpdate(id, "acct-fabrikam", "Log the Fabrikam meeting. Dana agreed to the renewal at 240k, moving to Closed Won pending signature, close date June 15th. Remind me to send the contract Friday.");
+  return flow.proposeUpdate(id, "acct-fabrikam", DEBRIEF);
 }
 
 test("known Teams user is identified and hears AI disclosure", () => {
@@ -47,9 +41,56 @@ test("registered PSTN mobile requires a correct PIN", () => {
   assert.equal(flow.snapshot(second.id).rep.verifiedBy, "pstn-pin");
 });
 
+test("keypad PIN digits collect one at a time; * starts again and # submits early", () => {
+  const { flow } = makeFlow();
+  const id = startMobile(flow);
+  assert.equal(flow.dtmf(id, "2").digits, 1);
+  assert.equal(flow.dtmf(id, "4").digits, 2);
+  assert.equal(flow.dtmf(id, "*").cleared, true);
+  assert.equal(flow.snapshot(id).identity.find((c) => c.id === "pin").detail, "Waiting for PIN");
+  for (const d of "24681") flow.dtmf(id, d);
+  assert.equal(flow.snapshot(id).identity.find((c) => c.id === "pin").detail, "5 of 6 digits");
+  const done = flow.dtmf(id, "0");
+  assert.equal(done.ok, true);
+  assert.equal(flow.get(id).state, STATES.LISTENING);
+  assert.ok(!JSON.stringify(flow.snapshot(id)).includes("246810"), "the PIN is never in the snapshot");
+
+  const early = startMobile(flow);
+  flow.dtmf(early, "1");
+  const submitted = flow.dtmf(early, "#");
+  assert.equal(submitted.reason, "wrong_pin");
+  assert.equal(flow.get(early).state, STATES.TRANSFERRED);
+});
+
+test("identity is checked before anything is read out, and the checklist shows what was checked", () => {
+  const { flow } = makeFlow();
+  const id = startMobile(flow);
+  const before = flow.snapshot(id);
+  assert.equal(before.state, STATES.IDENTIFYING);
+  assert.equal(before.record, null);
+  assert.equal(before.identity.find((c) => c.id === "caller").detail, "Registered mobile, number ending 0197");
+  assert.equal(before.identity.find((c) => c.id === "access").detail, "Locked until verified");
+  handleUtterance(flow, id, "Brief me on Fabrikam");
+  assert.equal(flow.get(id).state, STATES.IDENTIFYING, "spoken words are not a PIN");
+  assert.equal(flow.snapshot(id).record, null);
+  for (const d of "246810") flow.dtmf(id, d);
+  handleUtterance(flow, id, "Brief me on Fabrikam");
+  const after = flow.snapshot(id);
+  assert.deepEqual(
+    after.identity.map((c) => c.tone),
+    ["ok", "ok", "ok", "idle"],
+  );
+  assert.equal(after.identity.find((c) => c.id === "contact").detail, "Withheld until asked for");
+  assert.equal(after.record.contact.phone, null, "the card withholds the number until it is asked for");
+  assert.deepEqual(after.record.withheld, ["Credit limit and payment terms — Sales Operations only"]);
+  handleUtterance(flow, id, "What's Dana's number?");
+  assert.equal(flow.snapshot(id).record.contact.phone, "206 555 0120");
+  assert.match(lastAgentLine(flow, id), /206 555 0120/);
+});
+
 test("unknown callers are refused", () => {
   const { flow } = makeFlow();
-  const call = flow.create({ fromPhone: "+14255559999" });
+  const call = flow.create({ fromPhone: "+14255550188" });
   const result = flow.answer(call.id);
   assert.equal(result.reason, "unknown_caller");
   assert.equal(flow.get(call.id).state, STATES.REFUSED);
@@ -81,9 +122,18 @@ test("briefing follows the fixed order and exposes drill-in handles", () => {
   assert.match(briefing.phrase, /Fabrikam, Strategic tier, your account/);
   assert.match(briefing.phrase, /Last touch/);
   assert.match(briefing.phrase, /open deals/);
-  assert.match(briefing.phrase, /due today/);
+  assert.match(briefing.phrase, /One task is due today: send the security questionnaire/);
   assert.match(briefing.phrase, /Dana Ruiz/);
   assert.ok(briefing.handles.some((h) => h.handle === "opportunity:opp-fab-renewal"));
+});
+
+test("after its due date, the same task is read out as overdue, not due today", () => {
+  const { flow } = makeFlow({ now: Date.parse("2026-06-12T19:00:00Z") });
+  const id = start(flow);
+  const briefing = flow.getBriefing(id, "acct-fabrikam");
+  assert.match(briefing.phrase, /One task is overdue: send the security questionnaire/);
+  assert.doesNotMatch(briefing.phrase, /due today/);
+  assert.equal(flow.snapshot(id).record.dueTasks[0].overdue, true);
 });
 
 test("briefing drill-ins and contact details are gated", () => {
@@ -140,6 +190,21 @@ test("maybe is not a confirmation and explicit save is", () => {
   assert.equal(flow.commitProposal(id, p.proposalId, "yes, save it").ok, true);
 });
 
+test("a bare yes to the read-back saves nothing and asks for 'yes, save it'", () => {
+  const { flow, crm } = makeFlow();
+  const id = start(flow);
+  handleUtterance(flow, id, DEBRIEF);
+  assert.equal(flow.get(id).state, STATES.CONFIRMING);
+  const bare = handleUtterance(flow, id, "Yes");
+  assert.equal(bare.reason, "not_confirmed");
+  assert.equal(lastAgentLine(flow, id), `Say "yes, save it" if you want me to write this to Fabrikam's record.`);
+  assert.equal(flow.get(id).state, STATES.CONFIRMING);
+  assert.equal(flow.get(id).pendingCommit, null);
+  assert.equal(crm.getOpportunity(flow.get(id).rep, "opp-fab-renewal").stage, "Negotiation");
+  assert.equal(handleUtterance(flow, id, "Yes, save it.").ok, true);
+  assert.equal(crm.getOpportunity(flow.get(id).rep, "opp-fab-renewal").stage, "Closed Won");
+});
+
 test("confirmed commit writes every field with audit rows and no transcript persistence", () => {
   const { flow, crm, audit } = makeFlow();
   const id = start(flow);
@@ -166,7 +231,7 @@ test("undo restores committed values and undo conflict is reported", () => {
 
   p = fullProposal(flow, id);
   const commit = flow.commitProposal(id, p.proposalId, "yes, save it");
-  crm.db.prepare("UPDATE opportunities SET amount = 123 WHERE id = 'opp-fab-renewal'").run();
+  crm.editRecord("opportunity", "opp-fab-renewal", "amount", 123);
   const conflict = crm.revertCommit(flow.get(id).rep, commit.commitId);
   assert.equal(conflict.reason, "conflict");
 });
@@ -219,6 +284,13 @@ test("wrap-up saves a draft and expired cap ends the call", () => {
   clock += 480000;
   assert.equal(later.flow.checkBudget(id2).ok, true);
   assert.equal(later.flow.get(id2).state, STATES.ENDED);
+
+  // On a live call a tool result is how a line reaches the model, so the closing rides in it.
+  const third = makeFlow({ now: () => clock });
+  const id3 = start(third.flow);
+  clock += 480000;
+  assert.equal(third.flow.findAccount(id3, "Fabrikam").phrase, "We're out of time, so I'll end the call here. Goodbye.");
+  assert.equal(third.flow.get(id3).state, STATES.ENDED);
 });
 
 test("offline typed transcript drives end-to-end briefing, proposal, commit", () => {
@@ -227,9 +299,26 @@ test("offline typed transcript drives end-to-end briefing, proposal, commit", ()
   assert.equal(handleUtterance(flow, id, "Brief me on Fabrikam").ok, true);
   assert.match(flow.snapshot(id).lastPhrase, /Fabrikam/);
   handleUtterance(flow, id, "What's Dana's number?");
-  const proposal = handleUtterance(flow, id, "Log the Fabrikam meeting. Dana agreed to the renewal at 240k, moving to Closed Won pending signature, close date June 15th. Remind me to send the contract Friday.");
+  const proposal = handleUtterance(flow, id, DEBRIEF);
   assert.equal(proposal.ok, true);
   handleUtterance(flow, id, "yes, save it");
   assert.equal(crm.getOpportunity(flow.get(id).rep, "opp-fab-renewal").stage, "Closed Won");
+});
+
+test("a field the agent may not change is refused by policy, nothing is written, and a person is offered", () => {
+  const { flow, crm } = makeFlow();
+  const id = start(flow);
+  const refused = handleUtterance(flow, id, "Raise Fabrikam's credit limit to 500k and move them to net 60 payment terms.");
+  assert.equal(refused.reason, "refused_by_policy");
+  assert.equal(refused.offeredHandoff, true);
+  assert.match(refused.phrase, /The credit limit and the payment terms aren't on the list of things I can change by phone, so nothing was written/);
+  assert.equal(crm.auditRows().length, 0);
+  assert.deepEqual(flow.snapshot(id).offeredHandoff.labels, ["the credit limit", "the payment terms"]);
+  assert.equal(flow.get(id).state, STATES.LISTENING);
+
+  const declined = handleUtterance(flow, id, "No thanks.");
+  assert.equal(declined.ok, true);
+  assert.equal(flow.snapshot(id).offeredHandoff, null);
+  assert.equal(flow.get(id).state, STATES.LISTENING);
 });
 

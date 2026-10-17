@@ -1,5 +1,3 @@
-import { CallAutomationClient } from "@azure/communication-call-automation";
-import { DefaultAzureCredential } from "@azure/identity";
 import { config } from "../config.mjs";
 import { teamsIdentifier, buildCustomCallingContext } from "../handoff.mjs";
 
@@ -7,14 +5,16 @@ export { teamsIdentifier, buildCustomCallingContext };
 
 const log = (...a) => console.log(new Date().toISOString(), "[acs]", ...a);
 
+// The Azure SDKs load on the first real call, so a simulation-only server never loads them.
 let client;
-export function acsClient() {
+export async function acsClient() {
   if (!client) {
+    const { CallAutomationClient } = await import("@azure/communication-call-automation");
     // Entra first. A connection string is still accepted, but it means an ACS
     // key has to live in a file somewhere, and there is no reason to require
     // that when the SDK takes a TokenCredential.
     if (config.acs.endpoint) {
-      client = new CallAutomationClient(config.acs.endpoint, credential());
+      client = new CallAutomationClient(config.acs.endpoint, await credential());
     } else if (config.acs.connectionString) {
       client = new CallAutomationClient(config.acs.connectionString);
     } else {
@@ -25,8 +25,11 @@ export function acsClient() {
 }
 
 let cred;
-function credential() {
-  if (!cred) cred = new DefaultAzureCredential();
+async function credential() {
+  if (!cred) {
+    const { DefaultAzureCredential } = await import("@azure/identity");
+    cred = new DefaultAzureCredential();
+  }
   return cred;
 }
 
@@ -42,7 +45,7 @@ export async function answerInboundCall({ incomingCallContext, callId }) {
   const wss = base.replace(/^https:/, "wss:");
   const q = encodeURIComponent(callId);
 
-  const result = await acsClient().answerCall(incomingCallContext, `${base}/api/calls/callback?call=${q}`, {
+  const result = await (await acsClient()).answerCall(incomingCallContext, `${base}/api/calls/callback?call=${q}`, {
     operationContext: `answer:${callId}`,
     mediaStreamingOptions: {
       transportType: "websocket",
@@ -71,7 +74,7 @@ export async function answerInboundCall({ incomingCallContext, callId }) {
 export async function transferToTeams({ callConnectionId, target, context, callId }) {
   if (!callConnectionId) throw new Error("no call connection to transfer");
 
-  const connection = acsClient().getCallConnection(callConnectionId);
+  const connection = (await acsClient()).getCallConnection(callConnectionId);
   await connection.transferCallToParticipant(teamsIdentifier(target), {
     operationContext: `transfer:${callId}`,
     customCallingContext: buildCustomCallingContext(context),
@@ -81,19 +84,18 @@ export async function transferToTeams({ callConnectionId, target, context, callI
 }
 
 /**
- * Subscribe to keypad presses for the rest of the call. The caller can press a
- * digit at any point; the flow only *mentions* the keypad when speech has
- * already failed twice.
+ * Subscribe to keypad presses for the rest of the call. A caller on a
+ * registered mobile enters the PIN this way, so without it a PSTN caller cannot
+ * be verified; a Teams caller is verified by sign-in and needs no keypad.
  */
 export async function startDtmfRecognition({ callConnectionId, fromPhone }) {
   if (!callConnectionId || !fromPhone) return;
   try {
-    await acsClient()
+    await (await acsClient())
       .getCallConnection(callConnectionId)
       .getCallMedia()
       .startContinuousDtmfRecognition({ phoneNumber: fromPhone });
   } catch (e) {
-    // Not fatal: speech still works, the caller just loses the keypad shortcut.
     log("could not start DTMF recognition:", e.message);
   }
 }
@@ -101,7 +103,7 @@ export async function startDtmfRecognition({ callConnectionId, fromPhone }) {
 export async function hangUp(callConnectionId) {
   if (!callConnectionId) return;
   try {
-    await acsClient().getCallConnection(callConnectionId).hangUp(true);
+    await (await acsClient()).getCallConnection(callConnectionId).hangUp(true);
   } catch {
     /* call may already be gone */
   }

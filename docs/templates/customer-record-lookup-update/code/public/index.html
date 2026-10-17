@@ -1,42 +1,115 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Contoso CRM Voice Demo</title>
-  <link rel="stylesheet" href="/styles.css" />
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Contoso — Record desk</title>
+<link rel="stylesheet" href="/presenter-kit.css" />
+<link rel="stylesheet" href="/styles.css" />
 </head>
 <body>
-  <main>
-    <header>
-      <p class="eyebrow">Demo surface</p>
-      <h1>Customer record lookup & update</h1>
-      <p>Typed transcript simulation drives the same server-owned CRM tools used by Voice Live.</p>
-    </header>
-    <section class="panel controls">
-      <button id="start">Start simulated Alex call</button>
-      <button id="reset">Reset data</button>
-      <span id="status">Idle</span>
+
+<header class="top">
+  <div class="brand"><span class="logo"></span> <strong id="org">Contoso</strong> <span class="pill">Record desk</span></div>
+  <div class="top-right">
+    <span id="clock" hidden></span>
+    <select id="voice" aria-label="Room voice"></select>
+    <span id="mode">checking…</span>
+    <button class="ghost" id="reset" type="button" title="Clear the simulated calls and metrics, restore the seeded customer records and the starting clock">Reset demo</button>
+  </div>
+</header>
+
+<nav id="stack"></nav>
+<section id="director" aria-label="Demo script"></section>
+
+<main class="grid">
+
+  <!-- ------------------------------------------------------------ the call -->
+  <section class="card call">
+    <div class="card-head">
+      <h2>The call</h2>
+      <span id="stateChip">no call</span>
+    </div>
+
+    <div class="caller-row">
+      <label for="callerSelect">Caller ID</label>
+      <select id="callerSelect"></select>
+      <button class="primary" id="newCall" type="button">Answer a call</button>
+    </div>
+
+    <div id="budget" hidden title="Call-time budget. Near the end an unconfirmed update is kept as a draft, never written."></div>
+
+    <ol id="transcript"></ol>
+
+    <form class="say" id="sayForm" autocomplete="off">
+      <input id="sayInput" type="text" placeholder="What does the caller say?" disabled />
+      <button class="primary" type="submit" id="sayBtn" disabled>Say</button>
+    </form>
+
+    <div class="controls">
+      <span class="controls-label">Keypad</span>
+      <div class="keys" id="keys"></div>
+      <button class="ghost" id="silence" type="button" disabled>Silence</button>
+      <button class="ghost danger" id="hangup" type="button" disabled>Hang up</button>
+    </div>
+  </section>
+
+  <!-- -------------------------------------------------- identity and record -->
+  <section class="card decision">
+    <div class="card-head">
+      <h2>Identity &amp; record</h2>
+      <span class="tag" title="The model only proposes. Policy code on the server decides who is verified, what may be read out, what may be written, and when.">the server decides</span>
+    </div>
+
+    <div id="decision"></div>
+
+    <div id="window" hidden></div>
+
+    <h3 class="sub-head">Checked before anything is read out</h3>
+    <ul id="checks"></ul>
+
+    <h3 class="sub-head">Record card <span class="sub-note">only what this caller may hear</span></h3>
+    <dl id="facts"></dl>
+  </section>
+
+  <!-- ---------------------------------------- the Teams side and write-back -->
+  <div class="side">
+    <section class="card teams">
+      <div class="card-head">
+        <h2>What Sales Operations sees</h2>
+        <span class="tag" title="A mock of the Teams incoming-call toast, built from the real handoff context">mock</span>
+      </div>
+
+      <div id="toast" hidden></div>
+      <p class="empty" id="toastEmpty">No call has been handed over yet.</p>
+
+      <h3 class="sub-head">VoIP headers on the wire</h3>
+      <pre id="headers">—</pre>
     </section>
-    <section class="grid">
-      <article class="panel">
-        <h2>Transcript</h2>
-        <div id="transcript" class="log"></div>
-        <form id="sayForm">
-          <input id="utterance" placeholder="Brief me on Fabrikam" autocomplete="off" />
-          <button>Send</button>
-        </form>
-      </article>
-      <article class="panel">
-        <h2>State</h2>
-        <pre id="snapshot">{}</pre>
-      </article>
+
+    <section class="card writeback" id="writeback">
+      <div class="card-head">
+        <h2>Write-back</h2>
+        <span class="tag" title="Read back, an explicit yes, then an undo window before anything is written">before → after</span>
+      </div>
+      <p class="diff-note" id="diffNote">Nothing proposed yet.</p>
+      <ul id="diff"></ul>
     </section>
-    <section class="panel">
-      <h2>Stats</h2>
-      <pre id="stats">{}</pre>
-    </section>
-  </main>
-  <script src="/app.js" type="module"></script>
+  </div>
+
+  <!-- ------------------------------------------------------------- the trail -->
+  <section class="card trail">
+    <div class="card-head">
+      <h2>Audit trail</h2>
+      <span class="sub-note">every check, lookup, write and refusal is audited</span>
+    </div>
+    <ol id="events"></ol>
+  </section>
+
+</main>
+
+<footer id="metrics"></footer>
+
+<script src="/app.js" type="module"></script>
 </body>
 </html>

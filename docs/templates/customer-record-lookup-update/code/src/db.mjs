@@ -1,20 +1,52 @@
+/**
+ * The CRM in SQLite (better-sqlite3), seeded from config/crm-seed.json on first
+ * run. CRM_ADAPTER=sqlite, the default, keeps records between restarts; the
+ * unit tests and the smoke run use the in-memory twin in crm-memory.mjs. Both
+ * adapters phrase records through crm-shared.mjs, so a caller hears the same
+ * words from either.
+ */
 import Database from "better-sqlite3";
 import { mkdirSync, readFileSync } from "node:fs";
 import { dirname } from "node:path";
 import { randomUUID } from "node:crypto";
-import { config, resolvePath, todayIso } from "./config.mjs";
+import { config, resolvePath } from "./config.mjs";
+import {
+  CONTACT_COLUMNS,
+  OPPORTUNITY_COLUMNS,
+  buildBriefing,
+  canSee,
+  contactInfoPhrase,
+  contactPhrase,
+  maskContact,
+  matchAccounts,
+  opportunityPhrase,
+  parseStored,
+  taskPhrase,
+  todayIn,
+  valueString,
+} from "./crm-shared.mjs";
 
 export class SqliteCrmAdapter {
   name = "sqlite";
 
-  constructor({ path = config.crm.dbPath, seedPath = config.crm.seedPath } = {}) {
+  constructor({ path = config.crm.dbPath, seedPath = config.crm.seedPath, now = Date.now, timeZone = "UTC" } = {}) {
     this.path = path;
     this.seedPath = seedPath;
+    this.now = now;
+    this.timeZone = timeZone;
     if (path !== ":memory:") mkdirSync(dirname(resolvePath(path)), { recursive: true });
     this.db = new Database(path === ":memory:" ? path : resolvePath(path));
     this.db.pragma("journal_mode = WAL");
     this.db.exec(SCHEMA);
     if (this.counts().accounts === 0) this.reset();
+  }
+
+  today() {
+    return todayIn(this.now(), this.timeZone);
+  }
+
+  #stamp() {
+    return new Date(this.now()).toISOString();
   }
 
   reset() {
@@ -32,7 +64,7 @@ export class SqliteCrmAdapter {
       const task = this.db.prepare(`INSERT INTO tasks (id,account_id,subject,due_date,owner_id,status) VALUES (@id,@accountId,@subject,@dueDate,@ownerId,@status)`);
       for (const t of seed.tasks ?? []) task.run(t);
       const draft = this.db.prepare(`INSERT INTO drafts (id,account_id,owner_id,proposal_json,summary,created_at) VALUES (@id,@accountId,@ownerId,@proposalJson,@summary,@createdAt)`);
-      for (const d of seed.drafts ?? []) draft.run({ ...d, proposalJson: JSON.stringify(d.proposal ?? {}), createdAt: d.createdAt ?? new Date().toISOString() });
+      for (const d of seed.drafts ?? []) draft.run({ ...d, proposalJson: JSON.stringify(d.proposal ?? {}), createdAt: d.createdAt ?? this.#stamp() });
     });
     tx();
     return this.counts();
@@ -44,7 +76,7 @@ export class SqliteCrmAdapter {
   }
 
   accountById(id) {
-    return inflateAccount(this.db.prepare(`SELECT * FROM accounts WHERE id = ?`).get(id));
+    return inflateAccount(this.db.prepare(`SELECT * FROM accounts WHERE id = ?`).get(id)) ?? null;
   }
 
   visibleAccount(rep, accountId) {
@@ -53,62 +85,50 @@ export class SqliteCrmAdapter {
   }
 
   findAccounts(rep, utterance) {
-    const q = normalise(utterance);
-    const spelled = String(utterance ?? "").match(/\b(?:spelled|spell(?:ing)?)\s+([a-z](?:\s+[a-z]){2,})/i);
-    const spelledText = spelled ? spelled[1].replace(/\s+/g, "") : null;
-    const rows = this.db.prepare(`SELECT * FROM accounts`).all().map(inflateAccount).filter((a) => canSee(rep, a));
-    const scored = rows.map((a) => ({ account: a, score: accountScore(a, spelledText ?? q) })).filter((x) => x.score > 0).sort((a, b) => b.score - a.score || a.account.name.localeCompare(b.account.name));
-    if (!scored.length) return { status: "no_match", candidates: [] };
-    const top = scored[0].score;
-    const close = scored.filter((s) => s.score >= Math.max(2, top - 1)).slice(0, 3);
-    if ((top >= 6 && (scored[1]?.score ?? 0) <= top - 3) || (close.length === 1 && top >= 4)) {
-      const a = scored[0].account;
-      return { status: "confirmed", account: a, phrase: `${a.name} in ${a.city}?` };
-    }
-    return { status: "candidates", candidates: close.map(({ account }) => ({ id: account.id, name: account.name, city: account.city, tier: account.tier })), phrase: close.map(({ account }, i) => `${i + 1}. ${account.name} in ${account.city}, ${account.tier}`).join("; ") };
+    return matchAccounts(this.db.prepare(`SELECT * FROM accounts`).all().map(inflateAccount), rep, utterance);
   }
 
   getBriefing(rep, accountId) {
     const account = this.visibleAccount(rep, accountId);
     if (!account) return { ok: false, reason: "not_found" };
-    const contacts = this.contacts(accountId);
-    const keyContact = contacts.find((c) => c.id === account.keyContactId) ?? contacts[0] ?? null;
-    const lastActivity = this.db.prepare(`SELECT * FROM activities WHERE account_id = ? ORDER BY date DESC LIMIT 1`).get(accountId) ?? null;
+    const lastActivity = rowToActivity(this.db.prepare(`SELECT * FROM activities WHERE account_id = ? ORDER BY date DESC, rowid DESC LIMIT 1`).get(accountId)) ?? null;
     const opportunities = this.db.prepare(`SELECT * FROM opportunities WHERE account_id = ? AND is_open = 1 ORDER BY close_date LIMIT 3`).all(accountId).map(inflateOpportunity);
-    const dueTasks = this.db.prepare(`SELECT * FROM tasks WHERE account_id = ? AND owner_id = ? AND status = 'open' AND due_date <= ? ORDER BY due_date`).all(accountId, rep.ownerId, todayIso()).map(rowToTask);
-    const handles = [];
-    for (const o of opportunities) handles.push({ handle: `opportunity:${o.id}`, type: "opportunity", id: o.id, label: o.name });
-    if (keyContact) handles.push({ handle: `contact:${keyContact.id}`, type: "contact", id: keyContact.id, label: keyContact.name });
-    for (const t of dueTasks) handles.push({ handle: `task:${t.id}`, type: "task", id: t.id, label: t.subject });
-    const phrase = briefingPhrase(account, lastActivity, opportunities, dueTasks, keyContact, rep);
-    return { ok: true, account, contacts: contacts.map(maskContact), keyContact: keyContact && maskContact(keyContact), lastActivity, opportunities, dueTasks, handles, phrase };
+    const today = this.today();
+    const dueTasks = this.db
+      .prepare(`SELECT * FROM tasks WHERE account_id = ? AND owner_id = ? AND status = 'open' AND due_date <= ? ORDER BY due_date`)
+      .all(accountId, rep.ownerId, today)
+      .map(rowToTask);
+    return buildBriefing({ rep, account, contacts: this.contacts(accountId), lastActivity, opportunities, dueTasks, today });
   }
 
   getDetail(rep, handle) {
     const [kind, id] = String(handle ?? "").split(":");
     if (kind === "opportunity") {
-      const opp = inflateOpportunity(this.db.prepare(`SELECT * FROM opportunities WHERE id = ?`).get(id));
-      if (!opp || !this.visibleAccount(rep, opp.accountId)) return { ok: false, reason: "not_found" };
-      return { ok: true, phrase: `${opp.name}: ${opp.stage}, ${money(opp.amount)}, closing ${spokenDate(opp.closeDate)}. Next step: ${opp.nextStep}.`, opportunity: opp };
+      const opp = this.getOpportunity(rep, id);
+      return opp ? { ok: true, phrase: opportunityPhrase(opp), opportunity: opp } : { ok: false, reason: "not_found" };
     }
     if (kind === "contact") {
-      const c = this.db.prepare(`SELECT * FROM contacts WHERE id = ?`).get(id);
-      if (!c || !this.visibleAccount(rep, c.account_id)) return { ok: false, reason: "not_found" };
-      return { ok: true, phrase: `${c.name}, ${c.title}. Say what is ${firstName(c.name)}'s number or email if you want contact details.`, contact: maskContact(rowToContact(c)) };
+      const contact = this.getContact(rep, id);
+      return contact ? { ok: true, phrase: contactPhrase(contact), contact: maskContact(contact) } : { ok: false, reason: "not_found" };
     }
     if (kind === "task") {
-      const t = this.db.prepare(`SELECT * FROM tasks WHERE id = ?`).get(id);
-      if (!t || !this.visibleAccount(rep, t.account_id)) return { ok: false, reason: "not_found" };
-      return { ok: true, phrase: `${t.subject}, due ${spokenDate(t.due_date)}.`, task: rowToTask(t) };
+      const task = rowToTask(this.db.prepare(`SELECT * FROM tasks WHERE id = ?`).get(id));
+      if (!task || !this.visibleAccount(rep, task.accountId)) return { ok: false, reason: "not_found" };
+      return { ok: true, phrase: taskPhrase(task), task };
     }
     return { ok: false, reason: "unknown_handle" };
   }
 
+  getContact(rep, contactId) {
+    const contact = rowToContact(this.db.prepare(`SELECT * FROM contacts WHERE id = ?`).get(contactId));
+    return contact && this.visibleAccount(rep, contact.accountId) ? contact : null;
+  }
+
   getContactInfo(rep, contactId, field) {
-    const c = this.db.prepare(`SELECT * FROM contacts WHERE id = ?`).get(contactId);
-    if (!c || !this.visibleAccount(rep, c.account_id)) return { ok: false, reason: "not_found" };
-    if (!new Set(["phone", "email"]).has(field)) return { ok: false, reason: "field_not_allowed" };
-    return { ok: true, contactId, field, value: c[field], phrase: `${rowToContact(c).name}'s ${field} is ${c[field]}.` };
+    const contact = this.getContact(rep, contactId);
+    if (!contact) return { ok: false, reason: "not_found" };
+    if (!Object.hasOwn(CONTACT_COLUMNS, field)) return { ok: false, reason: "field_not_allowed" };
+    return { ok: true, contactId, field, value: contact[field], phrase: contactInfoPhrase(contact, field) };
   }
 
   contacts(accountId) {
@@ -124,35 +144,45 @@ export class SqliteCrmAdapter {
     return opp && this.visibleAccount(rep, opp.accountId) ? opp : null;
   }
 
+  /** One commit, all or nothing, one audit row per field written. */
   applyChangeSet(rep, callId, proposal) {
     const account = this.visibleAccount(rep, proposal.accountId);
     if (!account) return { ok: false, reason: "not_found" };
     const commitId = randomUUID();
-    const at = new Date().toISOString();
+    const at = this.#stamp();
     const tx = this.db.transaction(() => {
-      this.db.prepare(`INSERT INTO commits (id,call_id,account_id,owner_id,summary,created_at,reverted_at) VALUES (?,?,?,?,?,?,NULL)`).run(commitId, callId, account.id, rep.ownerId, proposal.readBack, at);
+      this.db.prepare(`INSERT INTO commits (id,call_id,account_id,owner_id,summary,created_at,reverted_at) VALUES (?,?,?,?,?,?,NULL)`).run(commitId, callId, account.id, rep.ownerId, proposal.readBack ?? null, at);
       for (const u of proposal.opportunityUpdates ?? []) {
         const opp = this.getOpportunity(rep, u.id);
         if (!opp) throw new Error(`opportunity ${u.id} not visible`);
         for (const diff of u.diffs) {
-          const column = FIELD_COLUMNS[diff.field];
-          if (!column) throw new Error(`unsupported opportunity field ${diff.field}`);
-          const before = opp[diff.field];
-          this.db.prepare(`UPDATE opportunities SET ${column} = ? WHERE id = ?`).run(diff.after, u.id);
-          this.#audit({ commitId, callId, rep, entity: "opportunity", recordId: u.id, field: diff.field, before, after: diff.after, operation: "update", at });
+          if (!Object.hasOwn(OPPORTUNITY_COLUMNS, diff.field)) throw new Error(`unsupported opportunity field ${diff.field}`);
+          this.db.prepare(`UPDATE opportunities SET ${OPPORTUNITY_COLUMNS[diff.field]} = ? WHERE id = ?`).run(diff.after, u.id);
+          this.#audit({ commitId, callId, rep, entity: "opportunity", recordId: u.id, field: diff.field, before: opp[diff.field], after: diff.after, operation: "update", at });
+        }
+      }
+      for (const u of proposal.contactUpdates ?? []) {
+        const contact = this.getContact(rep, u.id);
+        if (!contact) throw new Error(`contact ${u.id} not visible`);
+        for (const diff of u.diffs) {
+          if (!Object.hasOwn(CONTACT_COLUMNS, diff.field)) throw new Error(`unsupported contact field ${diff.field}`);
+          this.db.prepare(`UPDATE contacts SET ${CONTACT_COLUMNS[diff.field]} = ? WHERE id = ?`).run(diff.after, u.id);
+          this.#audit({ commitId, callId, rep, entity: "contact", recordId: u.id, field: diff.field, before: contact[diff.field], after: diff.after, operation: "update", at });
         }
       }
       if (proposal.activity) {
-        const id = proposal.activity.id ?? randomUUID();
         const a = proposal.activity;
-        this.db.prepare(`INSERT INTO activities (id,account_id,type,subject,notes,date,contact_ids,created_by,tags) VALUES (?,?,?,?,?,?,?,?,?)`).run(id, account.id, a.type, a.subject, a.notes, a.date, JSON.stringify(a.contactIds ?? []), rep.ownerId, JSON.stringify(["Logged by voice agent", `call:${callId}`]));
+        const id = a.id ?? randomUUID();
+        this.db
+          .prepare(`INSERT INTO activities (id,account_id,type,subject,notes,date,contact_ids,created_by,tags) VALUES (?,?,?,?,?,?,?,?,?)`)
+          .run(id, account.id, a.type, a.subject, a.notes, a.date, JSON.stringify(a.contactIds ?? []), rep.ownerId, JSON.stringify(["Logged by voice agent", `call:${callId}`]));
         for (const [field, after] of Object.entries({ subject: a.subject, type: a.type, notes: a.notes, date: a.date, contacts: (a.contactIds ?? []).join(",") })) {
           this.#audit({ commitId, callId, rep, entity: "activity", recordId: id, field, before: null, after, operation: "create", at });
         }
       }
       if (proposal.task) {
-        const id = proposal.task.id ?? randomUUID();
         const t = proposal.task;
+        const id = t.id ?? randomUUID();
         this.db.prepare(`INSERT INTO tasks (id,account_id,subject,due_date,owner_id,status) VALUES (?,?,?,?,?,?)`).run(id, account.id, t.subject, t.dueDate, rep.ownerId, "open");
         for (const [field, after] of Object.entries({ subject: t.subject, dueDate: t.dueDate, owner: rep.ownerId })) {
           this.#audit({ commitId, callId, rep, entity: "task", recordId: id, field, before: null, after, operation: "create", at });
@@ -165,44 +195,52 @@ export class SqliteCrmAdapter {
   }
 
   #audit({ commitId, callId, rep, entity, recordId, field, before, after, operation, at }) {
-    this.db.prepare(`INSERT INTO audit_fields (commit_id,call_id,owner_id,entity,record_id,field,before_value,after_value,operation,created_at) VALUES (?,?,?,?,?,?,?,?,?,?)`).run(commitId, callId, rep.ownerId, entity, recordId, field, valueString(before), valueString(after), operation, at);
+    this.db
+      .prepare(`INSERT INTO audit_fields (commit_id,call_id,owner_id,entity,record_id,field,before_value,after_value,operation,created_at) VALUES (?,?,?,?,?,?,?,?,?,?)`)
+      .run(commitId, callId, rep.ownerId, entity, recordId, field, valueString(before), valueString(after), operation, at);
   }
 
+  /** Undo a commit, unless someone has changed one of its fields since. */
   revertCommit(rep, commitId) {
     const commit = this.db.prepare(`SELECT * FROM commits WHERE id = ?`).get(commitId);
     if (!commit || commit.owner_id !== rep.ownerId) return { ok: false, reason: "not_found" };
     if (commit.reverted_at) return { ok: false, reason: "already_reverted" };
     const rows = this.db.prepare(`SELECT * FROM audit_fields WHERE commit_id = ? ORDER BY id DESC`).all(commitId);
     for (const r of rows) {
-      const current = this.#currentValue(r);
-      if (r.operation === "update" && valueString(current) !== r.after_value) {
-        return { ok: false, reason: "conflict", field: r.field, current: valueString(current), expected: r.after_value };
-      }
+      const current = valueString(this.#currentValue(r));
+      if (r.operation === "update" && current !== r.after_value) return { ok: false, reason: "conflict", field: r.field, current, expected: r.after_value };
     }
     const tx = this.db.transaction(() => {
       for (const r of rows) {
         if (r.operation === "update" && r.entity === "opportunity") {
-          const column = FIELD_COLUMNS[r.field];
-          this.db.prepare(`UPDATE opportunities SET ${column} = ? WHERE id = ?`).run(parseStored(r.before_value), r.record_id);
+          this.db.prepare(`UPDATE opportunities SET ${OPPORTUNITY_COLUMNS[r.field]} = ? WHERE id = ?`).run(parseStored(r.before_value), r.record_id);
+        } else if (r.operation === "update" && r.entity === "contact") {
+          this.db.prepare(`UPDATE contacts SET ${CONTACT_COLUMNS[r.field]} = ? WHERE id = ?`).run(r.before_value, r.record_id);
         } else if (r.operation === "create" && r.entity === "activity") {
           this.db.prepare(`DELETE FROM activities WHERE id = ?`).run(r.record_id);
         } else if (r.operation === "create" && r.entity === "task") {
           this.db.prepare(`DELETE FROM tasks WHERE id = ?`).run(r.record_id);
         }
       }
-      this.db.prepare(`UPDATE commits SET reverted_at = ? WHERE id = ?`).run(new Date().toISOString(), commitId);
+      this.db.prepare(`UPDATE commits SET reverted_at = ? WHERE id = ?`).run(this.#stamp(), commitId);
     });
     tx();
     return { ok: true, commitId };
   }
 
   #currentValue(row) {
-    if (row.entity === "opportunity") {
-      const column = FIELD_COLUMNS[row.field];
-      const rec = column ? this.db.prepare(`SELECT ${column} AS value FROM opportunities WHERE id = ?`).get(row.record_id) : null;
-      return rec?.value;
-    }
-    return row.after_value;
+    const [table, columns] = row.entity === "opportunity" ? ["opportunities", OPPORTUNITY_COLUMNS] : row.entity === "contact" ? ["contacts", CONTACT_COLUMNS] : [];
+    if (!table) return row.after_value;
+    if (!Object.hasOwn(columns, row.field)) return undefined;
+    return this.db.prepare(`SELECT ${columns[row.field]} AS value FROM ${table} WHERE id = ?`).get(row.record_id)?.value;
+  }
+
+  /** A change made outside the agent, as a colleague editing the CRM would. Tests use it for conflicts. */
+  editRecord(entity, id, field, value) {
+    const [table, columns] = entity === "opportunity" ? ["opportunities", OPPORTUNITY_COLUMNS] : entity === "contact" ? ["contacts", CONTACT_COLUMNS] : [];
+    if (!table || !Object.hasOwn(columns, field)) return { ok: false, reason: "not_found" };
+    const { changes } = this.db.prepare(`UPDATE ${table} SET ${columns[field]} = ? WHERE id = ?`).run(value, id);
+    return changes ? { ok: true } : { ok: false, reason: "not_found" };
   }
 
   saveDraft(rep, proposal) {
@@ -211,14 +249,14 @@ export class SqliteCrmAdapter {
     if (!account) return { ok: false, reason: "not_found" };
     const id = randomUUID();
     this.db.prepare(`DELETE FROM drafts WHERE account_id = ? AND owner_id = ?`).run(account.id, rep.ownerId);
-    this.db.prepare(`INSERT INTO drafts (id,account_id,owner_id,proposal_json,summary,created_at) VALUES (?,?,?,?,?,?)`).run(id, account.id, rep.ownerId, JSON.stringify(proposal), proposal.readBack ?? "Voice update draft", new Date().toISOString());
+    this.db.prepare(`INSERT INTO drafts (id,account_id,owner_id,proposal_json,summary,created_at) VALUES (?,?,?,?,?,?)`).run(id, account.id, rep.ownerId, JSON.stringify(proposal), proposal.readBack ?? "Voice update draft", this.#stamp());
     return { ok: true, draftId: id, accountName: account.name };
   }
 
   resumeDraft(rep, accountId = null) {
     const row = accountId
-      ? this.db.prepare(`SELECT * FROM drafts WHERE owner_id = ? AND account_id = ? ORDER BY created_at DESC LIMIT 1`).get(rep.ownerId, accountId)
-      : this.db.prepare(`SELECT * FROM drafts WHERE owner_id = ? ORDER BY created_at DESC LIMIT 1`).get(rep.ownerId);
+      ? this.db.prepare(`SELECT * FROM drafts WHERE owner_id = ? AND account_id = ? ORDER BY created_at DESC, rowid DESC LIMIT 1`).get(rep.ownerId, accountId)
+      : this.db.prepare(`SELECT * FROM drafts WHERE owner_id = ? ORDER BY created_at DESC, rowid DESC LIMIT 1`).get(rep.ownerId);
     if (!row) return { ok: false, reason: "no_draft" };
     const account = this.visibleAccount(rep, row.account_id);
     if (!account) return { ok: false, reason: "not_found" };
@@ -226,7 +264,7 @@ export class SqliteCrmAdapter {
   }
 
   latestDraftHint(rep) {
-    const row = this.db.prepare(`SELECT d.*, a.name FROM drafts d JOIN accounts a ON a.id = d.account_id WHERE d.owner_id = ? ORDER BY d.created_at DESC LIMIT 1`).get(rep.ownerId);
+    const row = this.db.prepare(`SELECT d.*, a.name FROM drafts d JOIN accounts a ON a.id = d.account_id WHERE d.owner_id = ? ORDER BY d.created_at DESC, d.rowid DESC LIMIT 1`).get(rep.ownerId);
     return row ? { draftId: row.id, accountId: row.account_id, accountName: row.name, summary: row.summary } : null;
   }
 
@@ -249,49 +287,25 @@ export class SqliteCrmAdapter {
   }
 }
 
-const FIELD_COLUMNS = { stage: "stage", amount: "amount", closeDate: "close_date", nextStep: "next_step" };
-
 function inflateAccount(row) {
   return row && { id: row.id, name: row.name, aliases: JSON.parse(row.aliases ?? "[]"), phoneticKey: row.phonetic_key, city: row.city, tier: row.tier, ownerId: row.owner_id, teamOwnerIds: JSON.parse(row.team_owner_ids ?? "[]"), keyContactId: row.key_contact_id };
 }
+
 function inflateOpportunity(row) {
   return row && { id: row.id, accountId: row.account_id, name: row.name, aliases: JSON.parse(row.aliases ?? "[]"), stage: row.stage, amount: row.amount, closeDate: row.close_date, nextStep: row.next_step, isOpen: Boolean(row.is_open) };
 }
-function rowToContact(row) { return row && { id: row.id, accountId: row.account_id, name: row.name, title: row.title, phone: row.phone, email: row.email, isKey: Boolean(row.is_key) }; }
-function rowToTask(row) { return row && { id: row.id, accountId: row.account_id, subject: row.subject, dueDate: row.due_date, ownerId: row.owner_id, status: row.status }; }
-function canSee(rep, account) { return Boolean(rep?.ownerId && account && (account.ownerId === rep.ownerId || account.teamOwnerIds.includes(rep.ownerId))); }
-function normalise(v) { return String(v ?? "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim(); }
-function accountScore(account, q) {
-  const query = normalise(q);
-  if (!query) return 0;
-  const names = [account.name, ...(account.aliases ?? [])].map(normalise);
-  if (names.some((n) => n === query)) return 8;
-  if (names.some((n) => n.includes(query) || query.includes(n))) return 6;
-  const tokens = query.split(/\s+/).filter(Boolean);
-  let score = 0;
-  for (const n of names) for (const t of tokens) if (n.includes(t)) score += 2;
-  if (account.phoneticKey && query.replace(/[^a-z]/g, "").startsWith(account.phoneticKey.toLowerCase().slice(0, 3))) score += 3;
-  return score;
+
+function rowToContact(row) {
+  return row && { id: row.id, accountId: row.account_id, name: row.name, title: row.title, phone: row.phone, email: row.email, isKey: Boolean(row.is_key) };
 }
-function maskContact(c) { return c && { id: c.id, accountId: c.accountId, name: c.name, title: c.title, isKey: c.isKey }; }
-function firstName(name) { return String(name ?? "").split(/\s+/)[0]; }
-function money(amount) { return amount >= 1000 ? `about ${Math.round(amount / 1000)} thousand` : `$${amount}`; }
-function spokenDate(iso) { return new Date(`${iso}T12:00:00Z`).toLocaleDateString("en-US", { month: "long", day: "numeric" }); }
-function briefingPhrase(account, lastActivity, opportunities, dueTasks, keyContact, rep) {
-  const owner = account.ownerId === rep.ownerId ? "your account" : "an account team account";
-  const parts = [`${account.name}, ${account.tier} tier, ${owner}.`];
-  if (lastActivity) parts.push(`Last touch was a ${lastActivity.type} on ${spokenDate(lastActivity.date)} about ${lastActivity.subject.toLowerCase()}.`);
-  if (opportunities.length) {
-    const deals = opportunities.slice(0, 3).map((o) => `${o.name.toLowerCase()} at ${money(o.amount)}, in ${o.stage}, closing ${spokenDate(o.closeDate)}`);
-    parts.push(`${opportunities.length} open ${opportunities.length === 1 ? "deal" : "deals"}: ${joinEnglish(deals)}.`);
-  }
-  if (dueTasks.length) parts.push(`${dueTasks.length === 1 ? "One task is" : `${dueTasks.length} tasks are`} due today: ${joinEnglish(dueTasks.map((t) => t.subject))}.`);
-  if (keyContact) parts.push(`Your contact is ${keyContact.name}, ${keyContact.title}.`);
-  return parts.join(" ");
+
+function rowToActivity(row) {
+  return row && { id: row.id, accountId: row.account_id, type: row.type, subject: row.subject, notes: row.notes, date: row.date, contactIds: JSON.parse(row.contact_ids ?? "[]"), createdBy: row.created_by, tags: JSON.parse(row.tags ?? "[]") };
 }
-function joinEnglish(items) { return items.length <= 1 ? (items[0] ?? "") : `${items.slice(0, -1).join(", ")}, and ${items.at(-1)}`; }
-function valueString(v) { return v == null ? null : String(v); }
-function parseStored(v) { return /^-?\d+(?:\.\d+)?$/.test(String(v)) ? Number(v) : v; }
+
+function rowToTask(row) {
+  return row && { id: row.id, accountId: row.account_id, subject: row.subject, dueDate: row.due_date, ownerId: row.owner_id, status: row.status };
+}
 
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS accounts (id TEXT PRIMARY KEY, name TEXT NOT NULL, aliases TEXT NOT NULL, phonetic_key TEXT, city TEXT, tier TEXT, owner_id TEXT NOT NULL, team_owner_ids TEXT NOT NULL, key_contact_id TEXT);
