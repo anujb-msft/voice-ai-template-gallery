@@ -1,1 +1,77 @@
-body{font-family:system-ui,-apple-system,Segoe UI,sans-serif;margin:0;background:#f6f8fb;color:#172033}main{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:20px;padding:24px}header,.controls,.chat,aside{background:white;border:1px solid #d9e2ef;border-radius:14px;padding:16px;box-shadow:0 10px 24px #10204012}header{grid-column:1/-1}.controls{display:flex;gap:10px;flex-wrap:wrap}.chat{min-height:420px}.caller{text-align:left}.agent{background:#edf5ff}.caller{background:#f7f7f7}.agent,.caller{padding:10px;border-radius:10px}form{display:flex;gap:8px;margin-top:12px}input{flex:1;padding:12px;border:1px solid #c9d5e5;border-radius:8px}button,select{padding:10px 12px;border-radius:8px;border:1px solid #9bb4d4;background:#0f6cbd;color:white}select{background:white;color:#172033}pre{white-space:pre-wrap;overflow:auto;font-size:12px}@media(max-width:900px){main{grid-template-columns:1fr}}
+/*
+ * Help desk — the triage console's own styles. The shared look comes from
+ * presenter-kit.css, which loads first; this file holds the template's accent
+ * color and the help-desk panels: the employee's chat, the ticket card and
+ * the privacy rule.
+ */
+
+:root {
+  --accent: #a99cff;
+  --accent-2: #cfc6ff;
+  /* The accent is light, so text on it needs dark ink (matches template.json onAccent). */
+  --on-accent: #15102c;
+}
+
+/* Some kit panels set their own display, which would otherwise beat `hidden`. */
+[hidden] { display: none !important; }
+
+/* Keypad buttons say what they do, so nobody has to remember the menu. */
+.keys button small { color: var(--muted); font-size: 10px; font-weight: 500; margin-left: 2px; }
+
+/* State changes are in the trail for completeness; the decisions are the story. */
+.pk-trail li[data-kind="state"] { opacity: 0.55; }
+
+.pk-caller-card .muted { font-size: 11.5px; }
+
+/* ------------------------------------------------------------------ layout */
+
+/* The right-hand column stacks the Teams view over the employee's chat. */
+.side { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+
+/* The trail shares the second row with the routes. */
+.grid > .trail { grid-column: 1 / span 2; }
+
+@media (max-width: 1100px) {
+  .grid > .trail { grid-column: 1 / -1; }
+}
+
+/* ------------------------------------------------------------- ticket card */
+
+.ticket-card {
+  margin-top: 16px; padding: 12px 14px; border-radius: 12px;
+  background: rgba(11, 16, 32, 0.45);
+  border: 1px solid color-mix(in srgb, var(--tone, var(--line)) 45%, var(--line));
+  animation: pk-in 0.25s ease-out;
+}
+.ticket-kicker {
+  margin: 0 0 6px; font-size: 11px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase;
+  color: var(--tone, var(--muted));
+}
+.ticket-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.ticket-no { font: 700 18px/1.2 var(--mono); }
+.ticket-summary { margin: 6px 0 0; font-size: 13.5px; }
+.ticket-card .pk-facts { margin-top: 10px; gap: 4px; }
+.ticket-card .pk-facts > div { grid-template-columns: 96px 1fr; }
+
+/* ----------------------------------------------------------- privacy rule */
+
+.privacy .pk-checks li[data-tone="ok"] strong { color: var(--text); }
+
+/* ---------------------------------------------------- the employee's chat */
+
+#inbox { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; max-height: 420px; overflow-y: auto; }
+.chat-msg {
+  padding: 10px 12px; border-radius: 10px;
+  background: #201f2d; border: 1px solid #3b3956; border-left: 3px solid var(--teams);
+  animation: pk-in 0.25s ease-out;
+}
+.chat-msg[data-kind="otp"] { border-left-color: var(--accent); }
+.chat-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; font-size: 11.5px; color: var(--muted); }
+.chat-head strong { color: var(--text); font-weight: 650; }
+.chat-subject { margin: 4px 0 2px; font-size: 13.5px; font-weight: 650; overflow-wrap: anywhere; }
+.chat-body { margin: 0; font-size: 13px; color: var(--muted); }
+.chat-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 8px; font-size: 11.5px; color: var(--muted); }
+.otp-code {
+  margin: 6px 0 4px; font: 700 30px/1.1 var(--mono); letter-spacing: 0.14em;
+  color: var(--accent-2);
+}

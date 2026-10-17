@@ -3,6 +3,7 @@
     {
       "id": "it-vpn-connect",
       "domain": "IT",
+      "label": "VPN connection",
       "examples": [
         "vpn",
         "disconnect"
@@ -25,6 +26,7 @@
     {
       "id": "it-mfa-reregister",
       "domain": "IT",
+      "label": "MFA re-registration",
       "examples": [
         "mfa",
         "authenticator"
@@ -49,6 +51,7 @@
     {
       "id": "it-account-unlock",
       "domain": "IT",
+      "label": "account unlock",
       "examples": [
         "locked out",
         "account locked"
@@ -72,6 +75,7 @@
     {
       "id": "it-printer",
       "domain": "IT",
+      "label": "printer",
       "examples": [
         "printer",
         "print"
@@ -94,6 +98,7 @@
     {
       "id": "it-laptop-display",
       "domain": "IT",
+      "label": "laptop display",
       "examples": [
         "screen",
         "display"
@@ -114,6 +119,7 @@
     {
       "id": "it-software-access",
       "domain": "IT",
+      "label": "application access",
       "examples": [
         "access to",
         "system account"
@@ -134,6 +140,7 @@
     {
       "id": "it-outlook",
       "domain": "IT",
+      "label": "Outlook",
       "examples": [
         "outlook",
         "email"
@@ -152,6 +159,7 @@
     {
       "id": "it-security-phishing",
       "domain": "IT",
+      "label": "phishing click",
       "examples": [
         "phishing",
         "clicked a link"
@@ -171,6 +179,7 @@
     {
       "id": "it-security-lost-device",
       "domain": "IT",
+      "label": "lost or stolen device",
       "examples": [
         "lost laptop",
         "stolen laptop"
@@ -191,6 +200,7 @@
     {
       "id": "it-site-outage",
       "domain": "IT",
+      "label": "site outage",
       "examples": [
         "site is down",
         "everyone is blocked"
@@ -209,6 +219,7 @@
     {
       "id": "hr-pto-policy",
       "domain": "HR",
+      "label": "PTO policy",
       "examples": [
         "pto policy",
         "vacation policy"
@@ -230,6 +241,7 @@
     {
       "id": "hr-pto-balance",
       "domain": "HR",
+      "label": "PTO balance",
       "examples": [
         "pto balance",
         "how much pto"
@@ -247,6 +259,7 @@
     {
       "id": "hr-benefits-window",
       "domain": "HR",
+      "label": "benefits window",
       "examples": [
         "benefits enrollment",
         "open enrollment"
@@ -264,6 +277,7 @@
     {
       "id": "hr-pay-calendar",
       "domain": "HR",
+      "label": "pay date",
       "examples": [
         "pay date",
         "payday"
@@ -283,6 +297,7 @@
     {
       "id": "hr-manager",
       "domain": "HR",
+      "label": "manager lookup",
       "examples": [
         "who is my manager",
         "manager name"
@@ -300,6 +315,7 @@
     {
       "id": "hr-benefits-general",
       "domain": "HR",
+      "label": "benefits",
       "examples": [
         "benefits",
         "medical plan"
@@ -323,6 +339,7 @@
     {
       "id": "hr-payroll-issue",
       "domain": "HR",
+      "label": "paycheck amount",
       "examples": [
         "paycheck wrong",
         "pay dispute"
@@ -341,6 +358,7 @@
     {
       "id": "hr-manager-guide",
       "domain": "HR",
+      "label": "manager guide",
       "examples": [
         "manager guide",
         "performance review"
@@ -362,6 +380,7 @@
     {
       "id": "both-new-hire",
       "domain": "both",
+      "label": "new hire setup",
       "examples": [
         "new hire",
         "onboarding"
@@ -384,6 +403,7 @@
     {
       "id": "out-expenses",
       "domain": "unclear",
+      "label": "travel and expenses",
       "examples": [
         "expense report",
         "travel expense"

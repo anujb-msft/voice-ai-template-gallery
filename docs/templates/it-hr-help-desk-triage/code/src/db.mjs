@@ -2,30 +2,61 @@ import Database from "better-sqlite3";
 import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import { config } from "./config.mjs";
+import { buildStats } from "./audit.mjs";
 
 export class SqliteAudit {
   name = "sqlite";
-  constructor(path = config.dbPath) {
-    mkdirSync(dirname(path), { recursive: true });
+  constructor(path = config.dbPath, { statsMinCount = config.statsMinCount } = {}) {
+    if (path !== ":memory:") mkdirSync(dirname(path), { recursive: true });
+    this.statsMinCount = statsMinCount;
     this.db = new Database(path);
     this.db.pragma("journal_mode = WAL");
     this.db.exec(SCHEMA);
   }
-  startCall(call) { this.db.prepare(`INSERT OR REPLACE INTO calls (id, state, verified, domain, started_at, simulation) VALUES (@id, @state, @verified, @domain, @startedAt, @simulation)`).run({ id: call.id, state: call.state, verified: call.verified ? 1 : 0, domain: call.domain ?? null, startedAt: new Date(call.startedAt).toISOString(), simulation: call.simulation ? 1 : 0 }); }
+  startCall(call) {
+    this.db.prepare(`INSERT OR REPLACE INTO calls (id, state, verified, domain, started_at, simulation) VALUES (@id, @state, @verified, @domain, @startedAt, @simulation)`)
+      .run({ id: call.id, state: call.state, verified: call.verified ? 1 : 0, domain: call.domain ?? null, startedAt: new Date(call.startedAt).toISOString(), simulation: call.simulation ? 1 : 0 });
+  }
   updateCall(id, patch) {
-    const cols = { state:"state", verified:"verified", domain:"domain", topicId:"topic_id", outcome:"outcome", endedAt:"ended_at", durationMs:"duration_ms", simulation:"simulation" };
-    const sets=[]; const vals={id};
-    for (const [k,c] of Object.entries(cols)) if (patch[k] !== undefined) { sets.push(`${c}=@${k}`); vals[k]=typeof patch[k]==="boolean"?Number(patch[k]):patch[k]; }
+    const cols = { state: "state", verified: "verified", domain: "domain", topicId: "topic_id", outcome: "outcome", endedAt: "ended_at", durationMs: "duration_ms", simulation: "simulation" };
+    const sets = [];
+    const vals = { id };
+    for (const [k, c] of Object.entries(cols)) {
+      if (patch[k] === undefined) continue;
+      sets.push(`${c}=@${k}`);
+      vals[k] = typeof patch[k] === "boolean" ? Number(patch[k]) : patch[k];
+    }
     if (sets.length) this.db.prepare(`UPDATE calls SET ${sets.join(", ")} WHERE id=@id`).run(vals);
   }
-  recordEvent(callId, source, kind, detail = null) { this.db.prepare(`INSERT INTO call_events (call_id, source, kind, detail, created_at) VALUES (?, ?, ?, ?, ?)`).run(callId, source, kind, detail == null ? null : String(detail), new Date().toISOString()); }
-  recordTranscript(callId, role, text, { sensitive = false } = {}) { if (!config.transcriptRetention || sensitive) return; this.db.prepare(`INSERT INTO transcripts (call_id, role, text, created_at) VALUES (?, ?, ?, ?)`).run(callId, role, text, new Date().toISOString()); }
-  eventsFor(callId) { return this.db.prepare(`SELECT source, kind, detail, created_at AS at FROM call_events WHERE call_id=? ORDER BY id`).all(callId); }
+  recordEvent(callId, source, kind, detail = null, at = new Date().toISOString()) {
+    this.db.prepare(`INSERT INTO call_events (call_id, source, kind, detail, created_at) VALUES (?, ?, ?, ?, ?)`)
+      .run(callId, source, kind, detail == null ? null : String(detail), at);
+  }
+  recordTranscript(callId, role, text, { sensitive = false } = {}) {
+    if (!config.transcriptRetention || sensitive) return;
+    this.db.prepare(`INSERT INTO transcripts (call_id, role, text, created_at) VALUES (?, ?, ?, ?)`).run(callId, role, text, new Date().toISOString());
+  }
+  eventsFor(callId) {
+    return this.db.prepare(`SELECT source, kind, detail, created_at AS at FROM call_events WHERE call_id=? ORDER BY id`).all(callId);
+  }
   stats(ticketStats = {}) {
-    const events = (kind) => this.db.prepare(`SELECT COUNT(*) AS n FROM call_events WHERE kind=?`).get(kind).n;
-    const tallyEvent = (kind) => Object.fromEntries(this.db.prepare(`SELECT COALESCE(detail,'none') k, COUNT(*) n FROM call_events WHERE kind=? GROUP BY k`).all(kind).map(r=>[r.k,r.n]));
-    const confidential = events("confidential_hr");
-    return { calls: this.db.prepare(`SELECT COUNT(*) n FROM calls`).get().n, mix: Object.fromEntries(this.db.prepare(`SELECT COALESCE(domain,'none') k, COUNT(*) n FROM calls GROUP BY k`).all().map(r=>[r.k,r.n])), tier1Deflection: events("answered") + events("personal_answer"), routingAccuracy: null, averageTimeToResolutionMs: null, answersByArticle: tallyEvent("answered"), ticketsByCategory: ticketStats.byCategory ?? {}, ticketsByPriority: ticketStats.byPriority ?? {}, outageAttachments: events("outage_attached"), resetHandoffs: events("password_reset_handoff"), transfersByDestination: tallyEvent("transfer"), outOfScopeRedirects: events("out_of_scope"), verificationOutcomes: tallyEvent("verification"), confidentialHr: confidential < config.statsMinCount ? "<5" : confidential };
+    const count = (kind) => this.db.prepare(`SELECT COUNT(*) AS n FROM call_events WHERE kind=?`).get(kind).n;
+    const tally = (kind) => Object.fromEntries(this.db.prepare(`SELECT COALESCE(detail,'none') k, COUNT(*) n FROM call_events WHERE kind=? GROUP BY k`).all(kind).map((r) => [r.k, r.n]));
+    const mix = Object.fromEntries(this.db.prepare(`SELECT COALESCE(domain,'none') k, COUNT(*) n FROM calls GROUP BY k`).all().map((r) => [r.k, r.n]));
+    const durations = this.db.prepare(`SELECT duration_ms AS d FROM calls WHERE duration_ms > 0`).all().map((r) => r.d);
+    const calls = this.db.prepare(`SELECT COUNT(*) n FROM calls`).get().n;
+    const transferred = Object.fromEntries(this.db.prepare(`SELECT substr(outcome, 13) k, COUNT(*) n FROM calls WHERE outcome LIKE 'transferred:%' GROUP BY k`).all().map((r) => [r.k, r.n]));
+    return buildStats({ calls, mix, durations, count, tally, transferred, ticketStats, statsMinCount: this.statsMinCount });
+  }
+  /** Demo reset: drop simulated calls and everything recorded about them. */
+  reset() {
+    const removed = this.db.prepare(`SELECT COUNT(*) n FROM calls WHERE simulation=1`).get().n;
+    this.db.transaction(() => {
+      this.db.prepare(`DELETE FROM call_events WHERE call_id IN (SELECT id FROM calls WHERE simulation=1)`).run();
+      this.db.prepare(`DELETE FROM transcripts WHERE call_id IN (SELECT id FROM calls WHERE simulation=1)`).run();
+      this.db.prepare(`DELETE FROM calls WHERE simulation=1`).run();
+    })();
+    return { removed };
   }
 }
 const SCHEMA = `

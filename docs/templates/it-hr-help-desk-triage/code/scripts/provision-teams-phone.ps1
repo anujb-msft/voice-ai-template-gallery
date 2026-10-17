@@ -15,7 +15,7 @@
       -> this sample answers with Call Automation
 
   This script performs the Teams side of that binding and then reads back the
-  Microsoft Entra object IDs you paste into config/routes.json as transfer targets.
+  Microsoft Entra object IDs you paste into config/routing.json as transfer targets.
 
   It does NOT buy a phone number, and it cannot make one appear. See PREREQUISITES.
 
@@ -83,12 +83,13 @@ param(
   [ValidateSet("CallingPlan", "OperatorConnect", "DirectRouting")]
   [string] $NumberType = "CallingPlan",
 
-  # Where transferred callers end up. Defaults match the routes in routes.json.
+  # Where transferred callers end up. Defaults match the queues in routing.json.
   [string[]] $TransferTargetUpns = @(
-    "sales-queue@contoso.com",
-    "support-queue@contoso.com",
-    "billing-queue@contoso.com",
-    "reception-queue@contoso.com"
+    "it-service-desk@contoso.com",
+    "it-on-call@contoso.com",
+    "hr-shared-services@contoso.com",
+    "confidential-hr@contoso.com",
+    "payroll@contoso.com"
   )
 )
 
@@ -115,7 +116,7 @@ if (-not $inbound) {
   Write-Host "  creating the resource account..." -ForegroundColor DarkGray
   New-CsOnlineApplicationInstance `
     -UserPrincipalName $InboundResourceAccountUpn `
-    -DisplayName "Intent-Based Call Routing" `
+    -DisplayName "IT / HR Help Desk Triage" `
     -ApplicationId $BotApplicationId | Out-Null
 
   # Directory replication is not instant, and the next cmdlet needs the object.
@@ -159,7 +160,7 @@ else {
 }
 
 # --------------------------------------------- 4. read back the transfer targets
-Write-Host "`nResolving transfer targets. Paste these into config/routes.json:`n" -ForegroundColor Cyan
+Write-Host "`nResolving transfer targets. Paste these into config/routing.json:`n" -ForegroundColor Cyan
 
 $rows = foreach ($upn in $TransferTargetUpns) {
   try {

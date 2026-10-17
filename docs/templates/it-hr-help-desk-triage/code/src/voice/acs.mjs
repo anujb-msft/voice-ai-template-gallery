@@ -1,5 +1,3 @@
-import { CallAutomationClient } from "@azure/communication-call-automation";
-import { DefaultAzureCredential } from "@azure/identity";
 import { config } from "../config.mjs";
 import { teamsIdentifier, buildCustomCallingContext } from "../handoff.mjs";
 
@@ -7,27 +5,34 @@ export { teamsIdentifier, buildCustomCallingContext };
 
 const log = (...a) => console.log(new Date().toISOString(), "[acs]", ...a);
 
+/**
+ * The Azure SDKs load on first use, not at startup. Simulation never touches
+ * ACS, and @azure/identity alone can add seconds to a cold start on a slow
+ * filesystem — the difference between a demo that restarts at once and one
+ * that keeps the room waiting.
+ */
 let client;
 export function acsClient() {
-  if (!client) {
-    // Entra first. A connection string is still accepted, but it means an ACS
-    // key has to live in a file somewhere, and there is no reason to require
-    // that when the SDK takes a TokenCredential.
-    if (config.acs.endpoint) {
-      client = new CallAutomationClient(config.acs.endpoint, credential());
-    } else if (config.acs.connectionString) {
-      client = new CallAutomationClient(config.acs.connectionString);
-    } else {
-      throw new Error("Set ACS_ENDPOINT (preferred) or ACS_CONNECTION_STRING");
-    }
-  }
+  client ??= createClient().catch((e) => {
+    client = null;
+    throw e;
+  });
   return client;
 }
 
-let cred;
-function credential() {
-  if (!cred) cred = new DefaultAzureCredential();
-  return cred;
+async function createClient() {
+  if (!config.acs.endpoint && !config.acs.connectionString) {
+    throw new Error("Set ACS_ENDPOINT (preferred) or ACS_CONNECTION_STRING");
+  }
+  const { CallAutomationClient } = await import("@azure/communication-call-automation");
+  // Entra first. A connection string is still accepted, but it means an ACS
+  // key has to live in a file somewhere, and there is no reason to require
+  // that when the SDK takes a TokenCredential.
+  if (config.acs.endpoint) {
+    const { DefaultAzureCredential } = await import("@azure/identity");
+    return new CallAutomationClient(config.acs.endpoint, new DefaultAzureCredential());
+  }
+  return new CallAutomationClient(config.acs.connectionString);
 }
 
 /**
@@ -42,7 +47,8 @@ export async function answerInboundCall({ incomingCallContext, callId }) {
   const wss = base.replace(/^https:/, "wss:");
   const q = encodeURIComponent(callId);
 
-  const result = await acsClient().answerCall(incomingCallContext, `${base}/api/calls/callback?call=${q}`, {
+  const acs = await acsClient();
+  const result = await acs.answerCall(incomingCallContext, `${base}/api/calls/callback?call=${q}`, {
     operationContext: `answer:${callId}`,
     mediaStreamingOptions: {
       transportType: "websocket",
@@ -71,7 +77,7 @@ export async function answerInboundCall({ incomingCallContext, callId }) {
 export async function transferToTeams({ callConnectionId, target, context, callId }) {
   if (!callConnectionId) throw new Error("no call connection to transfer");
 
-  const connection = acsClient().getCallConnection(callConnectionId);
+  const connection = (await acsClient()).getCallConnection(callConnectionId);
   await connection.transferCallToParticipant(teamsIdentifier(target), {
     operationContext: `transfer:${callId}`,
     customCallingContext: buildCustomCallingContext(context),
@@ -88,7 +94,7 @@ export async function transferToTeams({ callConnectionId, target, context, callI
 export async function startDtmfRecognition({ callConnectionId, fromPhone }) {
   if (!callConnectionId || !fromPhone) return;
   try {
-    await acsClient()
+    await (await acsClient())
       .getCallConnection(callConnectionId)
       .getCallMedia()
       .startContinuousDtmfRecognition({ phoneNumber: fromPhone });
@@ -101,7 +107,7 @@ export async function startDtmfRecognition({ callConnectionId, fromPhone }) {
 export async function hangUp(callConnectionId) {
   if (!callConnectionId) return;
   try {
-    await acsClient().getCallConnection(callConnectionId).hangUp(true);
+    await (await acsClient()).getCallConnection(callConnectionId).hangUp(true);
   } catch {
     /* call may already be gone */
   }

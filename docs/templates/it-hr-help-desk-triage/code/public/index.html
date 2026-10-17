@@ -1,1 +1,133 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Contoso IT/HR Triage Demo</title><link rel="stylesheet" href="/styles.css"></head><body><main><header><h1>Contoso IT/HR Help Desk Triage</h1><p>Demo surface: typed transcripts drive the same state machine as a live call.</p></header><section class="controls"><select id="caller"><option value="8:orgid:11111111-1111-1111-1111-111111111111">Sam Rivera (Teams verified)</option><option value="">PSTN anonymous</option></select><button id="start">Answer a call</button><button data-phrase="My VPN keeps disconnecting">VPN</button><button data-phrase="How much PTO do I have?">PTO</button><button data-phrase="I clicked a phishing link">Security</button><button data-phrase="My manager has been making comments about me">Confidential HR</button></section><section class="chat"><div id="transcript"></div><form id="say"><input id="text" placeholder="Type what the caller says"><button>Send</button></form></section><aside><h2>State</h2><pre id="state">No call yet.</pre><h2>Health</h2><pre id="health"></pre></aside></main><script src="/app.js"></script></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Contoso — Help desk</title>
+<link rel="stylesheet" href="/presenter-kit.css" />
+<link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+
+<header class="top">
+  <div class="brand"><span class="logo"></span> <strong id="org">Contoso</strong> <span class="pill">Help desk</span></div>
+  <div class="top-right">
+    <span id="clock" hidden></span>
+    <select id="voice" aria-label="Room voice"></select>
+    <span id="mode">checking…</span>
+    <button class="ghost" id="reset" type="button" title="Clear the simulated calls, tickets, codes and metrics, and restore the starting clock">Reset demo</button>
+  </div>
+</header>
+
+<nav id="stack"></nav>
+<section id="director" aria-label="Demo script"></section>
+
+<main class="grid">
+
+  <!-- ------------------------------------------------------------ the call -->
+  <section class="card call">
+    <div class="card-head">
+      <h2>The call</h2>
+      <span id="stateChip">no call</span>
+    </div>
+
+    <div class="caller-row">
+      <label for="callerSelect">Caller ID</label>
+      <select id="callerSelect"></select>
+      <button class="primary" id="newCall" type="button">Answer a call</button>
+    </div>
+
+    <div id="budget" hidden title="The call's time limit. Near the end the agent offers a ticket or a person; at the limit the call ends."></div>
+
+    <ol id="transcript"></ol>
+
+    <form class="say" id="sayForm" autocomplete="off">
+      <input id="sayInput" type="text" placeholder="What does the caller say?" disabled />
+      <button class="primary" type="submit" id="sayBtn" disabled>Say</button>
+    </form>
+
+    <div class="controls">
+      <span class="controls-label">Keypad</span>
+      <div class="keys" id="keys">
+        <button type="button" data-digit="0" title="Press 0 to reach a person" disabled>0 <small>a person</small></button>
+        <button type="button" data-digit="*" title="Press * to hear the last answer again" disabled>* <small>repeat</small></button>
+      </div>
+      <button class="ghost" id="silence" type="button" disabled>Silence</button>
+      <button class="ghost danger" id="hangup" type="button" disabled>Hang up</button>
+    </div>
+  </section>
+
+  <!-- --------------------------------------------------------- the decision -->
+  <section class="card decision">
+    <div class="card-head">
+      <h2>Triage decision</h2>
+      <span class="tag" title="The model proposes. Policy code on the server decides who the caller is, what may be read out, the ticket priority, and where the call goes.">the server decides</span>
+    </div>
+
+    <div id="decision"></div>
+    <div id="gauge" hidden title="How sure the classifier is, against the gate in config. Below the gate the agent asks one question; it never guesses."></div>
+
+    <h3 class="sub-head">Identity <span class="sub-note">who may hear personal details</span></h3>
+    <ul id="checks"></ul>
+    <div id="otpWindow" hidden title="One-time codes expire. An expired code is refused and a new one has to be sent."></div>
+
+    <div id="ticketCard" class="ticket-card" hidden></div>
+
+    <div id="privacy" class="privacy" hidden>
+      <h3 class="sub-head">The privacy rule <span class="sub-note">sensitive HR topics</span></h3>
+      <ul id="privacyChecks"></ul>
+    </div>
+
+    <dl id="facts"></dl>
+  </section>
+
+  <!-- ------------------------------------------- the Teams side and the chat -->
+  <div class="side">
+    <section class="card teams">
+      <div class="card-head">
+        <h2>What the Teams agent sees</h2>
+        <span class="tag" title="A mock of the Teams incoming-call toast, built from the real handoff context">mock</span>
+      </div>
+
+      <div id="toast" hidden></div>
+      <p class="empty" id="toastEmpty">No call has been handed over yet.</p>
+
+      <h3 class="sub-head">VoIP headers on the wire</h3>
+      <pre id="headers">—</pre>
+    </section>
+
+    <section class="card inbox">
+      <div class="card-head">
+        <h2 id="inboxTitle">The employee's Teams chat</h2>
+        <span class="tag" title="Simulated calls never send anything. One-time codes and new tickets appear here instead.">simulated — nothing is sent</span>
+      </div>
+      <ul id="inbox"></ul>
+      <p class="empty" id="inboxEmpty">Nothing sent yet. One-time codes and new tickets land here instead of a real chat.</p>
+    </section>
+  </div>
+
+  <!-- ------------------------------------------------------------- the trail -->
+  <section class="card trail">
+    <div class="card-head">
+      <h2>Decision trail</h2>
+      <span class="sub-note">every decision is audited — the words of a private HR call are not</span>
+    </div>
+    <ol id="events"></ol>
+  </section>
+
+  <!-- ------------------------------------------------------------ the routes -->
+  <section class="card routes-card">
+    <div class="card-head">
+      <h2>Where calls can go</h2>
+      <span class="sub-note">open or closed on the demo clock</span>
+    </div>
+    <ul id="routes"></ul>
+  </section>
+
+</main>
+
+<footer id="metrics"></footer>
+
+<script src="/app.js" type="module"></script>
+</body>
+</html>

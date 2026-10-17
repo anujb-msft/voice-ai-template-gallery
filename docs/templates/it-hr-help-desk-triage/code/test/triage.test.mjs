@@ -7,28 +7,34 @@ import { DirectoryAdapter } from "../src/adapters/directory.mjs";
 import { HrisAdapter } from "../src/adapters/hris.mjs";
 import { OtpSender } from "../src/adapters/otp.mjs";
 import { MemoryTicketAdapter } from "../src/adapters/tickets.mjs";
-import { TriageFlow, STATES } from "../src/flow.mjs";
+import { TriageFlow, STATES, PRIVATE_ROW, forModel } from "../src/flow.mjs";
 import { handleUtterance, resolveClarification } from "../src/offline.mjs";
 import { readiness } from "../src/config.mjs";
+import { buildCustomCallingContext } from "../src/handoff.mjs";
 import { readJson } from "../src/util.mjs";
 
 const TEAMS_SAM = "8:orgid:11111111-1111-1111-1111-111111111111";
+const TEAMS_MARIA = "8:orgid:22222222-2222-2222-2222-222222222222";
+const SAM_MOBILE = "+14255550101";
 const OPEN = new Date("2026-05-15T17:00:00Z");
 const AFTER_HOURS = new Date("2026-05-17T04:00:00Z");
 const HOLIDAY = new Date("2026-05-25T17:00:00Z");
 
-function makeFlow({ at = OPEN, passwordResetTarget = "" } = {}) {
+function makeFlow({ at = OPEN, passwordResetTarget = "", hub = null, transfer = null } = {}) {
   let now = at;
   const audit = new MemoryAudit({ retainTranscripts: false, statsMinCount: 5 });
   const tickets = new MemoryTicketAdapter();
+  const otp = new OtpSender({ code:"123456", now:()=>now.getTime() });
   const flow = new TriageFlow({
     taxonomy: Taxonomy.load(), guard: SensitiveGuard.load(), knowledge: new KnowledgeBase(), directory: new DirectoryAdapter(), hris: new HrisAdapter(), tickets,
-    priority: PriorityMatrix.load(), outages: OutagePolicy.load(), routing: RoutingPolicy.load(), audit, otp: new OtpSender({ code:"123456", now:()=>now.getTime() }),
+    priority: PriorityMatrix.load(), outages: OutagePolicy.load(), routing: RoutingPolicy.load(), audit, otp, hub, transfer,
     now: () => now, options: { passwordResetTarget, timeBudgetMs: 360_000, wrapUpMs: 300_000, confidenceMin: 0.7 },
   });
-  return { flow, audit, tickets, setNow: (d) => (now = d), advance: (ms) => (now = new Date(now.getTime() + ms)) };
+  return { flow, audit, tickets, otp, setNow: (d) => (now = d), advance: (ms) => (now = new Date(now.getTime() + ms)) };
 }
 function start(flow, teamsUserId = TEAMS_SAM) { const c = flow.create({ teamsUserId, fromPhone: teamsUserId ? null : "+14255559999" }); flow.answered(c.id); return c.id; }
+function startPhone(flow, fromPhone = SAM_MOBILE, { simulation = true } = {}) { const c = flow.create({ fromPhone, simulation }); flow.answered(c.id); return c.id; }
+function recorder() { const frames = []; return { frames, hub: { send: (id, target, payload) => frames.push({ id, target, payload }) } }; }
 
 test("Teams caller greeting includes AI disclosure and outage banner", () => {
   const { flow } = makeFlow(); const id = start(flow); const first = flow.snapshot(id).transcript[0].text;
@@ -179,12 +185,159 @@ test("model-facing snapshots omit phones, OTP, employee ids, and serial numbers"
   const s = JSON.stringify(flow.snapshot(id)); assert.ok(!s.includes("14255550101")); assert.ok(!s.includes("123456")); assert.ok(!s.includes("11111111")); assert.ok(!s.includes("4471"), s);
 });
 
-test("health readiness reports simulation and subsystems", () => {
-  const h = readiness({ routing: RoutingPolicy.load(), knowledge: new KnowledgeBase(), outages: OutagePolicy.load() }, { publicBaseUrl:"", acs:{ endpoint:"", connectionString:"", teamsCloud:"public" }, voiceLive:{ endpoint:"", apiKey:"", model:"gpt-realtime", apiVersion:"2026-04-10" }, ticketAdapter:"sqlite", hrisAdapter:"fixture", otpChannel:"teams", passwordResetTarget:"" });
+test("health readiness reports simulation, subsystems, and placeholder Teams queues", () => {
+  const h = readiness({ routing: RoutingPolicy.load(), knowledge: new KnowledgeBase(), outages: OutagePolicy.load() }, { publicBaseUrl:"", acs:{ endpoint:"", connectionString:"", teamsCloud:"public" }, voiceLive:{ endpoint:"", apiKey:"", model:"gpt-realtime", apiVersion:"2026-04-10" }, ticketAdapter:"sqlite", hrisAdapter:"fixture", otpChannel:"teams", passwordResetTarget:"" }, OPEN);
   assert.equal(h.simulation, true); assert.equal(h.voiceLive.apiVersion, "2026-04-10"); assert.ok(h.knowledge.IT.fresh >= 1); assert.ok(h.activeOutages.length >= 1);
+  assert.equal(h.teamsPhone.ready, false); assert.ok(h.teamsPhone.unprovisionedRoutes.includes("it-service-desk")); assert.ok(h.routing.every((r) => r.open));
 });
 
 test("stats suppress confidential HR small counts", () => {
   const { flow, audit, tickets } = makeFlow(); const id = start(flow); handleUtterance(flow, id, "I need to report discrimination"); const stats = audit.stats(tickets.stats());
   assert.equal(stats.confidentialHr, "<5"); assert.equal(stats.outageAttachments, 0);
+});
+
+test("caller ID is shown but never trusted: ticket status waits for the one-time code", () => {
+  const { flow } = makeFlow(); const id = startPhone(flow);
+  assert.equal(flow.snapshot(id).callerIdMatch, true); assert.equal(flow.snapshot(id).verified, false);
+  const gated = handleUtterance(flow, id, "What's happening with INC-004610?"); assert.equal(gated.needsVerification, true); assert.ok(!flow.snapshot(id).lastSpoken.includes("Printer"));
+  handleUtterance(flow, id, "sam.rivera@contoso.com"); assert.equal(flow.snapshot(id).verification.callerIdMatches, true);
+  assert.equal(handleUtterance(flow, id, "654321").reason, "failed"); assert.equal(flow.snapshot(id).verified, false);
+  const ok = handleUtterance(flow, id, "123456"); assert.equal(ok.verified, true); assert.match(flow.snapshot(id).lastSpoken, /INC-004610, "Printer.*in progress/);
+});
+
+test("two wrong codes hand the caller to a person who can verify another way", () => {
+  const { flow } = makeFlow(); const id = startPhone(flow); handleUtterance(flow, id, "How much PTO do I have?"); handleUtterance(flow, id, "sam.rivera@contoso.com");
+  handleUtterance(flow, id, "111111"); const r = handleUtterance(flow, id, "222222");
+  assert.equal(r.transferred, true); assert.equal(flow.snapshot(id).state, STATES.TRANSFERRED);
+  assert.equal(flow.snapshot(id).handoff.callTopic, "Couldn't verify caller"); assert.equal(flow.snapshot(id).handoff.callContext.verifiedName, undefined);
+});
+
+test("someone else's ticket is refused even for a verified caller; a major incident is readable", () => {
+  const { flow } = makeFlow(); const id = start(flow, TEAMS_MARIA);
+  const refused = handleUtterance(flow, id, "What's happening with INC-004610?"); assert.equal(refused.refused, true); assert.ok(!flow.snapshot(id).lastSpoken.includes("Printer"));
+  const major = handleUtterance(flow, id, "What about INC-004700?"); assert.equal(major.ok, true); assert.match(major.spoken, /being monitored/);
+});
+
+test("joining the Outlook outage uses no new ticket number", () => {
+  const { flow, tickets } = makeFlow(); const maria = start(flow, TEAMS_MARIA);
+  assert.equal(handleUtterance(flow, maria, "Outlook won't open for me either").ticket.number, "INC-004700");
+  assert.equal(tickets.isAffected("INC-004700", "maria.lopez@contoso.com"), true);
+  assert.equal(handleUtterance(flow, maria, "Outlook still won't open").ticket.alreadyAffected, true);
+  const sam = start(flow); handleUtterance(flow, sam, "My laptop screen is flickering and I can't work"); assert.equal(handleUtterance(flow, sam, "yes").ticket.number, "INC-004821");
+});
+
+test("IT-or-HR ambiguity asks one question, then routes; a second miss goes to a person", () => {
+  const { flow } = makeFlow(); let id = start(flow);
+  const q = handleUtterance(flow, id, "I can't get into the payroll system and my pay is wrong");
+  assert.equal(q.clarify, true); assert.equal(q.question, "Is this about a system account, or about your pay?");
+  handleUtterance(flow, id, "It's my paycheck, the amount is wrong");
+  assert.equal(flow.snapshot(id).handoff.destinationId, "payroll"); assert.equal(flow.snapshot(id).handoff.callTopic, "HR - paycheck amount");
+  id = start(flow); handleUtterance(flow, id, "I can't get into the payroll system and my pay is wrong"); handleUtterance(flow, id, "I'm not sure");
+  assert.equal(flow.snapshot(id).state, STATES.TRANSFERRED); assert.equal(flow.snapshot(id).handoff.callTopic, "IT or HR unclear after one question");
+});
+
+test("simulated calls show the code in the mock inbox; a live call never puts it on a console frame", () => {
+  const { frames, hub } = recorder(); const { flow } = makeFlow({ hub });
+  const sim = startPhone(flow); handleUtterance(flow, sim, "How much PTO do I have?"); handleUtterance(flow, sim, "sam.rivera@contoso.com");
+  const outbox = frames.filter((f) => f.id === sim && f.target === "outbox");
+  assert.equal(outbox.length, 1); assert.equal(outbox[0].payload.kind, "otp"); assert.equal(outbox[0].payload.code, "123456"); assert.equal(outbox[0].payload.to, "sam.rivera@contoso.com");
+  const live = startPhone(flow, SAM_MOBILE, { simulation: false }); handleUtterance(flow, live, "How much PTO do I have?"); handleUtterance(flow, live, "sam.rivera@contoso.com");
+  const code = flow.get(live).verification.code; assert.match(code, /^\d{6}$/); assert.notEqual(code, null);
+  assert.equal(handleUtterance(flow, live, code).verified, true);
+  const liveFrames = frames.filter((f) => f.id === live);
+  assert.equal(liveFrames.filter((f) => f.target === "outbox").length, 0);
+  assert.ok(!JSON.stringify(liveFrames.map((f) => f.payload)).includes(code));
+});
+
+test("confidential HR: the console, the handoff, and the Teams headers carry only the label", () => {
+  const { frames, hub } = recorder(); const { flow, audit } = makeFlow({ hub }); const id = start(flow);
+  handleUtterance(flow, id, "I need to take medical leave for surgery next month");
+  const handoff = frames.find((f) => f.target === "handoff").payload;
+  assert.deepEqual(Object.keys(handoff).sort(), ["callContext", "callTopic", "confidential", "destinationId", "destinationLabel", "queue", "sessionId", "simulated"]);
+  assert.equal(handoff.callTopic, "Confidential HR");
+  const headers = Object.fromEntries(buildCustomCallingContext(handoff).map((h) => [h.key, h.value]));
+  assert.equal(headers["CallDetails.CallContext"], "Confidential HR"); assert.equal(headers["CallDetails.Confidential"], "true");
+  assert.equal(frames.find((f) => f.target === "transcript" && f.payload.role === "caller").payload.text, PRIVATE_ROW);
+  assert.ok(!JSON.stringify(frames).includes("surgery")); assert.ok(!JSON.stringify(audit).includes("surgery"));
+});
+
+test("handoff frames tell the console why the call moved", () => {
+  const { frames, hub } = recorder(); const { flow } = makeFlow({ hub });
+  let id = start(flow); flow.dtmf(id, "0");
+  assert.equal(frames.filter((f) => f.target === "handoff").at(-1).payload.reason, "keypad_0");
+  id = start(flow); handleUtterance(flow, id, "I think I clicked a phishing link"); handleUtterance(flow, id, "yes");
+  assert.equal(frames.filter((f) => f.target === "handoff").at(-1).payload.reason, "urgent_ticket");
+  id = start(flow); handleUtterance(flow, id, "my pay is wrong this month");
+  const payroll = frames.filter((f) => f.target === "handoff").at(-1).payload;
+  assert.equal(payroll.destinationId, "payroll"); assert.equal(payroll.reason, "topic");
+});
+
+test("after hours a sensitive caller is only asked yes or no to a callback", () => {
+  const { flow, tickets } = makeFlow({ at: AFTER_HOURS }); const id = start(flow);
+  handleUtterance(flow, id, "I need to take medical leave"); assert.equal(flow.snapshot(id).state, STATES.AFTER_HOURS_OFFER);
+  assert.equal(flow.dtmf(id, "0").reprompted, true); assert.match(flow.snapshot(id).lastSpoken, /closed right now/);
+  assert.equal(handleUtterance(flow, id, "what does that mean").reprompted, true);
+  assert.equal(handleUtterance(flow, id, "no thanks").ended, true); assert.equal(flow.snapshot(id).outcome, "confidential_after_hours_declined");
+  assert.equal(tickets.hrCases.filter((c) => c.simulated).length, 0);
+});
+
+test("routing.json decides which call context fields each queue receives", () => {
+  const { flow } = makeFlow(); const id = start(flow);
+  handleUtterance(flow, id, "My laptop screen is flickering and I can't work"); handleUtterance(flow, id, "yes");
+  const call = flow.get(id);
+  assert.equal(flow.handoffContext(call, "it-service-desk").callContext.matchedAsset, "LAP-4471");
+  assert.equal(flow.handoffContext(call, "hr-shared-services").callContext.ticketNumber, undefined);
+  flow.routing.get("it-service-desk").callContextFields = ["verifiedName", "ticketNumber"];
+  assert.deepEqual(Object.keys(flow.handoffContext(call, "it-service-desk").callContext).sort(), ["ticketNumber", "verifiedName"]);
+});
+
+test("the voice model never hears a device serial or a one-time code", () => {
+  assert.equal(forModel("Laptop display, on your Surface Laptop ending in 4471. Should I file it?"), "Laptop display, on your Surface Laptop. Should I file it?");
+  assert.equal(forModel("my code is 1 2 3 4 5 6"), "my code is ••••••");
+});
+
+test("a live transfer completes when Call Automation accepts it; a failure brings the caller back", async () => {
+  const sent = [];
+  let { flow, audit } = makeFlow({ transfer: async (call, { target, context }) => { sent.push({ target: target.id, context }); } });
+  let id = startPhone(flow, SAM_MOBILE, { simulation: false });
+  flow.route(id, "hr-shared-services", "asked_for_person"); assert.equal(flow.get(id).state, STATES.TRANSFERRING);
+  await flow.settled(id); assert.equal(flow.get(id).state, STATES.TRANSFERRED); assert.equal(sent[0].target, "hr-shared-services");
+  assert.equal(audit.stats().story.handedOff, 1);
+  assert.equal(flow.transferFailed(id, "TransferFailed").reason, "transfer_failed"); assert.equal(flow.get(id).state, STATES.LISTENING);
+  assert.equal(audit.stats().story.handedOff, 0); assert.deepEqual(audit.stats().transfersByDestination, {});
+  assert.equal(flow.transferFailed(id, "TransferFailed").reason, "not_transferring");
+  ({ flow, audit } = makeFlow({ transfer: async () => { throw new Error("queue unavailable"); } }));
+  id = startPhone(flow, SAM_MOBILE, { simulation: false });
+  assert.equal(flow.route(id, "it-service-desk", "asked_for_person").pending, true);
+  await flow.settled(id); assert.equal(flow.get(id).state, STATES.LISTENING); assert.equal(flow.get(id).handoff, null); assert.match(flow.get(id).lastSpoken, /couldn't connect you/);
+  assert.equal(audit.stats().story.handedOff, 0);
+});
+
+test("a demo clock jump moves open calls with it, so a fresh code still works", () => {
+  const { flow, advance } = makeFlow(); const id = startPhone(flow); handleUtterance(flow, id, "How much PTO do I have?"); handleUtterance(flow, id, "sam.rivera@contoso.com");
+  advance(3 * 3_600_000); flow.rebaseClock(3 * 3_600_000);
+  assert.equal(handleUtterance(flow, id, "123456").verified, true); assert.equal(flow.checkBudget(id).ok, true); assert.notEqual(flow.snapshot(id).state, STATES.ENDED);
+});
+
+test("demo reset forgets simulated calls, tickets, codes and stats, but never a real call", () => {
+  const { flow, audit, tickets, otp } = makeFlow(); const id = start(flow);
+  handleUtterance(flow, id, "My laptop screen is flickering and I can't work"); assert.equal(handleUtterance(flow, id, "yes").ticket.number, "INC-004821");
+  const pstn = startPhone(flow); handleUtterance(flow, pstn, "How much PTO do I have?"); handleUtterance(flow, pstn, "sam.rivera@contoso.com");
+  const real = flow.create({ teamsUserId: TEAMS_SAM, simulation: false }).id;
+  assert.equal(otp.sent.length, 1);
+  const removed = flow.reset(); audit.reset(); tickets.reset(); otp.reset();
+  assert.deepEqual(removed.sort(), [id, pstn].sort()); assert.equal(flow.get(id), null); assert.ok(flow.get(real)); assert.equal(otp.sent.length, 0);
+  assert.equal(audit.stats(tickets.stats()).calls, 1); assert.equal(tickets.findByNumber("INC-004821"), null); assert.ok(tickets.findByNumber("INC-004700"));
+  const again = start(flow); handleUtterance(flow, again, "My laptop screen is flickering and I can't work"); assert.equal(handleUtterance(flow, again, "yes").ticket.number, "INC-004821");
+});
+
+test("the closing metrics count what the demo showed", () => {
+  const { flow, audit, tickets } = makeFlow();
+  let id = start(flow); handleUtterance(flow, id, "My VPN keeps disconnecting"); handleUtterance(flow, id, "My laptop screen is flickering and I can't work"); handleUtterance(flow, id, "yes");
+  id = startPhone(flow); handleUtterance(flow, id, "What's happening with INC-004610?"); handleUtterance(flow, id, "sam.rivera@contoso.com"); handleUtterance(flow, id, "654321"); handleUtterance(flow, id, "123456");
+  id = start(flow); handleUtterance(flow, id, "My manager keeps making comments about me");
+  id = start(flow); handleUtterance(flow, id, "I can't get into the payroll system and my pay is wrong"); handleUtterance(flow, id, "It's my paycheck, the amount is wrong");
+  const { story, transfersByDestination } = audit.stats(tickets.stats());
+  assert.deepEqual(story, { calls: 4, answered: 2, ticketsFiled: 1, duplicatesAvoided: 0, verifiedByCode: 1, codesRefused: 1, sensitiveRouted: "<5", handedOff: 1 });
+  assert.equal(transfersByDestination["confidential-hr"], undefined);
 });

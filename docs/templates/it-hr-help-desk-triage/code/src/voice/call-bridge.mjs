@@ -2,28 +2,45 @@ import { WebSocketServer } from "ws";
 import { VoiceLiveSession, buildInstructions } from "./voice-live.mjs";
 import { hangUp } from "./acs.mjs";
 import { config } from "../config.mjs";
+import { STATES, forModel } from "../flow.mjs";
+import { settleClarification, handleCallbackOffer } from "../offline.mjs";
 
 const log = (...a) => console.log(new Date().toISOString(), "[bridge]", ...a);
 
+/** Only the sensitive-topic guard sends a call to confidential HR; resets have their own tool. */
+const SERVER_ONLY_DESTINATIONS = new Set(["confidential-hr", "password-reset-agent"]);
+
+/** Tool results go to the model, so they get the same redaction as anything it is asked to say. */
+function forModelDeep(value) {
+  if (typeof value === "string") return forModel(value);
+  if (Array.isArray(value)) return value.map(forModelDeep);
+  if (value && typeof value === "object") return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, forModelDeep(v)]));
+  return value;
+}
+
 /**
- * Bridges one ACS call to one Voice Live session and wires both into the routing
- * flow.
+ * Bridges one ACS call to one Voice Live session and wires both into the
+ * triage flow.
  *
- *   PSTN caller
+ *   Employee (Teams or phone)
  *      ⇅  ACS bidirectional media streaming (WebSocket, PCM16 24 kHz mono)
  *   this process
  *      ⇅  Voice Live (WebSocket, PCM16 24 kHz mono — forwarded verbatim)
  *   gpt-realtime
  *
- * The bridge translates tool calls into flow methods and nothing else. It makes
- * no routing decisions of its own, which is why the flow can be tested without
- * it.
+ * The bridge translates tool calls into flow methods and nothing else. It
+ * makes no policy decisions of its own, which is why the flow can be tested
+ * without it.
  */
 class CallBridge {
   constructor({ callId, acsSocket, flow }) {
     this.callId = callId;
     this.acs = acsSocket;
     this.flow = flow;
+    /** Lines the flow speaks during a tool call travel back in that tool's result. */
+    this.collecting = null;
+    this.outbound = [];
+    this.flushQueued = false;
   }
 
   async start() {
@@ -36,13 +53,37 @@ class CallBridge {
 
     await this.voice.connect();
 
-    this.flow.registerAgent(this.callId, {
-      instruct: (text) => this.voice.instruct(text),
-      nudge: (text, opts) => this.voice.nudge(text, opts),
-    });
+    this.flow.registerAgent(this.callId, { say: (text) => this.#say(text) });
 
-    // Moving into the greeting is what makes the agent speak first.
+    // The flow's greeting, with the automated-assistant disclosure and any
+    // outage banner, is the agent's first line.
     this.flow.answered(this.callId);
+  }
+
+  /**
+   * Every line that carries policy comes from the flow. During a tool call it
+   * rides back in the result's `say`; anything else (the greeting, the
+   * sensitive-topic path, a failed transfer) is spoken at once, cutting off
+   * whatever the model had started. Lines from one turn are batched so the
+   * second does not cancel the first.
+   */
+  #say(text) {
+    const line = forModel(text).trim();
+    if (!line) return;
+    if (this.collecting) {
+      this.collecting.push(line);
+      return;
+    }
+    this.outbound.push(line);
+    if (this.flushQueued) return;
+    this.flushQueued = true;
+    queueMicrotask(() => {
+      this.flushQueued = false;
+      const lines = this.outbound.splice(0);
+      if (!lines.length || !this.voice || this.voice.closed) return;
+      this.voice.cancelResponse();
+      this.voice.nudge(`Say exactly this to the caller now, then wait for their reply: "${lines.join(" ")}"`);
+    });
   }
 
   /** Both legs are PCM16 24 kHz mono, so the base64 payload is forwarded verbatim. */
@@ -65,7 +106,7 @@ class CallBridge {
         this.voice.cancelResponse();
         break;
       case "user_transcript":
-        this.flow.ingestUtterance(this.callId, e.text);
+        this.#onCallerTurn(e.text);
         break;
       case "agent_transcript":
         this.flow.pushTranscript(this.callId, "agent", e.text);
@@ -76,36 +117,87 @@ class CallBridge {
     }
   }
 
+  /**
+   * The flow hears every caller turn first, so the sensitive-topic guard runs
+   * before the model can act on it. The after-hours callback question belongs
+   * to the server alone.
+   */
+  #onCallerTurn(text) {
+    const said = String(text ?? "").trim();
+    const call = this.flow.get(this.callId);
+    if (!said || !call) return;
+    const result = this.flow.ingestUtterance(this.callId, said);
+    if (result?.handled || result?.ok === false) return;
+    if (call.state === STATES.AFTER_HOURS_OFFER) handleCallbackOffer(this.flow, this.callId, said);
+  }
+
   async #onToolCall(name, args) {
-    const result = await this.#invokeTool(name, args);
+    const call = this.flow.get(this.callId);
+    // Once the guard has taken a call, the model has nothing left to do on it.
+    if (!call || call.sensitive) return { ok: false, reason: "handled_by_server" };
+
+    const said = [];
+    this.collecting = said;
+    let result;
+    try {
+      result = this.#invokeTool(name, args ?? {});
+    } catch (e) {
+      result = { ok: false, error: e.message };
+    } finally {
+      this.collecting = null;
+    }
+
     this.flow.recordAgentAction(this.callId, {
       tool: name,
       ok: !result?.error && result?.ok !== false,
       detail: result?.error ?? result?.reason ?? null,
     });
-    return result;
+    const safe = forModelDeep(result ?? {});
+    return said.length ? { ...safe, say: said.join(" ") } : safe;
   }
 
-  async #invokeTool(name, args) {
+  #invokeTool(name, args) {
+    const { flow, callId: id } = this;
     switch (name) {
-      case "classify": return this.flow.classify(args.utterance);
-      case "answer_question": return this.flow.answerQuestion(this.callId, args.topicId, args);
-      case "start_verification": return this.flow.startVerification(this.callId, args.email);
-      case "check_code": return this.flow.checkCode(this.callId, args.code);
-      case "get_personal_answer": return this.flow.getPersonalAnswer(this.callId, args.kind);
-      case "propose_ticket": return this.flow.proposeTicket(this.callId, args);
-      case "file_ticket": return this.flow.fileTicket(this.callId, args.proposalId, args.confirmation);
-      case "get_my_tickets": return this.flow.getMyTickets(this.callId);
-      case "send_link": return this.flow.sendLink(this.callId, args.target);
-      case "handoff_password_reset": return this.flow.handoffPasswordReset(this.callId, args.intent);
-      case "route": return this.flow.route(this.callId, args.destination, args.reason ?? args.destination);
+      case "classify": return this.#classify(args.utterance);
+      case "answer_question": return flow.answerQuestion(id, args.topicId, { locale: args.locale ?? null });
+      case "start_verification": return flow.startVerification(id, args.email);
+      case "check_code": return flow.checkCode(id, args.code);
+      case "get_personal_answer": return flow.getPersonalAnswer(id, args.kind);
+      case "propose_ticket": return flow.proposeTicket(id, args);
+      case "file_ticket": return flow.fileTicket(id, args.proposalId, args.confirmation);
+      case "get_my_tickets": return args.ticketNumber ? flow.getTicketStatus(id, args.ticketNumber) : flow.getMyTickets(id);
+      case "send_link": return flow.sendLink(id, args.target);
+      case "handoff_password_reset": return flow.handoffPasswordReset(id, args.intent);
+      case "route": return this.#route(args);
       case "end_call":
         setTimeout(() => this.stop(), 4000);
-        this.flow.endCall(this.callId, args.reason ?? "agent_ended");
+        flow.endCall(id, args.reason ?? "agent_ended");
         return { ending: true };
       default:
         return { error: `Unknown tool ${name}` };
     }
+  }
+
+  /** One clarifying question at most: the answer settles the topic, or the call goes to a person. */
+  #classify(utterance) {
+    const call = this.flow.get(this.callId);
+    if (call?.state === STATES.CLARIFYING && call.pendingClarification) {
+      const settled = settleClarification(this.flow, this.callId, utterance);
+      if (!settled.clarified) return settled;
+      const topic = this.flow.taxonomy.get(settled.topicId);
+      return { ok: true, clarified: true, topicId: topic.id, label: topic.label, domain: topic.domain, action: topic.action?.type ?? null };
+    }
+    const c = this.flow.classifyFor(this.callId, utterance);
+    if (c.needsClarification) return this.flow.askClarification(this.callId, utterance, c);
+    return { ...c, action: this.flow.taxonomy.get(c.topicId)?.action?.type ?? null };
+  }
+
+  /** The model may ask for people; the server chooses which people. */
+  #route({ destination, reason = null }) {
+    const person = reason === "asked_for_person";
+    const allowed = !person && this.flow.routing.get(destination) && !SERVER_ONLY_DESTINATIONS.has(destination);
+    return this.flow.route(this.callId, allowed ? destination : this.flow.personQueue(this.callId), person ? "asked_for_person" : null);
   }
 
   handleAcsMessage(raw) {
@@ -141,10 +233,9 @@ export const activeBridges = new Map();
 /**
  * Returns the server so the caller can route upgrades to it. Deliberately
  * `noServer`: two WebSocketServers sharing one HTTP server both receive every
- * upgrade event, and `ws` aborts the handshake — destroying the socket — for any
- * path a given server does not own. Whichever is registered first therefore
- * kills the other's connections. That is not a hypothetical: it silently broke
- * every media stream, because the presenter hub was attached first.
+ * upgrade event, and `ws` aborts the handshake — destroying the socket — for
+ * any path a given server does not own, so whichever is registered first
+ * kills the other's connections.
  */
 export function attachMediaBridge(flow, path = "/ws/media") {
   const wss = new WebSocketServer({ noServer: true });
