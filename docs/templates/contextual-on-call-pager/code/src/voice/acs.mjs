@@ -1,66 +1,94 @@
-import { CallAutomationClient } from "@azure/communication-call-automation";
-import { DefaultAzureCredential } from "@azure/identity";
 import { config } from "../config.mjs";
 
 const log = (...a) => console.log(new Date().toISOString(), "[acs]", ...a);
-let client;
-let cred;
-function credential() { if (!cred) cred = new DefaultAzureCredential(); return cred; }
+let client = null;
+
+/** Lazy: the Call Automation SDK loads on the first real call, never in simulation mode. */
 export function acsClient() {
-  if (!client) {
-    if (config.acs.endpoint) client = new CallAutomationClient(config.acs.endpoint, credential());
-    else if (config.acs.connectionString) client = new CallAutomationClient(config.acs.connectionString);
-    else throw new Error("Set ACS_ENDPOINT or ACS_CONNECTION_STRING");
-  }
+  client ??= createClient().catch((e) => {
+    client = null;
+    throw e;
+  });
   return client;
 }
 
+async function createClient() {
+  const { CallAutomationClient } = await import("@azure/communication-call-automation");
+  if (config.acs.endpoint) {
+    const { DefaultAzureCredential } = await import("@azure/identity");
+    return new CallAutomationClient(config.acs.endpoint, new DefaultAzureCredential());
+  }
+  if (config.acs.connectionString) return new CallAutomationClient(config.acs.connectionString);
+  throw new Error("Set ACS_ENDPOINT or ACS_CONNECTION_STRING");
+}
+
 const phone = (value) => ({ phoneNumber: value });
+/** SDK 1.6 CallInvite: who to ring, and the number the call presents — ACS_OUTBOUND_CALLER_ID, a number this ACS resource can call from (see README.md). */
+const invite = (to) => ({ targetParticipant: phone(to), sourceCallIdNumber: phone(config.acs.outboundCallerId) });
+const mediaStreaming = (q, leg) => ({
+  transportType: "websocket",
+  transportUrl: `${config.publicBaseUrl.replace(/^https:/, "wss:")}/ws/media?call=${q}&leg=${leg}`,
+  contentType: "audio",
+  audioChannelType: "mixed",
+  startMediaStreaming: true,
+  enableBidirectional: true,
+  audioFormat: "pcm24KMono",
+});
+const callback = (q, leg) => `${config.publicBaseUrl}/api/calls/callback?call=${q}&leg=${leg}`;
 
 export async function answerInboundCall({ incomingCallContext, callId }) {
-  const base = config.publicBaseUrl;
-  const wss = base.replace(/^https:/, "wss:");
   const q = encodeURIComponent(callId);
-  const result = await acsClient().answerCall(incomingCallContext, `${base}/api/calls/callback?call=${q}&leg=intake`, {
+  const result = await (await acsClient()).answerCall(incomingCallContext, callback(q, "intake"), {
     operationContext: `answer:${callId}`,
-    mediaStreamingOptions: { transportType: "websocket", transportUrl: `${wss}/ws/media?call=${q}&leg=intake`, contentType: "audio", audioChannelType: "mixed", startMediaStreaming: true, enableBidirectional: true, audioFormat: "pcm24KMono" },
+    mediaStreamingOptions: mediaStreaming(q, "intake"),
   });
   const callConnectionId = result.callConnectionProperties?.callConnectionId ?? null;
   log("answered", callId, callConnectionId);
   return { callConnectionId };
 }
 
-export async function createPageCall({ incidentId, contact, briefKind = "page" }) {
-  const base = config.publicBaseUrl;
-  const wss = base.replace(/^https:/, "wss:");
+/** The page: an outbound PSTN call to the technician's mobile, bridged to Voice Live, which reads the brief. */
+export async function createPageCall({ incidentId, contact }) {
   const q = encodeURIComponent(incidentId);
-  const result = await acsClient().createCall(phone(contact.mobile), `${base}/api/calls/callback?call=${q}&leg=page`, {
-    operationContext: `${briefKind}:${incidentId}:${contact.id}`,
-    sourceCallerIdNumber: phone(config.acs.outboundCallerId),
-    mediaStreamingOptions: { transportType: "websocket", transportUrl: `${wss}/ws/media?call=${q}&leg=page`, contentType: "audio", audioChannelType: "mixed", startMediaStreaming: true, enableBidirectional: true, audioFormat: "pcm24KMono" },
+  const result = await (await acsClient()).createCall(invite(contact.mobile), callback(q, "page"), {
+    operationContext: `page:${incidentId}:${contact.id}`,
+    mediaStreamingOptions: mediaStreaming(q, "page"),
   });
   return { callConnectionId: result.callConnectionProperties?.callConnectionId ?? null };
 }
 
+/** The call back to the tenant, bridged to Voice Live, which says the server-written update and hangs up. */
 export async function createStatusCall({ incident, message }) {
   if (!incident.callbackNumber) return { skipped: true };
-  const result = await acsClient().createCall(phone(incident.callbackNumber), `${config.publicBaseUrl}/api/calls/callback?call=${encodeURIComponent(incident.id)}&leg=status`, { operationContext: `status:${incident.id}`, sourceCallerIdNumber: phone(config.acs.outboundCallerId) });
+  const q = encodeURIComponent(incident.id);
+  const result = await (await acsClient()).createCall(invite(incident.callbackNumber), callback(q, "status"), {
+    operationContext: `status:${incident.id}`,
+    mediaStreamingOptions: mediaStreaming(q, "status"),
+  });
   log("status call", incident.id, message);
   return { callConnectionId: result.callConnectionProperties?.callConnectionId ?? null };
 }
 
 export async function addTenantParticipant({ callConnectionId, incident }) {
   if (!callConnectionId || !incident.callbackNumber) throw new Error("bridge requires active page call and tenant callback");
-  await acsClient().getCallConnection(callConnectionId).addParticipant(phone(incident.callbackNumber), { operationContext: `bridge:${incident.id}` });
+  await (await acsClient()).getCallConnection(callConnectionId).addParticipant(invite(incident.callbackNumber), { operationContext: `bridge:${incident.id}` });
   return { ok: true };
 }
 
 export async function startDtmfRecognition({ callConnectionId, targetPhone }) {
   if (!callConnectionId || !targetPhone) return;
-  try { await acsClient().getCallConnection(callConnectionId).getCallMedia().startContinuousDtmfRecognition(phone(targetPhone)); } catch (e) { log("DTMF unavailable", e.message); }
+  try {
+    await (await acsClient()).getCallConnection(callConnectionId).getCallMedia().startContinuousDtmfRecognition(phone(targetPhone));
+  } catch (e) {
+    log("DTMF unavailable", e.message);
+  }
 }
 
 export async function hangUp(callConnectionId) {
   if (!callConnectionId) return;
-  try { await acsClient().getCallConnection(callConnectionId).hangUp(true); } catch {}
+  try {
+    await (await acsClient()).getCallConnection(callConnectionId).hangUp(true);
+  } catch (e) {
+    log("hang up failed", e.message);
+  }
 }

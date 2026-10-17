@@ -1,19 +1,70 @@
-:root { color-scheme: dark; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #08111f; color: #e8eefb; }
-body { margin: 0; }
-header { padding: 40px 48px 24px; background: radial-gradient(circle at top left, #224f9a, #08111f 55%); }
-h1 { margin: 0; font-size: clamp(2rem, 5vw, 4rem); }
-.eyebrow { color: #84e1bc; text-transform: uppercase; letter-spacing: .12em; font-weight: 700; }
-main { padding: 24px 48px 48px; }
-.grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
-.panel { background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.13); border-radius: 18px; padding: 20px; box-shadow: 0 16px 42px rgba(0,0,0,.25); }
-.wide { grid-column: 1 / -1; }
-.controls { margin-bottom: 18px; }
-label { display: block; margin: 10px 0; }
-input, textarea { width: 100%; box-sizing: border-box; border-radius: 12px; border: 1px solid rgba(255,255,255,.16); background: #0e1b2f; color: #fff; padding: 12px; font: inherit; }
-textarea { min-height: 140px; }
-.row { display: flex; flex-wrap: wrap; gap: 10px; }
-button { border: 0; border-radius: 999px; padding: 10px 14px; background: #5eead4; color: #062033; font-weight: 700; cursor: pointer; }
-pre { white-space: pre-wrap; word-break: break-word; color: #c8d4e8; }
-ol { max-height: 360px; overflow: auto; }
-li { margin: 8px 0; }
-@media (max-width: 900px) { main, header { padding-left: 20px; padding-right: 20px; } .grid { grid-template-columns: 1fr; } }
+/*
+ * On-call pager — the console's own styles. The shared look comes from
+ * presenter-kit.css, which loads first; this file holds the template's accent
+ * color and a few paging-specific touches.
+ */
+
+:root {
+  --accent: #5fd8d4;
+  --accent-2: #9eeeea;
+  /* The accent is light, so text on it needs dark ink. */
+  --on-accent: #021a19;
+}
+
+/* Keypad buttons say what the key does, so nobody has to remember the menu. */
+.keys button small { color: var(--muted); font-size: 10px; font-weight: 500; margin-left: 2px; }
+.leg-controls { margin-top: 8px; }
+/* The kit's budget bar is display:flex, which would otherwise outlast a reset. */
+.pk-budget[hidden] { display: none; }
+
+/* One agent talks to the tenant and pages the technician; the page leg reads in Teams colors. */
+.pk-transcript li.agent[data-party="page"] {
+  background: color-mix(in srgb, var(--teams) 20%, transparent);
+  border-color: color-mix(in srgb, var(--teams) 45%, transparent);
+}
+.pk-transcript li.caller[data-party="tech"] { border-color: color-mix(in srgb, var(--teams-2) 45%, transparent); }
+
+/* Captured fields, each with a quiet note on how sure the agent is of it. */
+#context .muted { font-size: 12px; margin-left: 4px; }
+.pk-facts code { font: 12.5px var(--mono); color: var(--accent-2); }
+
+/*
+ * Three columns that stack on their own, so nothing a beat points at drops
+ * below the fold: the call; the decision and the rules behind it; and what
+ * the technician gets.
+ */
+.col { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+
+/* Before a page, the right-hand card shows the fields the page is built from. */
+.draft-note { margin: 12px 0 0; font-size: 13px; color: var(--muted); }
+
+/* What voicemail heard is a quote: the words come from the server, not the model. */
+.brief {
+  margin: 0; padding: 8px 12px; font-size: 13.5px; line-height: 1.45;
+  border-left: 3px solid var(--accent); border-radius: 0 8px 8px 0;
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+.left-out { margin: 9px 0 0; font-size: 12px; color: var(--muted); display: flex; flex-wrap: wrap; align-items: center; gap: 5px; }
+.left-out[data-tone="err"] { color: var(--err); }
+
+/* The wire, kept short enough that the toast and the headers share one screen; it scrolls. */
+#headers { max-height: 176px; }
+
+/* The phone's status follows the page — missed, voicemail, accepted — and stops blinking. */
+#toast .pk-ringing[data-tone] { color: var(--tone); }
+#toast .pk-ringing[data-tone]::before { animation: none; background: var(--tone); }
+.pk-caller-card .muted { font-size: 11.5px; display: block; }
+/* Once the page is answered, missed or on voicemail, the phone stops offering Accept. */
+#toast[data-outcome]:not([data-outcome="ringing"]):not([data-outcome="calling"]) .pk-toast-actions { display: none; }
+/* A page nobody took shrinks to what a missed-call notice shows; the next page arrives in full. */
+#toast:is([data-outcome="no-answer"], [data-outcome="voicemail"], [data-outcome="decline"], [data-outcome="failed"], [data-outcome="cancelled"])
+  :is(.pk-context, .pk-sentiment, .pk-caller-card) { display: none; }
+
+/* Housekeeping stays in the trail for completeness; the decisions are the story. */
+.pk-trail li:is(
+  [data-kind="call_answered"],
+  [data-kind="page_scheduled"],
+  [data-kind="page_cancelled"],
+  [data-kind="ticket_detail"],
+  [data-kind="brief_repeated"]
+) { opacity: 0.55; }

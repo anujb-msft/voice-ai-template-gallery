@@ -14,7 +14,7 @@ export const config = {
   acs: {
     endpoint: stripSlash(process.env.ACS_ENDPOINT),
     connectionString: process.env.ACS_CONNECTION_STRING ?? "",
-    outboundCallerId: process.env.ACS_OUTBOUND_CALLER_ID ?? "+15551239999",
+    outboundCallerId: process.env.ACS_OUTBOUND_CALLER_ID ?? "",
     teamsCloud: process.env.TEAMS_CLOUD ?? "public",
   },
   voiceLive: {
@@ -45,11 +45,6 @@ export const config = {
   dbPath: process.env.DB_PATH ?? "./data/pager.db",
 };
 
-export function nowFromConfig(cfg = config) {
-  if (cfg.demoNow) return new Date(cfg.demoNow).getTime();
-  return Date.now();
-}
-
 export function assertCallConfig(cfg = config) {
   const missing = [];
   if (!cfg.acs.endpoint && !cfg.acs.connectionString) missing.push("ACS_ENDPOINT");
@@ -61,9 +56,10 @@ export function assertCallConfig(cfg = config) {
 
 export const isSimulated = (cfg = config) => assertCallConfig(cfg).length > 0;
 
-export function readiness(policy, scheduler = null, cfg = config) {
+/** `now` is the server's (demo) clock, so the on-call answer matches what the pager would do. */
+export function readiness(policy, scheduler = null, cfg = config, now = Date.now()) {
   const missing = assertCallConfig(cfg);
-  const now = cfg.demoNow ? new Date(cfg.demoNow) : new Date();
+  const at = new Date(now);
   const groups = policy?.groups?.() ?? [];
   return {
     application: { ready: true, port: cfg.port, locale: cfg.locale },
@@ -88,8 +84,25 @@ export function readiness(policy, scheduler = null, cfg = config) {
       lagMs: scheduler?.lagMs?.() ?? 0,
       pendingJobs: scheduler?.pendingCount?.() ?? 0,
     },
-    currentOnCall: Object.fromEntries(groups.map((group) => [group, policy.onCallChain(group, now)])),
+    currentOnCall: Object.fromEntries(groups.map((group) => [group, publicChain(policy.onCallChain(group, at))])),
     simulationMode: missing.length > 0,
     missingConfig: missing,
+  };
+}
+
+/** Names only: contact numbers stay server-side. */
+export function publicChain(chain) {
+  const person = (c) => (c ? { id: c.id, name: c.name } : null);
+  return {
+    group: chain.group,
+    primary: person(chain.primary),
+    secondary: person(chain.secondary),
+    propertyManager: person(chain.propertyManager),
+    source: chain.source,
+    why: chain.why,
+    localDate: chain.localDate,
+    localTime: chain.localTime,
+    weekend: chain.weekend,
+    timeZone: chain.timeZone,
   };
 }
