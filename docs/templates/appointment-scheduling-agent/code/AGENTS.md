@@ -52,6 +52,7 @@ for the caller, and is reachable only in simulation.
 npm test          # 54 cases on Node's built-in node:sqlite: no npm install, Azure or network
 npm run check     # node --check on src/, scripts/, test/ and public/*.js
 npm run smoke     # after npm install: boots its own server on port 8200, checks both WebSockets and the demo controls
+npm run rehearse  # after npm install: plays the beats as the console does on port 8300, three ways; pins what each shows
 npm run offline -- --script race     # one beat in the terminal: book | book-whatever | race | referral | identity-fails
 npm run offline -- --phone +12065550142 --say "Jordan Rivera, 03/12/1984|A follow-up with Dr. Patel."
 npm start         # http://127.0.0.1:8100 — the console, in simulation mode without a .env
@@ -81,7 +82,8 @@ config/               policy as data: visit types, eligibility wording, provider
                       referrals, orders, prep, safety words, routing
 fixtures/             the seeded schedule, shared with the appointment reminder sample
 public/               the console: index.html, app.js, styles.css, beats.js; presenter-kit.* vendored
-scripts/              smoke-websockets.mjs, provision-teams-phone.ps1
+scripts/              smoke-websockets.mjs, rehearse.mjs, provision-teams-phone.ps1;
+                      presenter-kit-rehearsal.mjs vendored
 test/                 harness.mjs and the *.test.mjs files
 ```
 
@@ -110,10 +112,11 @@ test/                 harness.mjs and the *.test.mjs files
   is a script in `src/offline.mjs` (`SCRIPTS`), step for step, and
   `test/beats.test.mjs` runs them and pins how each ends and the final metrics. Change
   both, then update `DEMO-SCRIPT.md`, which quotes the narration in `beats.js`.
-- **The presenter kit is vendored.** Never edit `public/presenter-kit.js` or
-  `public/presenter-kit.css`: change `scripts/presenter-kit/` at the repository root
-  and run `node scripts/sync-presenter-kit.js`, or CI fails on drift. Template UI goes
-  in `public/app.js` and `public/styles.css`.
+- **The presenter kit is vendored.** Never edit `public/presenter-kit.js`,
+  `public/presenter-kit.css` or `scripts/presenter-kit-rehearsal.mjs`: change
+  `scripts/presenter-kit/` at the repository root and run
+  `node scripts/sync-presenter-kit.js`, or CI fails on drift. Template UI goes in
+  `public/app.js` and `public/styles.css`.
 - **The console talks only to its own origin.** No CDNs, web fonts, analytics or
   third-party requests.
 - **A caller on the way to a person is never dropped.** The model's `end_call` goes
@@ -158,7 +161,9 @@ test/                 harness.mjs and the *.test.mjs files
   (see the FHIR mapping in `README.md`). A time that is gone must come back as
   `slot_taken`, and a hold must never book any time but its own.
 - **The demo.** Edit `public/beats.js` and `SCRIPTS` in `src/offline.mjs` together,
-  run `npm test`, then update `DEMO-SCRIPT.md`.
+  run `npm test`, then update `DEMO-SCRIPT.md` and run `npm run rehearse`. It prints the
+  outcomes it reached: check them against the script, then paste them over its pins in
+  `scripts/rehearse.mjs`.
 
-Before you hand back: `npm test`, `npm run check` and `npm run smoke` pass, and
-`README.md`, `.env.example` and `DEMO-SCRIPT.md` still match what the code does.
+Before you hand back: `npm test`, `npm run check`, `npm run smoke` and `npm run rehearse`
+pass, and `README.md`, `.env.example` and `DEMO-SCRIPT.md` still match what the code does.

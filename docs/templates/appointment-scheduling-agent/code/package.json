@@ -14,6 +14,7 @@
     "tunnel": "devtunnel host -p 8100 --allow-anonymous",
     "check": "for f in src/*.mjs src/voice/*.mjs scripts/*.mjs test/*.mjs public/*.js; do node --check \"$f\" || exit 1; done; echo \"syntax ok\"",
     "smoke": "node scripts/smoke-websockets.mjs",
+    "rehearse": "node scripts/rehearse.mjs",
     "offline": "node src/offline.mjs"
   },
   "dependencies": {

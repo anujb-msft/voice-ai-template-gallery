@@ -61,7 +61,8 @@ curl http://127.0.0.1:8100/health
 The console runs a scripted demo: press **→** (or **Next ▶**) and it plays five short
 beats (a booking, a refused write, a race for the same time, a referral handoff and a
 failed identity check), typing (and, if you like, speaking) the caller's lines.
-[DEMO-SCRIPT.md](DEMO-SCRIPT.md) is the running order, with what to say at each step.
+[DEMO-SCRIPT.md](DEMO-SCRIPT.md) is the running order, with what to say at each step, and
+`npm run rehearse` plays it end to end before you do.
 
 Or drive it yourself: pick a **Caller ID**, click **Answer a call**, and type what the
 caller says. It works fully in simulation mode with no Azure credentials: typed
@@ -90,11 +91,20 @@ with … carries on from the one above.
 Run the tests. They need no Azure, no network, and not even `npm install`:
 
 ```bash
-npm test        # 54 cases: the flow, the store, the tools and the five beats, on Node's built-in node:sqlite
+npm test          # 54 cases: the flow, the store, the tools and the five beats, on Node's built-in node:sqlite
 npm run check
-npm run smoke   # after npm install: boots its own server on port 8200, checks both WebSockets and the demo controls
+npm run smoke     # after npm install: boots its own server on port 8200, checks both WebSockets and the demo controls
+npm run rehearse  # after npm install: plays the five beats on port 8300 as the console does, three ways (~2 min)
 npm run offline -- --script race    # one beat in the terminal, no server
 ```
+
+`npm run rehearse` fails if a beat would land anywhere [DEMO-SCRIPT.md](DEMO-SCRIPT.md)
+doesn't say: each beat's outcome and decision trail is pinned in `scripts/rehearse.mjs`, and
+so are the metrics it ends on. It plays the script in order, again after a reset, and last
+beat first with each beat twice, at Auto-play's pace and at full speed, and checks that a
+live server refuses the demo controls. Neither `.env` nor your shell's settings reach its
+server. Changed a beat on purpose? It prints the outcomes it reached, ready to paste over the
+pins once you've checked them against the script.
 
 The scripts:
 
@@ -104,6 +114,9 @@ The scripts:
 - `npm run check`: syntax checks on `src/`, `src/voice/`, `scripts/`, `test/` and `public/*.js`.
 - `npm run smoke`: starts a simulation-mode server on port 8200, then checks the console
   hub and the media WebSocket, a simulated call and the demo controls, and stops it.
+- `npm run rehearse`: starts a simulation-mode server on port 8300 with the shipped
+  settings, plays every beat in `public/beats.js` three ways as the console does, then
+  boots it live with fictional settings to check the demo controls are refused.
 - `npm run offline`: the flow in the terminal. `-- --script book|book-whatever|race|referral|identity-fails`
   runs a beat; `-- --phone +12065550142 --say "Jordan Rivera, 03/12/1984|A follow-up with Dr. Patel."`
   runs your own lines. In either, `@take-slot` (the front desk takes the time read back, or
@@ -442,6 +455,8 @@ public/               the presenter console
 scripts/
   smoke-websockets.mjs     boots a server on port 8200 and checks the WebSocket upgrades
                            and the demo controls
+  rehearse.mjs             plays every beat as the console does; pins what each one shows
+  presenter-kit-rehearsal.mjs  the rehearsal engine, vendored like presenter-kit.*
   provision-teams-phone.ps1  the Teams side of Teams Phone extensibility
 test/                 54 cases on harness.mjs, no Azure required
 AGENTS.md             guidance for coding agents that change this sample
