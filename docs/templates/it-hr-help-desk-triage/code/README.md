@@ -23,7 +23,7 @@ npm install
 npm start      # http://127.0.0.1:8098
 ```
 
-Open <http://127.0.0.1:8098> and press **→** (or **Next ▶**) to run the scripted demo one step at a time. [`DEMO-SCRIPT.md`](./DEMO-SCRIPT.md) is the running order, the narration, and the presenter setup. You can also pick a caller, press **Answer a call**, and type your own lines.
+Open <http://127.0.0.1:8098> and press **→** (or **Next ▶**) to run the scripted demo one step at a time. [`DEMO-SCRIPT.md`](./DEMO-SCRIPT.md) is the running order, the narration, and the presenter setup, and `npm run rehearse` plays it end to end before you do. You can also pick a caller, press **Answer a call**, and type your own lines.
 
 Try these yourself. Choose **Business hours** on the demo clock first: with no `DEMO_NOW` the clock starts at real time, and the confidential HR line's hours and the Outlook outage follow it.
 
@@ -53,12 +53,15 @@ The console's simulator uses `POST /api/simulate` (with `teamsUserId` or `fromPh
 ## Validation
 
 ```bash
-npm test         # 47 node:test cases; no Azure and no network required
+npm test         # 48 node:test cases; no Azure and no network required
 npm run check    # syntax check of src/, scripts/ and public/
 npm run smoke    # boots its own simulation server on port 8198; no running server needed
+npm run rehearse # plays the seven beats on port 8298 as the console does, three ways (~75 s)
 ```
 
 `npm run smoke` drives both WebSocket upgrades, the hub frames a simulated call produces (including the mock chat and handoffs with their VoIP headers), the simulator controls, the demo clock, and the reset.
+
+`npm run rehearse` fails if a beat would land anywhere [`DEMO-SCRIPT.md`](./DEMO-SCRIPT.md) doesn't say: each beat's outcome and decision trail is pinned in `scripts/rehearse.mjs`, and so are the closing numbers. It plays the script in order, again after a reset, and last beat first with each beat twice, at Auto-play's pace and at full speed, and checks that a live server refuses the demo controls. Neither `.env` nor your shell's settings reach its server. Changed a beat on purpose? It prints the outcomes it reached, ready to paste over the pins once you've checked them against the script.
 
 ## Configuration
 
@@ -104,6 +107,8 @@ public/
 scripts/
   provision-teams-phone.ps1 Teams Phone resource account and call queues
   smoke-websockets.mjs      npm run smoke: boots its own server on port 8198
+  rehearse.mjs              npm run rehearse: plays every beat as the console does; pins what each one shows
+  presenter-kit-rehearsal.mjs  the rehearsal engine, vendored like presenter-kit.*
 src/
   flow.mjs                  the triage state machine and every policy decision
   policy.mjs                taxonomy, sensitive guard, priority matrix, outages, routing, knowledge

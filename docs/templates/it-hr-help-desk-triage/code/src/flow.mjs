@@ -73,7 +73,7 @@ export class TriageFlow {
       incomingCallContext, resourceAccountId, callConnectionId: null, teamsUserId, fromPhone: phone, maskedPhone: maskPhone(phone),
       employee, callerIdEmployee, verified: Boolean(employee), verifiedBy: employee ? "teams" : null, verification: null, consentShareName: false,
       locale: config.locale, domain: null, topicId: null, classification: null, pendingClarification: null, pendingAction: null, pendingProposal: null,
-      lastArticle: null, lastTicket: null, sensitive: false, sensitiveLogged: false, handoff: null, outcome: null, dispatchPromise: null,
+      lastArticle: null, lastTicket: null, joinedIncidents: new Set(), sensitive: false, sensitiveLogged: false, handoff: null, outcome: null, dispatchPromise: null,
       lastSpoken: null, transcript: [], startedAt: this.now().getTime(), answeredAt: null, endedAt: null, noInputs: 0, wrapWarned: false,
     };
     this.calls.set(call.id, call);
@@ -565,6 +565,9 @@ export class TriageFlow {
   /** A known outage: add the caller to the parent incident instead of filing a duplicate. */
   #attachToOutage(call, outage) {
     const ticket = this.tickets.attachToIncident({ requester: call.employee.workEmail, parentIncident: outage.parentIncident, simulated: call.simulation });
+    // Simulated sign-ups last until Reset demo. A demo call counts only its own, so a re-run of the beat hears "I've added you" again.
+    if (call.simulation) ticket.alreadyAffected = call.joinedIncidents.has(outage.parentIncident);
+    call.joinedIncidents.add(outage.parentIncident);
     call.lastTicket = ticket;
     this.#event(call, "system", "outage_attached", outage.parentIncident);
     this.#speak(call, ticket.alreadyAffected

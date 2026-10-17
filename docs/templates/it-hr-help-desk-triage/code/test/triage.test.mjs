@@ -226,6 +226,18 @@ test("joining the Outlook outage uses no new ticket number", () => {
   const sam = start(flow); handleUtterance(flow, sam, "My laptop screen is flickering and I can't work"); assert.equal(handleUtterance(flow, sam, "yes").ticket.number, "INC-004821");
 });
 
+test("a re-run of the outage beat adds the caller again; a real caller already on it hears so", () => {
+  const { flow } = makeFlow();
+  for (let run = 0; run < 2; run += 1) {
+    const maria = start(flow, TEAMS_MARIA); const r = handleUtterance(flow, maria, "Outlook won't open for me either");
+    assert.equal(r.ticket.alreadyAffected, false); assert.match(flow.snapshot(maria).lastSpoken, /I've added you to INC-004700/);
+  }
+  const live = makeFlow().flow;
+  const [first, second] = [0, 1].map(() => { const c = live.create({ teamsUserId: TEAMS_MARIA, simulation: false }); live.answered(c.id); return c.id; });
+  assert.equal(handleUtterance(live, first, "Outlook won't open for me either").ticket.alreadyAffected, false);
+  assert.equal(handleUtterance(live, second, "Outlook won't open for me either").ticket.alreadyAffected, true);
+});
+
 test("IT-or-HR ambiguity asks one question, then routes; a second miss goes to a person", () => {
   const { flow } = makeFlow(); let id = start(flow);
   const q = handleUtterance(flow, id, "I can't get into the payroll system and my pay is wrong");
