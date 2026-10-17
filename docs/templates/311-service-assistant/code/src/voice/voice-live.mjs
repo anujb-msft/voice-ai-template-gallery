@@ -193,10 +193,30 @@ export class VoiceLiveSession {
     this.#requestResponse();
   }
 
-  /** Replace the standing instructions for the current step, then let the agent speak. */
-  instruct(text) {
+  /**
+   * Replace the standing instructions for the current step, then let the agent
+   * speak. With `respond: false` the next response (a tool result's, usually)
+   * picks the instruction up instead of a new one being requested.
+   */
+  instruct(text, { respond = true } = {}) {
     this.#send({ type: "session.update", session: { instructions: `${this.baseInstructions}\n\n${text}` } });
-    this.#requestResponse();
+    if (respond) this.#requestResponse();
+  }
+
+  /** The caller switched language: new standing instructions, transcription hint, and voice. */
+  setLocale(locale, instructions, voice) {
+    if (instructions) this.baseInstructions = instructions;
+    const language = localeLanguage(locale);
+    this.#send({
+      type: "session.update",
+      session: {
+        instructions: this.baseInstructions,
+        input_audio_transcription: { model: "gpt-4o-transcribe", language: language.code },
+      },
+    });
+    // Sent on its own so a voice the region cannot serve does not undo the rest.
+    if (voice) this.#send({ type: "session.update", session: { voice: { name: voice, type: "azure-standard" } } });
+    log("locale", language.locale, voice ?? "");
   }
 
   /** Inject an out-of-band fact mid-call without necessarily prompting speech. */

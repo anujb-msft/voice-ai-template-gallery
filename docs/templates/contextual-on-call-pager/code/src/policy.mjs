@@ -32,6 +32,60 @@ const containsAny = (text, keywords = []) => keywords.find((k) => text.includes(
 const severityRank = { routine: 0, urgent: 1, emergency: 2 };
 export const outranks = (a, b) => (severityRank[a] ?? -1) > (severityRank[b] ?? -1);
 
+export const DEFAULT_TIME_ZONE = "America/Los_Angeles";
+const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+/**
+ * The wall-clock date and time of `at` where the buildings are. Rotations and
+ * overrides are written as local dates, so the pager turns over at local
+ * midnight: 11:42 PM on Wednesday is still Wednesday's rotation, even though
+ * it is already Thursday in UTC.
+ */
+export function localParts(at, timeZone = DEFAULT_TIME_ZONE) {
+  const parts = {};
+  const format = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    weekday: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  });
+  for (const { type, value } of format.formatToParts(new Date(at))) parts[type] = value;
+  return {
+    date: `${parts.year}-${parts.month}-${parts.day}`,
+    weekday: parts.weekday,
+    hour: Number(parts.hour) % 24,
+    minute: Number(parts.minute),
+  };
+}
+
+/** `toLocaleString` in the buildings' time zone, with plain spaces (ICU puts a narrow one before AM/PM). */
+export function formatLocal(at, timeZone = DEFAULT_TIME_ZONE, options = {}) {
+  return new Date(at).toLocaleString("en-US", { timeZone, ...options }).replace(/[\u202f\u00a0]/g, " ");
+}
+
+/** "2026-09-28" → "Mon, Sep 28". */
+export function dayLabel(isoDay) {
+  return new Date(`${isoDay}T12:00:00Z`).toLocaleDateString("en-US", {
+    timeZone: "UTC",
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  });
+}
+
+/** When the office picks up a routine work order logged at `at`. */
+export function nextBusinessDay(at, timeZone = DEFAULT_TIME_ZONE) {
+  const { weekday, hour } = localParts(at, timeZone);
+  const day = WEEKDAYS.indexOf(weekday);
+  if (day >= 1 && day <= 5 && hour < 8) return "this morning";
+  if (day === 5 || day === 6 || day === 0) return "Monday morning";
+  return "tomorrow morning";
+}
+
 export class PagerPolicy {
   constructor({ properties, tenants, oncall, triage, escalation }) {
     this.organization = properties.organization ?? "Contoso Property Management";
@@ -40,6 +94,7 @@ export class PagerPolicy {
     this.oncall = oncall;
     this.triage = triage;
     this.escalation = escalation;
+    this.timeZone = oncall.timeZone ?? DEFAULT_TIME_ZONE;
     this.technicians = new Map(oncall.technicians.map((t) => [t.id, t]));
   }
 
@@ -100,24 +155,48 @@ export class PagerPolicy {
     return { severity: "routine", issueType: routine ? "routine_maintenance" : "routine_other", matchedRule: routine ? `routine:${routine}` : "routine:default", safetyLine: null };
   }
 
+  /**
+   * Who is on call for `group` at `at`, and why. An override for the local
+   * date wins over the rotation; otherwise the latest rotation that has
+   * started. Before the first rotation starts, the earliest one on file
+   * answers, so the pager never has nobody to call. `why` is the
+   * plain-English reason the console shows.
+   */
   onCallChain(group, at = new Date()) {
-    const date = isoDate(at);
-    const override = this.oncall.overrides.find((o) => o.group === group && o.date === date);
-    const rotation = override ?? [...(this.oncall.rotations[group] ?? [])].filter((r) => r.startsOn <= date).sort((a, b) => b.startsOn.localeCompare(a.startsOn))[0];
-    if (!rotation) throw new Error(`No on-call rotation for ${group}`);
+    const local = localParts(at, this.timeZone);
+    const override = this.oncall.overrides.find((o) => o.group === group && o.date === local.date);
+    const rotations = [...(this.oncall.rotations[group] ?? [])].sort((a, b) => b.startsOn.localeCompare(a.startsOn));
+    const rotation = rotations.find((r) => r.startsOn <= local.date) ?? null;
+    const earliest = rotations.at(-1) ?? null;
+    const chosen = override ?? rotation ?? earliest;
+    if (!chosen) throw new Error(`No on-call rotation for ${group}`);
     const property = this.properties.find((p) => p.group === group);
     return {
-      primary: this.#tech(rotation.primary),
-      secondary: this.#tech(rotation.secondary),
+      group,
+      primary: this.#tech(chosen.primary),
+      secondary: this.#tech(chosen.secondary),
       propertyManager: this.#tech(property?.managerId),
-      source: override ? `override:${override.reason}` : `rotation:${rotation.startsOn}`,
+      source: override ? `override:${override.reason}` : rotation ? `rotation:${rotation.startsOn}` : `rotation:${earliest.startsOn}:earliest`,
+      why: override
+        ? `${title(override.reason)} override for ${dayLabel(override.date)} — replaces the ${group} rotation`
+        : rotation
+          ? `${title(group)} rotation since ${dayLabel(rotation.startsOn)}`
+          : `Earliest ${group} rotation on file (starts ${dayLabel(earliest.startsOn)})`,
+      localDate: local.date,
+      localTime: formatLocal(at, this.timeZone, { weekday: "short", hour: "numeric", minute: "2-digit", timeZoneName: "short" }),
+      weekend: local.weekday === "Sat" || local.weekday === "Sun",
+      timeZone: this.timeZone,
     };
   }
 
-  levelContact(propertyId, level, at = new Date()) {
+  onCallForProperty(propertyId, at = new Date()) {
     const prop = this.property(propertyId);
     if (!prop) throw new Error(`Unknown property ${propertyId}`);
-    return this.onCallChain(prop.group, at)[level];
+    return this.onCallChain(prop.group, at);
+  }
+
+  levelContact(propertyId, level, at = new Date()) {
+    return this.onCallForProperty(propertyId, at)[level];
   }
 
   #tech(id) {
@@ -127,31 +206,81 @@ export class PagerPolicy {
   }
 }
 
+/** Seven or more digits, with the separators people dictate them with: a phone number, never page material. */
+const PHONE_LIKE = /(?<![\w+])\+?\(?\d(?:[\s().-]{0,2}\d){6,}/g;
+
+/**
+ * The tenant's words as they may appear on a page: one line, capped, with
+ * instruction-like text and phone numbers removed. A live model fills these
+ * fields, so the server scrubs them rather than trusting the prompt.
+ */
 export function sanitizeTenantSaid(text, max = 160) {
   const cleaned = String(text ?? "")
     .replace(/[\r\n]+/g, " ")
     .replace(/ignore (all|previous|above).{0,80}/gi, "[instruction removed]")
     .replace(/system prompt|developer message|tool call/gi, "[unsafe request removed]")
+    .replace(PHONE_LIKE, "[number removed]")
     .replace(/\s+/g, " ")
     .trim();
   return cleaned.length <= max ? cleaned : `${cleaned.slice(0, max - 1).trimEnd()}…`;
 }
 
-export function buildPageBrief(incident, { includeTenantSaid = true } = {}) {
-  const reported = new Date(incident.reportedAt).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+/**
+ * The page brief, built by the server from captured fields — never by the
+ * model. A short read-aloud: what, where, how bad, when, the tenant's
+ * own words (sanitized and capped), and whether the technician may go in.
+ * Phone numbers are never part of it.
+ */
+export function buildPageBrief(incident, { includeTenantSaid = true, timeZone = DEFAULT_TIME_ZONE } = {}) {
+  const reported = formatLocal(incident.reportedAt, timeZone, { hour: "numeric", minute: "2-digit" });
+  const temp = indoorTemp(incident);
   const parts = [
-    `${title(incident.severity)}: ${incident.issueTypeLabel ?? incident.issueType ?? incident.issue} at ${incident.propertyName}, unit ${incident.unit}, reported ${reported}.`,
-    `Tenant ${incident.permissionToEnter ? "gave" : "did not give"} permission to enter${incident.accessNotes ? `; access notes: ${incident.accessNotes}` : ""}.`,
+    `${title(incident.severity)}: ${issueWords(incident)} at ${incident.propertyName}, unit ${incident.unit}${
+      temp ? `, ${temp} degrees inside` : ""
+    }, reported ${reported}.`,
   ];
-  if (includeTenantSaid && incident.tenantSaid) parts.push(`Tenant said ${incident.tenantSaid}.`);
+  if (includeTenantSaid && incident.tenantSaid) parts.push(`Tenant said: ${sentence(incident.tenantSaid)}`);
+  const notes = incident.accessNotes && incident.accessNotes !== "none" ? ` Access: ${sentence(incident.accessNotes)}` : "";
+  parts.push(`${incident.permissionToEnter ? "You may enter." : "No permission to enter."}${notes}`);
   parts.push("Press 1 or say 'I've got it' to accept.");
   return parts.join(" ");
 }
 
-export function buildVoicemailPrompt() {
-  return "Contoso maintenance has an urgent page for you. Please call the maintenance line.";
+/**
+ * What an answering machine hears: nothing about the building, the unit, the
+ * problem or the tenant — a voicemail box can be shared, or played back on
+ * speaker. Only a callback prompt and a short reference that matches the
+ * incident in the audit trail.
+ */
+export function buildVoicemailPrompt(incident = null) {
+  const prompt = "Contoso maintenance has an urgent page for you. Please call the maintenance line.";
+  return incident?.id ? `${prompt} Reference ${incidentReference(incident.id).split("").join(" ")}.` : prompt;
 }
 
+/** A four-digit reference for an incident id — speakable, and meaningless on its own. */
+export function incidentReference(id) {
+  let hash = 0;
+  for (const ch of String(id ?? "")) hash = (hash * 31 + ch.charCodeAt(0)) >>> 0;
+  return String(1000 + (hash % 9000));
+}
+
+/** Roughly how long `text` takes to read aloud, in seconds. */
+export function spokenSeconds(text) {
+  const words = String(text ?? "").split(/\s+/).filter(Boolean).length;
+  return Math.max(1, Math.round(words / 2.6));
+}
+
+function issueWords(incident) {
+  const keyword = /emergency:([^:]+)$/.exec(incident.matchedRule ?? "")?.[1];
+  if (incident.severity === "emergency" && keyword) return keyword;
+  return incident.issueTypeLabel ?? incident.issueType ?? incident.issue;
+}
+function indoorTemp(incident) {
+  return incident.issueType === "no_heat" ? (/no_heat(?:_above_threshold)?:(\d+)F/.exec(incident.matchedRule ?? "")?.[1] ?? null) : null;
+}
+function sentence(text) {
+  const t = String(text ?? "").trim();
+  return /[.!?…]$/.test(t) ? t : `${t}.`;
+}
 function publicTenant(t) { return t ? { propertyId: t.propertyId, unit: t.unit } : null; }
-function isoDate(value) { return new Date(value).toISOString().slice(0, 10); }
 function title(value) { return String(value ?? "").replace(/^./, (c) => c.toUpperCase()); }

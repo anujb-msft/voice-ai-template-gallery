@@ -1,42 +1,113 @@
 <!doctype html>
 <html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Contextual On-Call Pager Demo</title>
-  <link rel="stylesheet" href="/styles.css" />
-</head>
-<body>
-  <header>
-    <p class="eyebrow">Demo surface</p>
-    <h1>Contextual On-Call Pager</h1>
-    <p>Simulate tenant intake, triage, on-call paging, escalation, acknowledgement, and tenant follow-up.</p>
-  </header>
-  <main>
-    <section class="panel controls">
-      <h2>Run a simulated urgent leak</h2>
-      <label>Caller phone <input id="fromPhone" value="+15551230001" /></label>
-      <textarea id="transcript">Yes, unit 4B at Maple Court.
-Water is coming through the kitchen ceiling.
-You can enter; the lockbox is by the back door.
-Call me back at 555-123-0001.</textarea>
-      <div class="row">
-        <button id="start">Start intake + first page</button>
-        <button data-outcome="accept">Tech accepts</button>
-        <button data-outcome="decline">Tech declines</button>
-        <button data-outcome="no-answer">No answer</button>
-        <button data-outcome="voicemail">Voicemail</button>
-        <button data-outcome="bridge">Bridge to tenant</button>
-        <button id="advance">Advance clock 3 min</button>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Contoso — On-call pager</title>
+    <link rel="stylesheet" href="/presenter-kit.css" />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <header class="top">
+      <div class="brand"><span class="logo"></span> <strong id="org">Contoso</strong> <span class="pill">On-call pager</span></div>
+      <div class="top-right">
+        <span id="clock" hidden></span>
+        <select id="voice" aria-label="Room voice"></select>
+        <span id="mode">checking…</span>
+        <button class="ghost" id="reset" type="button" title="Clear the simulated incidents, pages and notifications, and put the demo clock back">Reset demo</button>
       </div>
-    </section>
-    <section class="grid">
-      <article class="panel"><h2>Health</h2><pre id="health">Loading…</pre></article>
-      <article class="panel"><h2>Stats</h2><pre id="stats">Loading…</pre></article>
-      <article class="panel wide"><h2>Latest incident</h2><pre id="incident">Run a simulation.</pre></article>
-      <article class="panel wide"><h2>Realtime timeline</h2><ol id="timeline"></ol></article>
-    </section>
-  </main>
-  <script type="module" src="/app.js"></script>
-</body>
+    </header>
+
+    <nav id="stack"></nav>
+    <section id="director" aria-label="Demo script"></section>
+
+    <main class="grid">
+      <section class="card call">
+        <div class="card-head">
+          <h2>After-hours maintenance line</h2>
+          <span id="stateChip">no call</span>
+        </div>
+        <div class="caller-row">
+          <label for="callerSelect">Caller ID</label>
+          <select id="callerSelect"></select>
+          <button class="primary" id="newCall" type="button">Answer a call</button>
+        </div>
+        <div id="budget" hidden title="The intake budget, then the time the page has before the ops alert"></div>
+        <ol id="transcript"></ol>
+        <form class="say" id="sayForm" autocomplete="off">
+          <input id="sayInput" type="text" placeholder="Type what the tenant, or the technician, says" disabled />
+          <button class="primary" id="sayBtn" type="submit" disabled>Say</button>
+        </form>
+        <div class="controls">
+          <span class="controls-label">Keypad</span>
+          <div class="keys" id="keys"></div>
+        </div>
+        <div class="controls leg-controls">
+          <button class="ghost" id="voicemail" type="button" disabled title="The technician's phone rings through to voicemail">Voicemail picks up</button>
+          <button class="ghost" id="skip" type="button" disabled title="Moves the demo clock forward to when the next page is due">Skip to the next page</button>
+          <button class="ghost" id="silence" type="button" disabled>Silence</button>
+          <button class="ghost danger" id="hangup" type="button" disabled>Hang up</button>
+        </div>
+      </section>
+
+      <div class="col">
+        <section class="card decision">
+          <div class="card-head">
+            <h2>Paging decision</h2>
+            <span class="tag" title="Severity, who is paged and when to escalate come from policy code, not from the model">the server decides</span>
+          </div>
+          <div id="decision"></div>
+          <div id="gauge" hidden></div>
+          <div id="window" hidden></div>
+          <dl id="facts"></dl>
+        </section>
+
+        <section class="card guard">
+          <div class="card-head">
+            <h2>What the page may say</h2>
+            <span class="tag" title="Privacy and paging rules the server enforces on every page">policy</span>
+          </div>
+          <ul id="checks"></ul>
+        </section>
+      </div>
+
+      <div class="col">
+        <!-- Until a page goes out this card shows the fields the page is built from; then, the page itself. -->
+        <section class="card teams" id="pageCard" data-paged="false">
+          <div class="card-head">
+            <h2 id="pageTitle">What the agent captured</h2>
+            <span class="tag" id="pageTag" title="Structured fields, not a transcript — the page is built from these">structured</span>
+          </div>
+          <div id="draft">
+            <dl id="context"></dl>
+            <p class="draft-note" id="draftNote">Nobody has been paged yet.</p>
+            <h3 class="sub-head">Who's on call now <span class="sub-note">on the demo clock</span></h3>
+            <ul id="rotation"></ul>
+          </div>
+          <div id="paged" hidden>
+            <div id="toast" hidden></div>
+            <div id="voicemailBox" hidden>
+              <h3 class="sub-head">Left on voicemail <span class="sub-note" id="vmNote"></span></h3>
+              <p class="brief" id="vmPrompt"></p>
+              <p class="left-out" id="vmLeftOut"></p>
+            </div>
+            <h3 class="sub-head">VoIP headers <span class="sub-note">Teams Phone custom calling context</span></h3>
+            <pre id="headers">—</pre>
+          </div>
+        </section>
+      </div>
+
+      <section class="card trail">
+        <div class="card-head">
+          <h2>Audit trail</h2>
+          <span class="sub-note">every capture, page and escalation, on the demo clock</span>
+        </div>
+        <ol id="events"></ol>
+      </section>
+    </main>
+
+    <footer id="metrics"></footer>
+
+    <script src="/app.js" type="module"></script>
+  </body>
 </html>

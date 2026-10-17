@@ -1,17 +1,32 @@
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { config, resolvePath } from "../config.mjs";
-import { SqliteCrmAdapter } from "../db.mjs";
-import { DataverseCrmAdapter } from "./dataverse-crm.mjs";
 
-export function createCrmAdapter(kind = config.crm.adapter) {
+/**
+ * The CRM the agent reads and writes. "sqlite" (the default) keeps records in
+ * data/crm.db between restarts, "memory" keeps them in the process, and
+ * "dataverse" is a documented stub. Adapters load lazily, so the tests never
+ * load the native SQLite module; if it will not load, the in-memory CRM runs.
+ */
+export async function createCrmAdapter({ kind = config.crm.adapter, now = Date.now, timeZone = config.timeZone, log = console.log } = {}) {
+  const memory = async () => new (await import("../crm-memory.mjs")).MemoryCrmAdapter({ now, timeZone });
   switch (kind) {
+    case "memory":
+      return memory();
     case "sqlite":
-      return new SqliteCrmAdapter();
-    case "dataverse":
+      try {
+        const { SqliteCrmAdapter } = await import("../db.mjs");
+        return new SqliteCrmAdapter({ now, timeZone });
+      } catch (error) {
+        log(`[crm] SQLite unavailable (${String(error?.message ?? error).split("\n")[0]}); using the in-memory CRM`);
+        return memory();
+      }
+    case "dataverse": {
+      const { DataverseCrmAdapter } = await import("./dataverse-crm.mjs");
       return new DataverseCrmAdapter(config.dataverse);
+    }
     default:
-      throw new Error(`Unknown CRM_ADAPTER "${kind}"`);
+      throw new Error(`Unknown CRM_ADAPTER "${kind}" (use sqlite, memory, or dataverse)`);
   }
 }
 

@@ -1,3 +1,5 @@
+// dotenv is optional so the flow, the store and their tests run from a bare
+// clone with no `npm install`. The server pulls it in for real deployments.
 try { await import("dotenv/config"); } catch {}
 
 import { readFileSync } from "node:fs";
@@ -7,22 +9,47 @@ import { fileURLToPath } from "node:url";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const codeRoot = resolve(__dirname, "..");
 const bool = (value, fallback = false) => value == null || value === "" ? fallback : /^(1|true|yes|on)$/i.test(String(value));
-const num = (value, fallback) => Number.isFinite(Number(value)) ? Number(value) : fallback;
+const num = (value, fallback) => value != null && value !== "" && Number.isFinite(Number(value)) ? Number(value) : fallback;
 const rel = (p) => resolve(codeRoot, p);
 
-export const DEFAULT_DEMO_NOW = "2026-05-19T10:00:00-07:00";
+/**
+ * The demo's starting clock: Tuesday, May 19, 2026, 9:50 AM at the Northgate
+ * clinic. Openings, lead times and "today" all depend on the time, so the
+ * seeded schedule is written around this moment.
+ */
+export const DEFAULT_DEMO_NOW = "2026-05-19T09:50:00-07:00";
+
+/**
+ * Named demo clocks for the console and the offline driver. Simulation only:
+ * a server answering real calls always schedules on the real time.
+ */
+export const CLOCK_PRESETS = Object.freeze([
+  // Tuesday morning: the clinic and every Teams queue are open, with same-day openings left.
+  { id: "tue-morning", label: "Tue 9:50 AM", at: DEFAULT_DEMO_NOW },
+  // Friday evening: every queue is closed, so people become callbacks and the nurse line gives advice.
+  { id: "fri-evening", label: "Fri 6:30 PM", at: "2026-05-22T18:30:00-07:00" },
+  { id: "real", label: "Real time", at: null },
+]);
 
 export const config = {
   appName: "appointment-scheduling-agent",
   host: process.env.HOST ?? "127.0.0.1",
   port: num(process.env.PORT, 8100),
   publicBaseUrl: (process.env.PUBLIC_BASE_URL ?? "").replace(/\/$/, ""),
+  /**
+   * Pins the clock the schedule sees, as an ISO 8601 timestamp, so every demo
+   * run offers the same openings. Honored only in simulation mode: a server
+   * answering real calls always schedules on the real time. Set it to an empty
+   * value to run the simulation on the real time.
+   */
   demoNow: process.env.DEMO_NOW ?? DEFAULT_DEMO_NOW,
+  demoNowSet: process.env.DEMO_NOW != null,
   callTimeBudgetMs: num(process.env.CALL_TIME_BUDGET_MS, 420_000),
+  /** Locale and voice live together — change both to move off the English demo. */
+  locale: process.env.LOCALE ?? "en-US",
   acs: {
     endpoint: (process.env.ACS_ENDPOINT ?? "").replace(/\/$/, ""),
     connectionString: process.env.ACS_CONNECTION_STRING ?? "",
-    callerId: process.env.ACS_CALLER_ID ?? "",
     teamsCloud: process.env.TEAMS_CLOUD ?? "public",
     teamsResourceAccountId: process.env.TEAMS_RESOURCE_ACCOUNT_ID ?? "",
   },
@@ -39,16 +66,19 @@ export const config = {
     seedPath: process.env.SCHEDULE_SEED_PATH ?? rel("fixtures/appointments-seed.json"),
     handoffTokenSecret: process.env.HANDOFF_TOKEN_SECRET ?? "",
     handoffTokenTtlMs: num(process.env.HANDOFF_TOKEN_TTL_MS, 300_000),
+    /** How long an offered time is reserved for the caller while they decide. */
     holdTtlMs: num(process.env.HOLD_TTL_MS, 300_000),
     searchHorizonDays: num(process.env.SEARCH_HORIZON_DAYS, 90),
-    optionsPerTurn: num(process.env.OPTIONS_PER_TURN, 3),
+    /** Options read out per turn. Two is what a caller can hold in their head. */
+    optionsPerTurn: num(process.env.OPTIONS_PER_TURN, 2),
+    /** Nothing sooner than this is offered, so a caller can still get there. */
+    minLeadMinutes: num(process.env.MIN_LEAD_MINUTES, 60),
   },
-  sms: {
-    enabled: bool(process.env.SMS_ENABLED, false),
-    from: process.env.ACS_SMS_FROM ?? "",
-    allowedNumbers: (process.env.SMS_ALLOWED_NUMBERS ?? "").split(",").map((s) => s.trim()).filter(Boolean),
-  },
-  schedulerMinutesPerBooking: num(process.env.SCHEDULER_MINUTES_PER_BOOKING, 6),
+  /**
+   * Gap between the agent's "I'm connecting you" and the ACS transfer on a real
+   * call, so the caller hears the whole line before the transfer starts.
+   */
+  transferDelayMs: num(process.env.TRANSFER_DELAY_MS, 2_500),
   retention: {
     transcripts: bool(process.env.TRANSCRIPT_RETENTION, false),
     days: num(process.env.TRANSCRIPT_RETENTION_DAYS, 7),
@@ -70,8 +100,14 @@ export const config = {
 
 export function loadJson(path) { return JSON.parse(readFileSync(path, "utf8")); }
 export const fixtures = Object.fromEntries(Object.entries(config.paths).map(([k, p]) => [k, loadJson(p)]));
-export function nowDate(now = config.demoNow) { return new Date(now); }
 
+/** The configured demo time, or the real time when DEMO_NOW is empty or not a timestamp. */
+export function nowDate(now = config.demoNow) {
+  const at = now ? Date.parse(now) : NaN;
+  return Number.isFinite(at) ? new Date(at) : new Date();
+}
+
+/** Config needed to answer a real inbound call. An empty array means live. */
 export function assertCallConfig(cfg = config) {
   const missing = [];
   if (!cfg.acs.endpoint && !cfg.acs.connectionString) missing.push("ACS_ENDPOINT");
@@ -79,26 +115,31 @@ export function assertCallConfig(cfg = config) {
   if (!cfg.voiceLive.endpoint) missing.push("VOICE_LIVE_ENDPOINT");
   return missing;
 }
-export function isSimulated() { return assertCallConfig().length > 0; }
-export function readiness({ schedule = null, audit = null, hub = null } = {}) {
-  const missing = assertCallConfig();
-  const stats = schedule?.stats?.() ?? {};
+
+/** True when the sample is running without the Azure configuration for real calls. */
+export const isSimulated = () => assertCallConfig().length > 0;
+
+/**
+ * Readiness broken out per subsystem, because "not ready" is rarely uniform:
+ * Voice Live can be configured while ACS is not, and both can be configured
+ * while the Teams targets in routing.json are still placeholder ids.
+ */
+export function readiness(cfg = config) {
+  const placeholder = /^0{8}-0{4}-0{4}-0{4}-0{11}\d$/;
+  // Every destination is a Teams target except a callback ticket or a phone number.
+  const unprovisioned = Object.entries(fixtures.routing.destinations ?? {})
+    .filter(([, d]) => d.target !== "callback" && !String(d.target ?? "").startsWith("+"))
+    .filter(([, d]) => !d.target || placeholder.test(d.target))
+    .map(([id]) => id);
   return {
-    ok: true,
-    application: config.appName,
-    mode: missing.length ? "simulation" : "live",
-    simulation: missing.length > 0,
-    missingConfig: missing,
-    port: config.port,
-    voiceLive: { ready: Boolean(config.voiceLive.endpoint), auth: config.voiceLive.apiKey ? "api-key" : "entra", model: config.voiceLive.model, apiVersion: config.voiceLive.apiVersion },
-    acs: { ready: Boolean((config.acs.endpoint || config.acs.connectionString) && config.publicBaseUrl), auth: config.acs.endpoint ? "entra" : config.acs.connectionString ? "connection-string" : "none", teamsResourceAccountId: config.acs.teamsResourceAccountId || null },
-    scheduleAdapter: config.schedule.adapter,
-    scheduleDbPath: config.schedule.dbPath,
-    scheduleDbSharedWithReminder: /appointment-reminder-agent/.test(config.schedule.dbPath),
-    sms: { enabled: config.sms.enabled, mode: config.sms.enabled ? "acs" : "console" },
-    activeHolds: stats.activeHolds ?? 0,
-    demoNow: config.demoNow,
-    realtime: hub?.transport ?? "local-ws",
-    audit: { store: audit?.name ?? "memory", transcriptsPersisted: config.retention.transcripts },
+    voiceLive: { ready: Boolean(cfg.voiceLive.endpoint), auth: cfg.voiceLive.apiKey ? "api-key" : "entra", model: cfg.voiceLive.model, apiVersion: cfg.voiceLive.apiVersion },
+    telephony: {
+      ready: Boolean(cfg.acs.endpoint || cfg.acs.connectionString) && Boolean(cfg.publicBaseUrl),
+      auth: cfg.acs.endpoint ? "entra" : cfg.acs.connectionString ? "connection-string" : "none",
+      missing: assertCallConfig(cfg).filter((k) => k !== "VOICE_LIVE_ENDPOINT"),
+      teamsResourceAccountId: cfg.acs.teamsResourceAccountId || null,
+    },
+    teams: { ready: unprovisioned.length === 0, unprovisionedDestinations: unprovisioned, cloud: cfg.acs.teamsCloud },
+    schedule: { adapter: cfg.schedule.adapter, dbPath: cfg.schedule.dbPath, sharedWithReminder: /appointment-reminder-agent/.test(cfg.schedule.dbPath) },
   };
 }

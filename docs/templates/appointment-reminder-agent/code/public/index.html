@@ -1,1 +1,118 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Appointment Reminder Agent</title><link rel="stylesheet" href="styles.css"></head><body><main><header><h1>Appointment Reminder Agent</h1><p>Demo campaign board — simulated by default.</p></header><section class="controls"><button id="dry">Dry run</button><button id="run">Run campaign now</button><button id="simulate">Simulate Jordan confirm</button><button id="reset">Reset data</button></section><section><h2>Health</h2><pre id="health"></pre></section><section><h2>Campaign board</h2><table><thead><tr><th>Appointment</th><th>Patient</th><th>Department</th><th>Local time</th><th>State</th><th>Reason</th></tr></thead><tbody id="plan"></tbody></table></section><section><h2>Live call</h2><pre id="call"></pre></section></main><script src="app.js"></script></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Contoso Health — Appointment reminders</title>
+<link rel="stylesheet" href="/presenter-kit.css" />
+<link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+
+<header class="top">
+  <div class="brand"><span class="logo"></span> <strong id="org">Contoso Health</strong> <span class="pill">Appointment reminders</span></div>
+  <div class="top-right">
+    <span id="clock" hidden></span>
+    <select id="voice" aria-label="Room voice"></select>
+    <span id="mode">checking…</span>
+    <button class="ghost" id="reset" type="button" title="Clear the simulated calls and metrics, restore the seeded schedule, and reset the clock">Reset demo</button>
+  </div>
+</header>
+
+<nav id="stack"></nav>
+<section id="director" aria-label="Demo script"></section>
+
+<main class="grid">
+
+  <!-- ------------------------------------------------------------ the call -->
+  <section class="card call">
+    <div class="card-head">
+      <h2>The reminder call</h2>
+      <span id="stateChip">no call</span>
+    </div>
+
+    <div class="caller-row">
+      <label for="patientSelect">Patient to remind</label>
+      <select id="patientSelect"></select>
+      <button class="primary" id="placeCall" type="button" title="The server checks consent, calling hours and the reminder window before it dials">Place the call</button>
+    </div>
+
+    <div class="dial-row">
+      <label for="outcomeSelect">Who picks up</label>
+      <select id="outcomeSelect">
+        <option value="answered">A person</option>
+        <option value="voicemail-last">Voicemail · last attempt</option>
+        <option value="voicemail">Voicemail · early attempt</option>
+        <option value="busy">Nobody · line busy</option>
+        <option value="no_answer">Nobody · no answer</option>
+      </select>
+      <label for="languageSelect">Language</label>
+      <select id="languageSelect">
+        <option value="">Patient's preference</option>
+        <option value="en">English</option>
+        <option value="es">Spanish</option>
+      </select>
+    </div>
+    <p class="pick-hint" id="pickHint"></p>
+
+    <ol id="transcript"></ol>
+
+    <form class="say" id="sayForm" autocomplete="off">
+      <input id="sayInput" type="text" placeholder="What does the patient say?" disabled />
+      <button class="primary" type="submit" id="sayBtn" disabled>Say</button>
+    </form>
+
+    <div class="controls">
+      <span class="controls-label">Keypad</span>
+      <div class="keys" id="keys"></div>
+      <button class="ghost" id="silence" type="button" disabled>Silence</button>
+      <button class="ghost danger" id="hangup" type="button" disabled>Hang up</button>
+    </div>
+    <p class="keys-legend">1 confirm · 2 cancel · 3 new time · 9 stop reminder calls · * repeat. While the agent asks for the date of birth, key all 8 digits (MMDDYYYY).</p>
+  </section>
+
+  <!-- --------------------------------------------------------- the decision -->
+  <section class="card decision">
+    <div class="card-head">
+      <h2>Reminder decision</h2>
+      <span class="tag" title="The agent talks. Policy code on the server decides whether to dial, what may be said, and what changes in the schedule.">the server decides</span>
+    </div>
+
+    <div id="decision"></div>
+    <ul id="checks"></ul>
+    <dl id="facts"></dl>
+
+    <h3 class="sub-head">The clinic's schedule <span class="sub-note">judged on the demo clock</span></h3>
+    <ul id="board"></ul>
+  </section>
+
+  <!-- ------------------------------------------------------- the Teams side -->
+  <section class="card teams">
+    <div class="card-head">
+      <h2>What the scheduling desk sees</h2>
+      <span class="tag" title="A mock of the Teams incoming-call toast, built from the real handoff context">mock</span>
+    </div>
+
+    <div id="toast" hidden></div>
+    <p class="empty" id="toastEmpty">No call has been handed over yet.</p>
+
+    <h3 class="sub-head">VoIP headers on the wire</h3>
+    <pre id="headers">—</pre>
+  </section>
+
+  <!-- ------------------------------------------------------------- the trail -->
+  <section class="card trail">
+    <div class="card-head">
+      <h2>Decision trail</h2>
+      <span class="sub-note">every dial decision, privacy rule and schedule change is audited</span>
+    </div>
+    <ol id="events"></ol>
+  </section>
+
+</main>
+
+<footer id="metrics"></footer>
+
+<script src="/app.js" type="module"></script>
+</body>
+</html>

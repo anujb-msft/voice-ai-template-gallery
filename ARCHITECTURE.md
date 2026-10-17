@@ -216,7 +216,12 @@ docs/templates/<id>/
     package-lock.json
     config/              Policy data as JSON
     public/              Operator console
-    scripts/             Smoke test and optional provisioning helpers
+      beats.js           The scripted demo, beat by beat
+      presenter-kit.*    Vendored from scripts/presenter-kit/; never edit here
+    scripts/             Smoke test, rehearsal, and optional provisioning helpers
+      rehearse.mjs       Plays the beats and checks what each one leaves on screen
+      presenter-kit-rehearsal.mjs
+                         Vendored from scripts/presenter-kit/; never edit here
     src/                 Server, policy core, and adapters
       voice/             Azure Communication Services and Voice Live adapters
     test/                node:test suites
@@ -272,7 +277,7 @@ template, change its `name`.
 | `README.md` | Evaluators | Package contents, how to run the implementation, and common flows to test. |
 | `SPEC.md` | Implementers and coding agents | The decisions of record, under the headings below. |
 | `code/README.md` | Developers | What the demo shows, quick start, how it works, configuration, connecting a real phone number, project layout, security notes before production, and Microsoft references. |
-| `code/DEMO-SCRIPT.md` | Presenters | A scripted walkthrough that works in simulation mode. |
+| `code/DEMO-SCRIPT.md` | Presenters | The running order and narration for the console's scripted beats in simulation mode, then how to take a real call. |
 | `code/.env.example` | Developers | Every variable `config.mjs` reads, grouped by concern, with placeholders or safe defaults and comments for anything that isn't obvious. No real values. |
 | `video/README.md`, `captions.vtt`, `transcript.md` | Viewers | Video notes, WebVTT captions, and a transcript of the demo. |
 | `slides/README.md` | Presenters | Slide notes and the required filenames. |
@@ -311,7 +316,7 @@ meet.
   `express`, and `ws`. Explain any new dependency in the pull request. Don't add dev
   dependencies: tests use the built-in `node:test` runner.
 - Commit `package-lock.json` and install with `npm ci`. Lockfiles SHOULD resolve
-  packages from the public npm registry (see [Known deviations](#7-known-deviations)).
+  packages from the public npm registry (`https://registry.npmjs.org/`).
 - Telephony uses Azure Communication Services Call Automation, the voice agent uses the
   Voice Live API, and people are reached through Microsoft Teams.
 - Authenticate without keys by default, with `DefaultAzureCredential` from
@@ -325,8 +330,9 @@ meet.
 | `start` | `node src/server.mjs` | Yes |
 | `dev` | `node --watch src/server.mjs` | Yes |
 | `test` | `node --test test/*.test.mjs` | No |
-| `check` | `node --check` on every `src/*.mjs` and `src/voice/*.mjs` file | No |
+| `check` | `node --check` on every `src/*.mjs`, `src/voice/*.mjs`, `scripts/*.mjs`, and `public/*.js` file | No |
 | `smoke` | `node scripts/smoke-websockets.mjs` | Yes |
+| `rehearse` | `node scripts/rehearse.mjs` | Yes |
 | `tunnel` | `devtunnel host -p <port> --allow-anonymous` | No, but needs the Dev Tunnels CLI |
 
 ### Layering
@@ -442,12 +448,26 @@ state and policy, then returns a result or `{ ok: false, reason }`, such as
 call into a state the flow doesn't allow. Every tool call and its outcome is recorded in
 the call's audit trail. Terminal states, `TRANSFERRED` and `ENDED`, are final.
 
+The model often says goodbye and then calls `end_call` while the server is still
+handing the call to a person. While a transfer is in progress or has been accepted, the
+model's `end_call` MUST NOT hang up; the reference refuses it with
+`{ ok: false, reason: "transfer_in_progress" }`. When the bridge stops, it MUST NOT hang
+up a call it handed to a person, because the call belongs to Teams now. A rejected or
+failed transfer gives the call back to the agent, which can apologize and end it as
+usual.
+
 ### Time
 
 Policy that depends on time, such as business hours, on-call rotations, appointment
 slots, or reminders, MUST take an injectable clock (`now = Date.now` in the reference
 flow). Samples SHOULD also accept `DEMO_NOW`, an ISO 8601 timestamp read in `config.mjs`,
 to pin the clock for demos, tests, and smoke runs.
+
+In simulation mode, the same clock is the demo clock. `GET /api/demo/clock` reports it,
+with named presets such as `business-hours` and `after-hours`, and
+`POST /api/demo/clock` moves it with `{ preset }` or `{ at }`, so a presenter can show
+behavior at any time of day. A server that answers real calls ignores `DEMO_NOW` (it
+logs that it did) and refuses to move its clock.
 
 ### Offline-first simulation
 
@@ -464,7 +484,18 @@ Every sample MUST start and be demonstrable with no Azure configuration:
   stubs. The reference passes `transfer = null`: the flow still builds the real handoff
   context, then records a simulated transfer.
 - `POST /api/simulate` and its `/:id/say`, `/:id/dtmf`, `/:id/silence`, and
-  `/:id/hangup` routes drive a whole call from the operator console or `curl`.
+  `/:id/hangup` routes drive a whole call from the operator console or `curl`. Each
+  route waits for the flow to settle before it replies with the call snapshot, and the
+  server pushes both sides of the transcript over `/ws/hub`, so the console never
+  invents a line. Outbound templates start a simulated call by placing it.
+- A simulated call is never connected, transferred, texted, paged, or written to a
+  real system, even on a server that also answers real calls.
+- Load native and SDK modules lazily, so the server starts in simulation in a couple of
+  seconds and keeps running on an in-memory store if `better-sqlite3` won't load.
+- Demo controls exist only in simulation: the demo clock ([time](#time)) and
+  `POST /api/demo/reset`, which clears in-memory calls and everything simulated calls
+  created, keeps data from real calls, and restores the starting clock. Both answer
+  `403` while the server answers real calls.
 
 ### Outbound and campaign safety
 
@@ -496,6 +527,8 @@ New templates MUST expose:
 | `GET /api/stats` | Counters for the console |
 | `POST /api/negotiate` | Console WebSocket negotiation |
 | `POST /api/simulate` and its sub-routes | Offline call driver |
+| `GET` and `POST /api/demo/clock` | The demo clock, when policy depends on time (simulation only) |
+| `POST /api/demo/reset` | A clean stage between run-throughs (simulation only) |
 | `/ws/hub` | Live events for the console |
 | `/ws/media` | Media stream from Azure Communication Services |
 
@@ -510,6 +543,67 @@ upgrades meant for the others. The `ws` documentation shows the shared-server pa
 origin (`/health`, `/api/*`, and `/ws/hub`) and loads nothing from third parties. Unlike
 the gallery, it MAY use modern JavaScript, such as `<script type="module">`, `const`, and
 arrow functions, because it's a developer tool opened in a current browser.
+
+The console is also the demo, so it's built to be presented:
+
+- **It is a viewer, not a second state machine.** It renders what the server pushes
+  over `/ws/hub`: transcript lines from both sides, snapshots, audit events, and
+  handoffs. Panels explain each decision in plain English, such as which policy
+  applied, why, and what happens next, rather than dumping JSON. The VoIP headers panel
+  is the one exception, because it shows the wire.
+- **Scripted beats.** `public/beats.js` holds the demo as numbered beats. Each beat
+  pins the demo clock and starts its own call, so beats run in any order. Narration
+  written for the room appears alongside: `talk` while a beat runs, `cue` before a
+  step, and `after` once it's done. **Next** (→, PageDown, or a presenter clicker) runs
+  one step, **Auto-play** runs the rest of a beat, 1–9 jump to a beat, and N hides the
+  narration. Manual controls stay available for questions from the room.
+- **The Teams side.** Every handoff to a person renders a mock of the Teams incoming-call
+  toast and the VoIP headers. Both are built by the template's real handoff builder,
+  the same code the transfer uses.
+- **Live calls.** When it's idle, the console follows a call it didn't start, such as a
+  real phone call, with the room voice muted. The mode chip reads "simulation mode" or
+  "live · Teams Phone".
+- **Reduced motion.** Presenter machines often report `prefers-reduced-motion`, and
+  Remote Desktop sessions do, so anything time-critical, such as an undo, transfer, or
+  escalation window, is a countdown ticked by script. Never use a CSS transition for it.
+- **A clean stage.** **Reset demo** calls `POST /api/demo/reset`, clears every panel,
+  and refreshes the metrics.
+- **Any window.** Presenters often snap the console to half the screen. From 360 px
+  wide up, nothing scrolls sideways and **Reset demo** stays on screen; the header
+  wraps the demo clock below the brand instead.
+
+The shared building blocks live in the presenter kit:
+
+- **The canonical copy** is `scripts/presenter-kit/presenter-kit.js` and
+  `presenter-kit.css`. These hold hub plumbing, a race-free call session, the demo
+  director, the room voice, and the shared visuals: mode chip, demo clock, stack strip,
+  gauge, checklist, countdown, decision trail, Teams toast, and metrics. Beside them,
+  `presenter-kit-rehearsal.mjs` is the engine behind every template's
+  `npm run rehearse` ([rehearsals](#5-testing)).
+- **Vendored copies.** Each template serves its own copy of the kit from `code/public/`
+  and keeps its own copy of the rehearsal engine in `code/scripts/`, so a downloaded
+  template stays self-contained.
+- **Editing it.** Change the kit only in `scripts/presenter-kit/`, then run
+  `node scripts/sync-presenter-kit.js`. CI runs it with `--check` and fails when a copy
+  drifts.
+- **What stays in the template.** Domain panels go in the template's `app.js`. Its
+  accent colors go in `styles.css`; give a light accent dark `--on-accent` ink, and give
+  a dark accent a lighter `--accent-2`.
+- **Hidden means hidden.** The kit sets `[hidden] { display: none !important; }`, so
+  the `hidden` attribute wins over any `display` rule. Show an element by removing
+  `hidden`, not by setting `style.display`, and don't add local `[hidden]` rules.
+
+`code/DEMO-SCRIPT.md` is the presenter's companion to `beats.js`, in the reference's
+format:
+
+- the length and the beats;
+- a setup checklist that starts with `npm run rehearse`;
+- the mode chip;
+- the key table;
+- narration per beat;
+- recovery steps;
+- taking a real call;
+- answers for questions from the room.
 
 ### Data, privacy, and security
 
@@ -532,22 +626,22 @@ arrow functions, because it's a developer tool opened in a current browser.
 
 Each sample has its own default port, so several can run side by side. A new template
 claims the next free port from 8101 up in its proposal issue and adds a row here in its
-pull request. Its smoke test uses the demo port plus 100. Pick ports that don't appear
-anywhere in this table.
+pull request. Its smoke test uses the demo port plus 100, and its rehearsal the demo port
+plus 200. Pick ports that don't appear anywhere in this table.
 
-| Template | Demo port | Smoke test port |
-|---|---|---|
-| `it-helpdesk-password-reset` | 8090 | No smoke test |
-| `intent-based-call-routing` | 8091 | 8199 |
-| `general-inquiry-agent` | 8092 | 8292 |
-| `after-hours-sales-lead-capture` | 8093 | 8193 |
-| `bid-price-lookup-agent` | 8094 | 8199 |
-| `contextual-on-call-pager` | 8095 | 8195 |
-| `311-service-assistant` | 8096 | Needs a running server |
-| `customer-record-lookup-update` | 8097 | Needs a running server |
-| `it-hr-help-desk-triage` | 8098 | Needs a running server |
-| `appointment-reminder-agent` | 8099 | Needs a running server |
-| `appointment-scheduling-agent` | 8100 | Needs a running server; defaults to 8099 |
+| Template | Demo port | Smoke test port | Rehearsal port |
+|---|---|---|---|
+| `it-helpdesk-password-reset` | 8090 | 8190 | 8290 |
+| `intent-based-call-routing` | 8091 | 8191 | 8291 |
+| `general-inquiry-agent` | 8092 | 8192 | 8292 |
+| `after-hours-sales-lead-capture` | 8093 | 8193 | 8293 |
+| `bid-price-lookup-agent` | 8094 | 8194 | 8294 |
+| `contextual-on-call-pager` | 8095 | 8195 | 8295 |
+| `311-service-assistant` | 8096 | 8196 | 8296 |
+| `customer-record-lookup-update` | 8097 | 8197 | 8297 |
+| `it-hr-help-desk-triage` | 8098 | 8198 | 8298 |
+| `appointment-reminder-agent` | 8099 | 8199 | 8299 |
+| `appointment-scheduling-agent` | 8100 | 8200 | 8300 |
 
 ## 5. Testing
 
@@ -556,9 +650,14 @@ Run the cheapest checks first:
 | Tier | Command | Needs `npm ci` | Covers |
 |---|---|---|---|
 | Unit | `npm test` | No | State machine, policy, handoff payloads, and configuration helpers, with fakes for every adapter |
-| Syntax | `npm run check` | No | Every server module parses |
-| Smoke | `npm run smoke` | Yes | The server boots, `/health` answers, and every WebSocket path accepts an upgrade |
-| Manual | `code/DEMO-SCRIPT.md` | Yes | The scripted demo in simulation mode, then a real call |
+| Syntax | `npm run check` | No | Every server module and console script parses |
+| Smoke | `npm run smoke` | Yes | The server boots, `/health` answers, every WebSocket path accepts an upgrade, and the demo controls answer |
+| Rehearsal | `npm run rehearse` | Yes | Every beat of the scripted demo, played as the console plays it, leaves on screen what `code/DEMO-SCRIPT.md` says, in any order and at any pace |
+| Manual | `code/DEMO-SCRIPT.md` | Yes | What the room sees and hears on the presenter's machine, then a real call |
+
+`npm run check` is a POSIX shell loop, and npm on Windows runs scripts with `cmd.exe`.
+On Windows, run it in WSL, or set npm's `script-shell` to a POSIX shell such as Git
+Bash's `bash.exe`.
 
 Unit tests:
 
@@ -570,14 +669,41 @@ Unit tests:
 Smoke tests:
 
 - Start their own server with `process.execPath` on the demo port plus 100, with
-  `HOST=127.0.0.1`, `DB_PATH=:memory:`, and every live setting
-  (`ACS_ENDPOINT`, `ACS_CONNECTION_STRING`, and `VOICE_LIVE_ENDPOINT`) set to an empty
-  string. `dotenv` doesn't override variables that are already set, so the run stays in
-  simulation mode even when a developer has a local `.env`. Also set `DEMO_NOW` when
-  behavior depends on time.
-- Poll `/health`, open every WebSocket path, and stop the server on exit, whether the
-  run passed or failed.
+  `HOST=127.0.0.1`, an in-memory store (`DB_PATH=:memory:` in the reference), and every
+  live setting (`ACS_ENDPOINT`, `ACS_CONNECTION_STRING`, and `VOICE_LIVE_ENDPOINT`) set
+  to an empty string. `dotenv` doesn't override variables that are already set, so the
+  run stays in simulation mode even when a developer has a local `.env`. Also set
+  `DEMO_NOW` when behavior depends on time.
+- Poll `/health`, open every WebSocket path, check that the demo controls answer and
+  that reset clears simulated calls, and stop the server on exit, whether the run passed
+  or failed.
 - MUST NOT need an already running server or any network access beyond localhost.
+
+Rehearsals:
+
+- `scripts/rehearse.mjs` configures the vendored engine,
+  `scripts/presenter-kit-rehearsal.mjs`. It mirrors the parts of `public/app.js` that
+  are the template's own (the start body, what the console waits for before the next
+  call, and its actions) and projects what each beat leaves on screen: final state, the
+  decisions the console renders, and the decision trail, with no ids or times. It pins
+  those outcomes, and the metrics, as `EXPECTED` and `EXPECTED_STATS`.
+- The engine starts the server on the demo port plus 200 in a sealed environment: only
+  operating-system variables such as `PATH` and the runner's own settings reach it, and
+  `.env` isn't loaded. So it rehearses the shipped settings whatever the developer's
+  `.env` or shell holds. The runner adds only what a rehearsal needs, such as keeping
+  stores in memory.
+- It checks that `code/DEMO-SCRIPT.md` lists the same beats in the same order, that the
+  console's files load, and that the demo clock is adjustable. It then plays every beat
+  over HTTP and the hub, with the console's waits: in order at Auto-play's pace, then
+  after **Reset demo** at a presenter's pace, then last beat first with each beat
+  twice at full speed. Each run must reach the pinned outcomes, and a final reset must
+  restore the starting metrics.
+- Booted again with fictional live settings (`.invalid` hosts), the server must report
+  live and refuse every demo control with 403.
+- When a beat changes on purpose, the failure prints the outcomes it reached, ready to
+  paste over the pins once each has been checked against `code/DEMO-SCRIPT.md`.
+- MUST NOT need an already running server or any network access beyond localhost. It
+  isn't part of `npm test`, because it needs the installed dependencies.
 
 ## 6. Continuous integration
 
@@ -586,13 +712,17 @@ with read-only `contents` permission:
 
 - `catalogue` runs the generator, then `git diff --exit-code -- docs/data` to prove the
   committed catalogue is current.
-- `call-routing-demo` is the model template job. It runs `npm test` before `npm ci`,
-  which proves the policy core needs no dependencies, then `npm ci`, `npm run check`,
-  and `npm run smoke`. `password-reset-demo` predates it and has no smoke step.
+- `presenter-kit` runs `node scripts/sync-presenter-kit.js --check`, which fails when a
+  template's vendored copy of the kit or the rehearsal engine differs from
+  `scripts/presenter-kit/`.
+- `sample` is a matrix with one entry per template. Each entry runs `npm test` before
+  `npm ci`, which proves the policy core needs no dependencies, then `npm ci`,
+  `npm test` again, `npm run check`, `npm run smoke`, and `npm run rehearse`. A test
+  that needs a native module, such as a SQLite store, skips itself on the first run and
+  runs on the second.
 
-A new template MUST add its own job, copied from `call-routing-demo` with `cache: npm`
-and `cache-dependency-path` added, and an `npm` entry for its `code/` directory in
-`.github/dependabot.yml`.
+A new template MUST add its id to the `sample` matrix and its `code/` directory to the
+`npm` entry's `directories` list in `.github/dependabot.yml`.
 
 `.github/workflows/pages.yml` runs on pushes to `main`. It regenerates the catalogue
 with repository metadata and deploys `docs/` to GitHub Pages.
@@ -604,14 +734,6 @@ templates. Fixes are welcome as separate pull requests.
 
 | Area | Deviation |
 |---|---|
-| Password reset | `it-helpdesk-password-reset` predates the standard: it has no `SPEC.md`, no `config/`, no smoke test, and no `/api/simulate` or `/api/calls/:id/events` routes, and its modules are laid out differently. |
-| On-call pager | `contextual-on-call-pager` has no `/api/simulate` or `/api/calls/:id/events` routes. |
-| CI | Only `intent-based-call-routing` and `it-helpdesk-password-reset` have CI jobs, and Dependabot covers only `it-helpdesk-password-reset`. |
-| Package READMEs | Nine package `README.md` files are a generic paragraph. `intent-based-call-routing` shows the expected content. |
-| `code/README.md` | Headings vary between templates. |
-| Smoke tests | Smoke ports don't consistently follow the demo port plus 100 rule: `intent-based-call-routing` and `bid-price-lookup-agent` both use 8199, and `general-inquiry-agent` uses 8292. Five smoke tests need an already running server, and the `appointment-scheduling-agent` smoke test defaults to port 8099 instead of 8100. |
-| Simulation banner | `appointment-reminder-agent`, `appointment-scheduling-agent`, `contextual-on-call-pager`, and `customer-record-lookup-update` don't print the simulation-mode banner. |
-| Clock | `intent-based-call-routing` injects `now` but doesn't read `DEMO_NOW`. |
+| Password reset | `it-helpdesk-password-reset` predates the standard: it has no `SPEC.md` and no `config/`, and its modules are laid out differently. |
 | Campaign safety | `appointment-reminder-agent` treats an empty `ALLOWED_TEST_NUMBERS` as "no restriction". Set it before you turn off `CAMPAIGN_DRY_RUN`. |
 | Card scenes | Ten templates use older `VISUAL_SCENES` keys, mapped through `LEGACY_KEY_BY_ID` in `gallery.js`. New templates key scenes by id. |
-| Lockfiles | Ten `package-lock.json` files resolve packages from Microsoft-hosted Azure Artifacts feeds instead of the public npm registry. Fix them together in one pull request, not template by template. |

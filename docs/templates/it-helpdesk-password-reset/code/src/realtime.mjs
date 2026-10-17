@@ -1,23 +1,83 @@
-import jwt from "jsonwebtoken";
 import { WebSocketServer } from "ws";
-import { config } from "./config.mjs";
 
 /**
- * Realtime fan-out for reset sessions.
+ * Realtime fan-out, addressed by reset session (call) id.
  *
- * Two interchangeable transports:
+ *  - `local-ws`: a plain WebSocket hub inside this process. The presenter
+ *    console always listens here (`?user=*` hears every call), so the template
+ *    runs with no Azure SignalR dependency and no second service to provision.
  *
- *  - `azure-signalr` — Azure SignalR Service in *Serverless* mode. The browser
- *    talks straight to the service; this server only mints tokens and pushes
- *    messages over the REST API. This is the shape you want in production.
+ *  - `azure-signalr`: Azure SignalR Service in *Serverless* mode, used for the
+ *    employee's reset page when AZURE_SIGNALR_CONNECTION_STRING is set. The
+ *    browser talks straight to the service; this server only mints tokens and
+ *    pushes messages over the REST API. This is the shape you want in
+ *    production.
  *
- *  - `local-ws`      — a plain WebSocket hub built into this process, used when
- *    AZURE_SIGNALR_CONNECTION_STRING is not set, so the template runs with no
- *    Azure SignalR dependency at all.
- *
- * Every message is addressed to a *user id*, which here is the reset session id.
- * That keeps each caller's wizard isolated without any group bookkeeping.
+ * The flow only ever calls `send(userId, target, payload)`, so it can't tell
+ * which transport carried a message.
  */
+export class LocalWebSocketHub {
+  transport = "local-ws";
+
+  /** @type {Map<string, Set<import("ws").WebSocket>>} */
+  #clients = new Map();
+  /** Every message per call, so a reset page opened mid-call is not blank. */
+  #backlog = new Map();
+
+  /**
+   * Returns the server so the caller can route upgrades. Deliberately
+   * `noServer`: attaching two WebSocketServers to one HTTP server does not work,
+   * because each aborts the handshake for paths it does not own.
+   */
+  attach() {
+    const wss = new WebSocketServer({ noServer: true });
+
+    wss.on("connection", (socket, req) => {
+      const userId = new URL(req.url, "http://localhost").searchParams.get("user") || "*";
+      if (!this.#clients.has(userId)) this.#clients.set(userId, new Set());
+      this.#clients.get(userId).add(socket);
+
+      for (const msg of this.#backlog.get(userId) ?? []) socket.send(msg);
+
+      socket.on("close", () => {
+        const set = this.#clients.get(userId);
+        set?.delete(socket);
+        if (set && set.size === 0) this.#clients.delete(userId);
+      });
+      socket.on("error", () => socket.close());
+    });
+
+    return wss;
+  }
+
+  negotiate(userId) {
+    return { url: `/ws/hub?user=${encodeURIComponent(userId)}`, accessToken: null, transport: this.transport };
+  }
+
+  /** Sent to the page watching this call and to any console watching every call. */
+  send(userId, target, payload) {
+    const msg = JSON.stringify({ target, arguments: [{ callId: userId, ...payload }] });
+
+    const backlog = this.#backlog.get(userId) ?? [];
+    backlog.push(msg);
+    if (backlog.length > 200) backlog.shift();
+    this.#backlog.set(userId, backlog);
+
+    for (const key of new Set([userId, "*"])) {
+      for (const socket of this.#clients.get(key) ?? []) {
+        if (socket.readyState === socket.OPEN) socket.send(msg);
+      }
+    }
+  }
+
+  forget(userId) {
+    this.#backlog.delete(userId);
+  }
+
+  reset() {
+    this.#backlog.clear();
+  }
+}
 
 function parseConnectionString(cs) {
   const parts = Object.fromEntries(
@@ -35,19 +95,21 @@ function parseConnectionString(cs) {
   return { endpoint, accessKey };
 }
 
-class AzureSignalRHub {
+export class AzureSignalRHub {
   transport = "azure-signalr";
 
-  constructor(connectionString, hub) {
+  /** @param {object} jwt the `jsonwebtoken` module, loaded only when SignalR is configured */
+  constructor(connectionString, hub, jwt) {
     const { endpoint, accessKey } = parseConnectionString(connectionString);
     this.endpoint = endpoint;
     this.accessKey = accessKey;
     this.hub = hub;
+    this.jwt = jwt;
   }
 
   #token(audience, userId, ttlSeconds = 3600) {
     const claims = userId ? { nameid: userId } : {};
-    return jwt.sign(claims, this.accessKey, { audience, expiresIn: ttlSeconds, algorithm: "HS256" });
+    return this.jwt.sign(claims, this.accessKey, { audience, expiresIn: ttlSeconds, algorithm: "HS256" });
   }
 
   /** Returned to the browser; @microsoft/signalr connects directly to the service with it. */
@@ -61,10 +123,10 @@ class AzureSignalRHub {
     const res = await fetch(url, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${this.#token(url)}`,
+        Authorization: "Bearer " + this.#token(url),
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ target, arguments: [payload] }),
+      body: JSON.stringify({ target, arguments: [{ callId: userId, ...payload }] }),
     });
     // 202 Accepted is the success path; 404 means "no connected client", which is benign.
     if (!res.ok && res.status !== 404) {
@@ -73,41 +135,56 @@ class AzureSignalRHub {
   }
 }
 
-class LocalWebSocketHub {
-  transport = "local-ws";
-  /** @type {Map<string, Set<import("ws").WebSocket>>} */
-  #clients = new Map();
-
-  attach(httpServer, path = "/ws/hub") {
-    const wss = new WebSocketServer({ server: httpServer, path });
-    wss.on("connection", (socket, req) => {
-      const userId = new URL(req.url, "http://localhost").searchParams.get("user");
-      if (!userId) return socket.close();
-      if (!this.#clients.has(userId)) this.#clients.set(userId, new Set());
-      this.#clients.get(userId).add(socket);
-      socket.on("close", () => {
-        const set = this.#clients.get(userId);
-        set?.delete(socket);
-        if (set && set.size === 0) this.#clients.delete(userId);
-      });
-    });
+/** The local hub for the console, plus Azure SignalR for reset pages when configured. */
+export class Hub {
+  constructor({ local = new LocalWebSocketHub(), signalr = null, log = () => {} } = {}) {
+    this.local = local;
+    this.signalr = signalr;
+    this.log = log;
   }
 
+  get transport() {
+    return this.signalr?.transport ?? this.local.transport;
+  }
+
+  attach() {
+    return this.local.attach();
+  }
+
+  /** What the employee's reset page connects to. */
   negotiate(userId) {
-    return { url: `/ws/hub?user=${encodeURIComponent(userId)}`, accessToken: null, transport: this.transport };
+    return (this.signalr ?? this.local).negotiate(userId);
   }
 
   async send(userId, target, payload) {
-    const msg = JSON.stringify({ target, arguments: [payload] });
-    for (const socket of this.#clients.get(userId) ?? []) {
-      if (socket.readyState === socket.OPEN) socket.send(msg);
+    this.local.send(userId, target, payload);
+    if (!this.signalr) return;
+    try {
+      await this.signalr.send(userId, target, payload);
+    } catch (e) {
+      this.log(`[hub] ${e.message}`);
     }
+  }
+
+  forget(userId) {
+    this.local.forget(userId);
+  }
+
+  reset() {
+    this.local.reset();
   }
 }
 
-export function createHub() {
-  if (config.signalr.connectionString) {
-    return new AzureSignalRHub(config.signalr.connectionString, config.signalr.hub);
+/** jsonwebtoken is loaded only when Azure SignalR is configured. */
+export async function createHub({ connectionString = "", hub = "helpdesk", log = () => {} } = {}) {
+  let signalr = null;
+  if (connectionString) {
+    try {
+      const { default: jwt } = await import("jsonwebtoken");
+      signalr = new AzureSignalRHub(connectionString, hub, jwt);
+    } catch (e) {
+      log(`[hub] Azure SignalR is off (${e.message}); reset pages use the built-in WebSocket hub`);
+    }
   }
-  return new LocalWebSocketHub();
+  return new Hub({ signalr, log });
 }

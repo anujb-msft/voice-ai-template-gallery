@@ -2,6 +2,7 @@ import { config } from "./config.mjs";
 
 const VOIP_VALUE_LIMIT = 1024;
 const TOPIC_LIMIT = 48;
+const COMPLAINT_LIMIT = 240;
 
 export function teamsIdentifier(target) {
   if (!target?.objectId) throw new Error("handoff target has no objectId");
@@ -14,12 +15,21 @@ export function resourceAccountFrom(to) {
   return match ? match[1] : null;
 }
 
-export function clipTopic(value) {
+/** The Teams toast shows about 48 characters, so cut at a word and say so with an ellipsis. */
+export function clipTopic(value, limit = TOPIC_LIMIT) {
   const text = String(value ?? "").replace(/\s+/g, " ").trim() || "311 request";
-  return text.length <= TOPIC_LIMIT ? text : `${text.slice(0, TOPIC_LIMIT - 1).trimEnd()}…`;
+  if (text.length <= limit) return text;
+  let cut = text.slice(0, limit - 1);
+  const space = cut.lastIndexOf(" ");
+  if (space > limit / 2) cut = cut.slice(0, space);
+  return `${cut.replace(/[\s.,;:!?–-]+$/u, "")}…`;
 }
 
-export function buildHandoffContext(call, { department, reason = "transfer" } = {}) {
+/**
+ * What the person who picks up sees: a short topic for the toast and a small
+ * JSON context. Built on the server from the call record, never by the model.
+ */
+export function buildHandoffContext(call, { department, reason = "transfer", topic = null, summary = null } = {}) {
   const latest = call.lastCase;
   const callContext = {
     caseNumber: latest?.id ?? null,
@@ -29,14 +39,28 @@ export function buildHandoffContext(call, { department, reason = "transfer" } = 
     language: call.language,
     transferReason: reason,
   };
+  if (summary) callContext.summary = summary;
+  if (call.complaint?.text) callContext.complaint = clipTopic(call.complaint.text, COMPLAINT_LIMIT);
+  if (call.sentiment && call.sentiment !== "neutral") callContext.sentiment = call.sentiment;
   if (latest?.contact?.wantsUpdates) callContext.reporterContact = latest.contact;
+  const fallbackTopic = latest ? `${latest.priority ? "PRIORITY " : ""}${String(latest.type).replaceAll("-", " ")} – ${latest.id}` : reason;
   return {
     sessionId: call.sessionId ?? call.id,
-    callTopic: clipTopic(latest ? `${latest.priority ? "PRIORITY " : ""}${latest.type} – ${latest.id}` : reason),
-    callContext: JSON.stringify(callContext),
+    callTopic: clipTopic(topic ?? fallbackTopic),
+    callContext: fitContext(callContext),
     routeId: department?.id ?? call.transferDepartmentId ?? "311-live",
     afterHours: false,
   };
+}
+
+// Each VoIP header value is capped, so drop the bulkiest optional parts rather than cut the JSON.
+function fitContext(context) {
+  const ctx = { ...context };
+  for (const key of ["complaint", "fields", "reporterContact", "summary"]) {
+    if (JSON.stringify(ctx).length <= VOIP_VALUE_LIMIT) break;
+    delete ctx[key];
+  }
+  return JSON.stringify(ctx);
 }
 
 export function buildCustomCallingContext(context) {

@@ -49,6 +49,8 @@ fails if they're out of date.
 | `docs/data/` | Generated catalogue data; don't edit by hand |
 | `docs/schemas/template.schema.json` | Template manifest schema |
 | `scripts/generate-template-index.js` | Catalogue validator and data generator |
+| `scripts/presenter-kit/` | The demo console kit and rehearsal engine that every sample serves or runs its own copy of |
+| `scripts/sync-presenter-kit.js` | Copies the kit and rehearsal engine into every sample; `--check` reports drift |
 | `.github/workflows/validate.yml` | Catalogue and sample checks for pull requests |
 | `.github/workflows/pages.yml` | GitHub Pages deployment |
 | `ARCHITECTURE.md` | Architectural standards for the site and templates |
@@ -62,6 +64,11 @@ Communication Services and Azure AI Voice Live. They're demo-grade and deliberat
 production-ready: review each guide's documented limitations before running a sample
 outside a local development environment. To try the reference sample, see
 [Run the reference sample](CONTRIBUTING.md#run-the-reference-sample).
+
+Each sample's operator console is also its demo. It runs a scripted walkthrough beat by
+beat, offline, and `code/DEMO-SCRIPT.md` is the presenter's running order and narration.
+`npm run rehearse` plays every beat the way the console does and checks that each one
+still lands where the script says, in any order and after a reset.
 
 ## Contributing and support
 

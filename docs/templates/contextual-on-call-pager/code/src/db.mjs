@@ -2,7 +2,14 @@ import Database from "better-sqlite3";
 import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import { config } from "./config.mjs";
+import { CLOSED_STATES, summarize } from "./audit.mjs";
 
+/**
+ * The durable store: incidents, page attempts, the escalation timers and the
+ * audit trail survive a restart, so a page due in three minutes still goes out
+ * if the server restarts in between. Transcripts are kept only with
+ * PERSIST_TRANSCRIPTS=true.
+ */
 export class SqliteAudit {
   name = "sqlite";
 
@@ -28,9 +35,10 @@ export class SqliteAudit {
   updateIncident(id, patch) {
     const allowed = {
       state: "state", severity: "severity", issueType: "issue_type", issue: "issue", tenantSaid: "tenant_said",
-      accessNotes: "access_notes", permissionToEnter: "permission_to_enter", acknowledgedAt: "acknowledged_at",
-      closedAt: "closed_at", acknowledgedBy: "acknowledged_by", bridgeRequested: "bridge_requested",
-      duplicatesAttached: "duplicates_attached", safetyLine: "safety_line", matchedRule: "matched_rule",
+      accessNotes: "access_notes", permissionToEnter: "permission_to_enter", reportedAt: "reported_at",
+      acknowledgedAt: "acknowledged_at", closedAt: "closed_at", acknowledgedBy: "acknowledged_by",
+      bridgeRequested: "bridge_requested", duplicatesAttached: "duplicates_attached", safetyLine: "safety_line",
+      matchedRule: "matched_rule",
     };
     const sets = [];
     const values = { id };
@@ -55,31 +63,32 @@ export class SqliteAudit {
     const rows = this.db.prepare(`SELECT * FROM incidents
       WHERE property_id = ? AND upper(unit) = upper(?) AND reported_at >= ?
       AND severity IN (${severities.map(() => "?").join(",")})
-      AND state NOT IN ('closed','workOrderLogged')
-      ORDER BY reported_at DESC LIMIT 1`).all(propertyId, unit, new Date(sinceMs).toISOString(), ...severities);
+      AND state NOT IN (${CLOSED_STATES.map(() => "?").join(",")})
+      ORDER BY reported_at DESC LIMIT 1`).all(propertyId, unit, new Date(sinceMs).toISOString(), ...severities, ...CLOSED_STATES);
     return rows[0] ? incidentFromRow(rows[0]) : null;
   }
 
-  recordEvent(incidentId, source, kind, detail = null) {
+  recordEvent(incidentId, source, kind, detail = null, at = new Date().toISOString()) {
     this.db.prepare(`INSERT INTO incident_events (incident_id, source, kind, detail, created_at) VALUES (?, ?, ?, ?, ?)`)
-      .run(incidentId, source, kind, detail == null ? null : String(detail), new Date().toISOString());
+      .run(incidentId, source, kind, detail == null ? null : String(detail), at);
   }
 
-  recordTranscript(callId, role, text) {
+  recordTranscript(callId, role, text, at = new Date().toISOString()) {
     if (!this.persistTranscripts) return;
     this.db.prepare(`INSERT INTO transcripts (call_id, role, text, created_at) VALUES (?, ?, ?, ?)`)
-      .run(callId, role, text, new Date().toISOString());
+      .run(callId, role, text, at);
   }
 
   eventsFor(incidentId) {
     return this.db.prepare(`SELECT source, kind, detail, created_at AS at FROM incident_events WHERE incident_id = ? ORDER BY id`).all(incidentId);
   }
 
+  /** Upsert by id: an attempt is recorded when it rings and again with its outcome. */
   recordAttempt(attempt) {
     this.db.prepare(`INSERT OR REPLACE INTO page_attempts
       (id, incident_id, level, attempt, contact_id, contact_name, started_at, completed_at, outcome, escalated_from, voicemail_safe)
       VALUES (@id, @incidentId, @level, @attempt, @contactId, @contactName, @startedAt, @completedAt, @outcome, @escalatedFrom, @voicemailSafe)`)
-      .run({ ...attempt, voicemailSafe: attempt.voicemailSafe ? 1 : 0 });
+      .run({ completedAt: null, escalatedFrom: null, ...attempt, voicemailSafe: attempt.voicemailSafe ? 1 : 0 });
   }
 
   attemptsFor(incidentId) {
@@ -89,6 +98,10 @@ export class SqliteAudit {
   upsertJob(job) {
     this.db.prepare(`INSERT OR IGNORE INTO scheduler_jobs (id, incident_id, kind, level, attempt, due_at, status, created_at)
       VALUES (@id, @incidentId, @kind, @level, @attempt, @dueAt, @status, @createdAt)`).run(job);
+  }
+
+  rescheduleJob(id, dueAt) {
+    this.db.prepare(`UPDATE scheduler_jobs SET due_at = ? WHERE id = ? AND status = 'pending'`).run(dueAt, id);
   }
 
   claimDueJobs(nowMs) {
@@ -109,25 +122,20 @@ export class SqliteAudit {
     return this.db.prepare(`SELECT * FROM scheduler_jobs WHERE status = 'pending' ORDER BY due_at`).all().map(jobFromRow);
   }
 
+  /** Demo reset: forget every simulated incident, its pages, events and jobs. Real calls stay. */
+  reset() {
+    const simulated = `SELECT id FROM incidents WHERE simulated = 1`;
+    return this.db.transaction(() => {
+      this.db.prepare(`DELETE FROM incident_events WHERE incident_id IN (${simulated})`).run();
+      this.db.prepare(`DELETE FROM page_attempts WHERE incident_id IN (${simulated})`).run();
+      this.db.prepare(`DELETE FROM scheduler_jobs WHERE incident_id IN (${simulated})`).run();
+      return this.db.prepare(`DELETE FROM incidents WHERE simulated = 1`).run().changes;
+    })();
+  }
+
   stats() {
-    const incidents = this.listIncidents();
     const attempts = this.db.prepare(`SELECT * FROM page_attempts`).all().map(attemptFromRow);
-    const ackTimes = incidents.filter((i) => i.acknowledgedAt).map((i) => new Date(i.acknowledgedAt) - new Date(i.reportedAt));
-    const paged = incidents.filter((i) => ["urgent", "emergency"].includes(i.severity));
-    return {
-      incidents: incidents.length,
-      bySeverity: tally(incidents, "severity"),
-      medianMsToAcknowledge: percentile(ackTimes, 0.5),
-      p90MsToAcknowledge: percentile(ackTimes, 0.9),
-      successfulContacts: paged.length ? incidents.filter((i) => i.acknowledgedAt).length / paged.length : 0,
-      medianEscalationMs: percentile(attempts.filter((a) => a.escalatedFrom).map((a) => new Date(a.startedAt) - new Date(incidents.find((i) => i.id === a.incidentId)?.reportedAt ?? a.startedAt)), 0.5),
-      pagesPerIncident: incidents.length ? attempts.length / incidents.length : 0,
-      unacknowledgedIncidents: incidents.filter((i) => i.state === "unacknowledgedAlert").length,
-      duplicatesAttached: incidents.reduce((n, i) => n + (i.duplicatesAttached ?? 0), 0),
-      routineWorkOrdersLogged: incidents.filter((i) => i.state === "workOrderLogged").length,
-      pendingJobs: this.pendingJobs().length,
-      pageAttempts: attempts.length,
-    };
+    return summarize(this.listIncidents(), attempts, this.pendingJobs().length);
   }
 
   close() { this.db.close(); }
@@ -145,16 +153,17 @@ function rowForIncident(i) {
 }
 function incidentFromRow(r) {
   return { id: r.id, state: r.state, severity: r.severity, propertyId: r.property_id, propertyName: r.property_name,
-    unit: r.unit, issueType: r.issue_type, issue: r.issue, tenantSaid: r.tenant_said, accessNotes: r.access_notes,
-    permissionToEnter: Boolean(r.permission_to_enter), callbackMasked: r.callback_masked, reportedAt: r.reported_at,
-    acknowledgedAt: r.acknowledged_at, closedAt: r.closed_at, acknowledgedBy: r.acknowledged_by,
+    unit: r.unit, issueType: r.issue_type, issueTypeLabel: issueLabel(r.issue_type), issue: r.issue, tenantSaid: r.tenant_said,
+    accessNotes: r.access_notes, permissionToEnter: Boolean(r.permission_to_enter), callbackMasked: r.callback_masked,
+    reportedAt: r.reported_at, acknowledgedAt: r.acknowledged_at, closedAt: r.closed_at, acknowledgedBy: r.acknowledged_by,
     bridgeRequested: Boolean(r.bridge_requested), duplicatesAttached: r.duplicates_attached, safetyLine: r.safety_line,
     matchedRule: r.matched_rule, simulated: Boolean(r.simulated) };
 }
 function attemptFromRow(r) { return { id: r.id, incidentId: r.incident_id, level: r.level, attempt: r.attempt, contactId: r.contact_id, contactName: r.contact_name, startedAt: r.started_at, completedAt: r.completed_at, outcome: r.outcome, escalatedFrom: r.escalated_from, voicemailSafe: Boolean(r.voicemail_safe) }; }
 function jobFromRow(r) { return { id: r.id, incidentId: r.incident_id, kind: r.kind, level: r.level, attempt: r.attempt, dueAt: r.due_at, status: r.status, createdAt: r.created_at }; }
-function tally(rows, key) { return rows.reduce((acc, row) => { const k = row[key] ?? "none"; acc[k] = (acc[k] ?? 0) + 1; return acc; }, {}); }
-function percentile(values, p) { if (!values.length) return null; const sorted = [...values].sort((a, b) => a - b); return sorted[Math.min(sorted.length - 1, Math.ceil(sorted.length * p) - 1)]; }
+function issueLabel(type) {
+  return { active_leak: "active leak", no_heat: "no heat", lockout: "lockout", no_power: "no power", emergency: "emergency", routine_maintenance: "maintenance request", routine_other: "maintenance request" }[type] ?? type;
+}
 
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS incidents (

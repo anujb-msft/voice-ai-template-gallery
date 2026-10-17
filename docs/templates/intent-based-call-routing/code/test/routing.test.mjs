@@ -111,6 +111,7 @@ test("a keypad press commits without a spoken confirmation", async () => {
   const snap = await flow.settled(id);
   assert.equal(snap.destination.routeId, "billing");
   assert.equal(snap.state, STATES.TRANSFERRED);
+  assert.equal(flow.handoffContext(flow.get(id)).callTopic, "Chose Billing on the keypad");
 });
 
 test("an unmapped digit is ignored rather than guessed at", () => {
@@ -328,6 +329,27 @@ test("after hours, billing takes a message instead of transferring", async () =>
   assert.equal(flow.get(id).outcome, "message_taken");
 });
 
+test("taking a message thanks the caller before the call ends", () => {
+  const { flow } = makeFlow({ now: CLOSED });
+  const id = answer(flow);
+  const said = [];
+  flow.registerAgent(id, {
+    instruct: (prompt, spoken) => said.push({ prompt, spoken, state: flow.get(id).state }),
+  });
+  flow.proposeRoute(id, confident("billing"));
+  flow.confirmRoute(id, "billing");
+  said.length = 0;
+
+  flow.takeMessage(id, { callTopic: "Duplicate charge", callSummary: "Billed twice in August." });
+
+  assert.equal(said.length, 1);
+  assert.equal(said[0].state, STATES.MESSAGING, "spoken before the call is marked ended");
+  assert.match(said[0].spoken, /passed that on to Billing/);
+  assert.match(said[0].prompt, /end_call/);
+  assert.match(said[0].prompt, /Do not promise a specific callback time/);
+  assert.equal(flow.get(id).state, STATES.ENDED);
+});
+
 test("take_message is refused unless the flow chose message-taking", () => {
   const { flow } = makeFlow();
   const id = answer(flow);
@@ -360,6 +382,15 @@ test("a 24x7 route stays open at night", () => {
   assert.equal(routes.isOpen("billing", new Date(CLOSED)), false);
   assert.equal(routes.isOpen("reception", new Date(CLOSED)), true);
   assert.equal(routes.isOpen("sales", new Date(OPEN)), true);
+});
+
+test("opening hours and the after-hours rule are described in words for the console", () => {
+  const routes = RoutePolicy.load(SHIPPED_ROUTES);
+  assert.equal(routes.timeZone, "America/Los_Angeles");
+  assert.deepEqual(routes.describeHours("sales"), { hours: "Mon–Fri 08:00–18:00", whenClosed: "goes to Reception" });
+  assert.deepEqual(routes.describeHours("billing"), { hours: "Mon–Fri 09:00–17:00", whenClosed: "takes a message" });
+  assert.deepEqual(routes.describeHours("support"), { hours: "24/7", whenClosed: null });
+  assert.deepEqual(routes.describeHours("reception"), { hours: "Always open", whenClosed: null });
 });
 
 // ----------------------------------------------------------------- caller identity
@@ -484,6 +515,42 @@ test("a transfer that succeeds on the retry still completes normally", async () 
   assert.equal(snap.destination.routeId, "support");
 });
 
+test("a transfer ACS accepts and then reports failed climbs the same bounded ladder", async () => {
+  const attempts = [];
+  const { flow, audit } = makeFlow({ transfer: async (_call, destination) => attempts.push(destination.routeId) });
+  const id = answer(flow);
+  flow.proposeRoute(id, confident("sales"));
+  flow.confirmRoute(id, "sales");
+  await flow.settled(id);
+  assert.equal(flow.get(id).state, STATES.TRANSFERRED);
+
+  // However many CallTransferFailed events arrive, the ladder ends.
+  for (let i = 0; i < 5; i++) await flow.transferFailed(id, "no answer");
+
+  assert.deepEqual(attempts, ["sales", "sales", "reception"]);
+  assert.equal(flow.get(id).state, STATES.FALLBACK);
+  assert.equal(flow.get(id).outcome, null);
+  assert.equal(audit.eventsFor(id).filter((e) => e.kind === "transfer_failed").length, 3);
+});
+
+test("a stray transfer failure cannot reopen a simulated or ended call", async () => {
+  const { flow } = makeFlow({ transfer: async () => {} });
+  const { id: simulated } = flow.create({ fromPhone: UNKNOWN_CALLER, simulated: true });
+  flow.answered(simulated);
+  flow.proposeRoute(simulated, confident("billing"));
+  flow.confirmRoute(simulated, "billing");
+  await flow.settled(simulated);
+  assert.equal((await flow.transferFailed(simulated, "late")).ok, false);
+  assert.equal(flow.get(simulated).state, STATES.TRANSFERRED);
+
+  const ended = answer(flow);
+  flow.endCall(ended, "caller_hung_up");
+  assert.equal((await flow.transferFailed(ended, "late")).ok, false);
+  assert.equal(flow.get(ended).state, STATES.ENDED);
+
+  assert.equal((await flow.transferFailed("no-such-call")).ok, false);
+});
+
 test("the real transfer receives the destination target and the handoff context", async () => {
   const seen = [];
   const { flow } = makeFlow({ transfer: async (call, destination) => seen.push({ call, destination }) });
@@ -497,6 +564,78 @@ test("the real transfer receives the destination target and the handoff context"
   assert.equal(seen[0].destination.target.type, "callQueue");
   assert.equal(seen[0].destination.context.routeId, "billing");
   assert.equal(seen[0].destination.context.callerDetails.verified, false);
+});
+
+test("a simulated call is never transferred for real, even when a transfer is wired", async () => {
+  const seen = [];
+  const { flow, audit } = makeFlow({ transfer: async (call) => seen.push(call.id) });
+  const { id } = flow.create({ fromPhone: KNOWN_CALLER, simulated: true });
+  flow.answered(id);
+  flow.proposeRoute(id, confident("billing"));
+  flow.confirmRoute(id, "billing");
+  const snap = await flow.settled(id);
+
+  assert.equal(seen.length, 0, "the Teams transfer was never invoked");
+  assert.equal(snap.state, STATES.TRANSFERRED);
+  assert.ok(audit.eventsFor(id).some((e) => e.kind === "transfer_simulated"));
+  assert.equal(audit.calls.get(id).simulated, true);
+});
+
+// ------------------------------------------------------------------ demo controls
+
+test("moving the demo clock rebases calls in progress, so their budget survives the jump", () => {
+  const { flow, advance } = makeFlow();
+  const id = answer(flow);
+
+  // Business hours to after hours in one step.
+  advance(9 * 3_600_000);
+  flow.rebaseClock(9 * 3_600_000);
+  assert.deepEqual(flow.checkBudget(id), { ok: true });
+
+  // Time that actually passes still counts against the budget.
+  advance(90_000);
+  assert.equal(flow.checkBudget(id).fallback, true);
+});
+
+test("the policy reads the moved clock at decision time", async () => {
+  const { flow, advance } = makeFlow();
+  const id = answer(flow, KNOWN_CALLER);
+
+  advance(CLOSED - OPEN);
+  flow.rebaseClock(CLOSED - OPEN);
+  flow.proposeRoute(id, confident("billing"));
+  flow.confirmRoute(id, "billing");
+  assert.equal(flow.get(id).state, STATES.MESSAGING, "billing closed, so the caller is offered a message");
+});
+
+test("reset forgets every call and cancels a transfer still in its mind-change window", async () => {
+  const seen = [];
+  const { flow } = makeFlow({ transfer: async (call) => seen.push(call.id), options: { transferDelayMs: 20 } });
+  const id = answer(flow);
+  flow.proposeRoute(id, confident("sales"));
+  flow.confirmRoute(id, "sales");
+  assert.ok(flow.get(id).pendingDispatch, "a transfer is pending");
+
+  flow.reset();
+  await new Promise((r) => setTimeout(r, 60));
+  assert.equal(flow.get(id), null);
+  assert.equal(seen.length, 0, "the cancelled transfer never ran");
+});
+
+test("the audit reset removes simulated calls and keeps calls from a real phone", async () => {
+  const { flow, audit } = makeFlow({ transfer: async () => {} });
+  const real = answer(flow, KNOWN_CALLER);
+  const { id: simulated } = flow.create({ fromPhone: UNKNOWN_CALLER, simulated: true });
+  flow.answered(simulated);
+  flow.requestHuman(simulated);
+  await flow.settled(simulated);
+
+  audit.reset();
+  assert.ok(audit.calls.has(real));
+  assert.ok(audit.eventsFor(real).length > 0);
+  assert.ok(!audit.calls.has(simulated));
+  assert.equal(audit.eventsFor(simulated).length, 0);
+  assert.equal(audit.stats().calls, 1);
 });
 
 // ------------------------------------------------------------------------- audit

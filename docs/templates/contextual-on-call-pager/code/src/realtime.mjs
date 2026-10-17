@@ -1,10 +1,17 @@
 import { WebSocketServer } from "ws";
 
+/**
+ * Realtime fan-out to the presenter console: a plain WebSocket hub in this
+ * process, addressed by call id, so the sample needs no Azure SignalR service.
+ * Swap it for Azure SignalR Service in serverless mode for a production console;
+ * `send(userId, target, payload)` is the only shape the flow depends on.
+ */
 export class LocalWebSocketHub {
   transport = "local-ws";
   #clients = new Map();
   #backlog = new Map();
 
+  /** `noServer`: the HTTP server routes upgrades by path to exactly one WebSocketServer. */
   attach() {
     const wss = new WebSocketServer({ noServer: true });
     wss.on("connection", (socket, req) => {
@@ -22,10 +29,13 @@ export class LocalWebSocketHub {
     return wss;
   }
 
-  negotiate(userId = "*") { return { url: `/ws/hub?user=${encodeURIComponent(userId)}`, transport: this.transport }; }
+  negotiate(userId = "*") {
+    return { url: `/ws/hub?user=${encodeURIComponent(userId)}`, transport: this.transport };
+  }
 
+  /** Sent to the console watching this call and to any console watching everything ("*"). */
   send(userId, target, payload) {
-    const msg = JSON.stringify({ target, arguments: [{ id: userId, ...payload }] });
+    const msg = JSON.stringify({ target, arguments: [{ callId: userId, ...payload }] });
     const backlog = this.#backlog.get(userId) ?? [];
     backlog.push(msg);
     if (backlog.length > 300) backlog.shift();
@@ -34,5 +44,12 @@ export class LocalWebSocketHub {
       for (const socket of this.#clients.get(key) ?? []) if (socket.readyState === socket.OPEN) socket.send(msg);
     }
   }
+
+  forget(userId) {
+    this.#backlog.delete(userId);
+  }
 }
-export function createHub() { return new LocalWebSocketHub(); }
+
+export function createHub() {
+  return new LocalWebSocketHub();
+}

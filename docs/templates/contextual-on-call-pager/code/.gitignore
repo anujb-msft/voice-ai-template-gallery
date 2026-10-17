@@ -2,3 +2,6 @@ node_modules/
 data/
 .env
 .DS_Store
+# Point ONCALL_PATH / TENANTS_PATH / PROPERTIES_PATH at these to try the sample
+# with a real roster without putting real names and numbers into the shipped config.
+config/*.local.json

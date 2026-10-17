@@ -1,15 +1,77 @@
-:root { color-scheme: light dark; font-family: Inter, system-ui, sans-serif; }
-body { margin: 0; background: #0b1220; color: #e7edf7; }
-header { padding: 28px 36px; background: linear-gradient(135deg, #0f766e, #2563eb); }
-h1 { margin: 0 0 6px; }
-main { padding: 24px; }
-.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
-.panel { background: #111827; border: 1px solid #263244; border-radius: 14px; padding: 16px; box-shadow: 0 10px 30px #0004; }
-.controls { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
-input { flex: 1; min-width: 260px; padding: 10px; border-radius: 8px; border: 1px solid #334155; background: #020617; color: #e7edf7; }
-button { padding: 10px 14px; border-radius: 8px; border: 0; background: #38bdf8; color: #082f49; font-weight: 700; cursor: pointer; }
-pre { white-space: pre-wrap; overflow-wrap: anywhere; }
-ol { padding-left: 18px; }
-li { margin-bottom: 8px; }
-li.agent { color: #a7f3d0; }
-article { border-top: 1px solid #263244; padding: 10px 0; }
+/*
+ * City of Contoso 311 — the console's own styles. The shared look comes from
+ * presenter-kit.css, which loads first; this file holds the template's accent
+ * color, the caller's phone, and a few 311-specific touches.
+ */
+
+:root {
+  --accent: #7ec8ff;
+  --accent-2: #b5e0ff;
+  /* The accent is light, so text on it needs dark ink. */
+  --on-accent: #03121f;
+}
+
+.head-chips { display: inline-flex; align-items: center; gap: 6px; }
+
+/* Keypad buttons carry their meaning, so nobody has to remember the menu. */
+.keys button small { color: var(--muted); font-size: 10px; font-weight: 500; margin-left: 2px; }
+
+/* State changes are in the trail for completeness; the decisions are the story. */
+.pk-trail li[data-kind="state"] { opacity: 0.55; }
+
+.pk-caller-card .muted { font-size: 11.5px; }
+
+/* ACS accepted the transfer request, then nobody answered: the toast stops ringing. */
+#toast.missed .pk-ringing { color: var(--err); }
+#toast.missed .pk-ringing::before { background: var(--err); animation: none; }
+
+.sub-head.first { margin-top: 0; }
+
+/* An expired article that matched the question: named, never read out. */
+#sources li.withheld > span:first-child { text-decoration: line-through; opacity: 0.7; }
+
+/* --------------------------------------------------------- the caller's phone */
+
+#phone {
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: #0d1324;
+  overflow: hidden;
+}
+
+.phone-head {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--line);
+  background: rgba(27, 34, 55, 0.6);
+}
+.phone-head > div { display: flex; flex-direction: column; line-height: 1.3; min-width: 0; }
+.phone-head .muted { font-size: 12px; }
+
+.phone-avatar {
+  width: 32px; height: 32px; border-radius: 50%; flex: none;
+  display: grid; place-items: center;
+  font-size: 11px; font-weight: 700;
+  background: var(--accent); color: var(--on-accent);
+}
+
+.phone-body { padding: 12px; display: grid; gap: 8px; max-height: 280px; overflow-y: auto; }
+.phone-empty { margin: 0; font-size: 13px; color: var(--muted); }
+
+/* A text from the city: an incoming bubble, as on the caller's own phone. */
+.sms {
+  justify-self: start;
+  max-width: 94%;
+  padding: 9px 12px;
+  border-radius: 16px 16px 16px 4px;
+  background: var(--card-2);
+  border: 1px solid var(--line);
+  font-size: 13px;
+}
+.sms p { margin: 0; overflow-wrap: anywhere; }
+.sms[data-fresh] { animation: sms-arrive 0.45s cubic-bezier(0.2, 0.9, 0.3, 1.15); }
+/* Shown, not linked: the case page is fictional. */
+.sms-link { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+.sms-meta { display: block; margin-top: 5px; font-size: 11px; color: var(--muted); }
+
+@keyframes sms-arrive { from { opacity: 0; transform: translateY(8px) scale(0.97); } }

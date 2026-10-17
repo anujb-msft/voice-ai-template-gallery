@@ -7,6 +7,8 @@ source: Contoso Customer Service — City Hall guide
 shortUrl: contoso.gov/cityhall
 lastReviewed: 2026-08-15
 reviewBy: 2027-02-15
+openHours: Mon-Fri 08:00-17:00
+place: City Hall
 tags: [city hall, hours, address, holiday]
 ---
 

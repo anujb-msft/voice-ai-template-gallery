@@ -246,6 +246,35 @@ test("after hours the typed utterance is captured as a message", () => {
   handleUtterance(flow, call.id, "Please call me back about invoice 8841, I was billed twice.");
   assert.equal(flow.get(call.id).state, STATES.ENDED);
   assert.equal(flow.get(call.id).outcome, "message_taken");
+  assert.equal(flow.get(call.id).topic, "Please call me back about invoice 8841, I was…", "cut at a word, not mid-word");
+});
+
+test("the offline topic leaves out spoken openers such as “no wait”", () => {
+  const { flow } = makeFlow();
+  const call = flow.create({});
+  flow.answered(call.id);
+
+  handleUtterance(flow, call.id, "no wait, the portal is down");
+  assert.equal(flow.get(call.id).topic, "The portal is down");
+  handleUtterance(flow, call.id, "um, actually I was charged twice");
+  assert.equal(flow.get(call.id).topic, "I was charged twice");
+  handleUtterance(flow, call.id, "no one can log in");
+  assert.equal(flow.get(call.id).topic, "No one can log in", "a bare “no” is part of the sentence");
+});
+
+test("the offline summary keeps the caller's whole story for the agent", () => {
+  const { flow } = makeFlow();
+  const call = flow.create({});
+  flow.answered(call.id);
+
+  handleUtterance(flow, call.id, "I want to buy a new licence");
+  assert.equal(flow.get(call.id).summary, "Caller said: “I want to buy a new licence”");
+  handleUtterance(flow, call.id, "no, actually my portal is broken and throwing an error.");
+  assert.equal(
+    flow.get(call.id).summary,
+    "Caller said: “I want to buy a new licence”, then “no, actually my portal is broken and throwing an error”",
+    "a changed mind reaches the agent with its context",
+  );
 });
 
 test("a typed digit is treated as a keypad press, not as speech", async () => {

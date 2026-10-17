@@ -177,7 +177,8 @@ export class VoiceLiveSession {
     } catch {
       /* tolerate malformed tool args */
     }
-    log("tool", msg.name, JSON.stringify(args));
+    // The name only: dictation and quotes carry customer contact details, which stay out of logs.
+    log("tool", msg.name);
 
     let result;
     try {

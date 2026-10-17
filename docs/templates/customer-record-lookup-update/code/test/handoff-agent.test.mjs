@@ -4,10 +4,16 @@ import assert from "node:assert/strict";
 import { teamsIdentifier, buildCustomCallingContext, resourceAccountFrom } from "../src/handoff.mjs";
 import { AGENT_TOOLS, buildInstructions, localeLanguage } from "../src/agent.mjs";
 import { readiness } from "../src/config.mjs";
-import { SqliteCrmAdapter } from "../src/db.mjs";
-import { RepDirectory } from "../src/providers/crm.mjs";
-import { MemoryAudit } from "../src/audit.mjs";
-import { CustomerRecordFlow } from "../src/flow.mjs";
+import { STATES } from "../src/flow.mjs";
+import { handleUtterance } from "../src/offline.mjs";
+import { CREDIT_LIMIT, NEW_MOBILE, makeFlow, startMobile, startTeams } from "./support.mjs";
+
+// Nothing the caller didn't earn goes to the person who picks up: no PIN, no phone numbers.
+const SECRETS = ["246810", "135790", "12065550120", "206 555 0120", "4255550197", "425 555 0197", "4255550143", "425 555 0143"];
+
+function assertNoSecrets(text) {
+  for (const secret of SECRETS) assert.ok(!text.includes(secret), `handoff context leaks ${secret}`);
+}
 
 test("Teams handoff addresses queues as apps and users as users", () => {
   assert.deepEqual(teamsIdentifier({ type: "callQueue", objectId: "queue-guid" }), { teamsAppId: "queue-guid", cloud: "public" });
@@ -28,20 +34,96 @@ test("resource account is extracted only from Teams Phone extensibility raw ids"
 });
 
 test("handoff context carries session, topic <=48 chars, proposal summary, no PIN or contact details", () => {
-  const crm = new SqliteCrmAdapter({ path: ":memory:" });
-  const flow = new CustomerRecordFlow({ crm, reps: RepDirectory.load(), audit: new MemoryAudit(), now: () => Date.parse("2026-06-10T19:00:00Z") });
+  const { flow } = makeFlow();
   const call = flow.startSimulation({ repId: "rep-alex" });
   flow.findAccount(call.id, "Fabrikam");
   const p = flow.proposeUpdate(call.id, "acct-fabrikam", "Log the Fabrikam meeting. Dana agreed to the renewal at 240k, moving to Closed Won, close date June 15th.");
   const ctx = flow.handoffContext(flow.get(call.id), "explicit_request");
   assert.equal(ctx.sessionId, call.id);
   assert.ok(ctx.callTopic.length <= 48);
+  assert.equal(ctx.callTopic, "Sales rep – Fabrikam");
   assert.match(ctx.callContext, /Alex Morgan/);
   assert.match(ctx.callContext, /Fabrikam/);
   assert.match(ctx.callContext, /proposal/);
-  assert.ok(!ctx.callContext.includes("246810"));
-  assert.ok(!ctx.callContext.includes("12065550120"));
+  assertNoSecrets(ctx.callContext);
   assert.equal(p.ok, true);
+});
+
+test("a policy refusal hands off to Sales Operations with the refused fields as the topic", () => {
+  const hub = { frames: [], send(callId, target, payload) { this.frames.push({ callId, target, payload }); } };
+  const { flow, crm, audit } = makeFlow({ hub });
+  const id = startMobile(flow);
+  for (const digit of "246810") flow.dtmf(id, digit);
+  const refused = handleUtterance(flow, id, CREDIT_LIMIT);
+  assert.equal(refused.reason, "refused_by_policy");
+  assert.equal(crm.auditRows().length, 0, "nothing was written");
+  const accepted = handleUtterance(flow, id, "Yes, put me through.");
+  assert.equal(accepted.ok, true);
+  assert.equal(flow.get(id).state, STATES.TRANSFERRED);
+
+  const handoff = flow.snapshot(id).handoff;
+  assert.equal(handoff.callTopic, "Fabrikam – credit limit, payment terms");
+  assert.equal(handoff.reason, "refused_by_policy");
+  assert.equal(handoff.routeId, "sales-operations");
+  const context = JSON.parse(handoff.callContext);
+  assert.equal(context.rep, "Alex Morgan");
+  assert.equal(context.verifiedBy, "registered mobile + PIN");
+  assert.equal(context.account, "Fabrikam");
+  assert.deepEqual(context.refusedRequests, ["credit limit", "payment terms"]);
+  assert.match(context.request, /credit limit/);
+  assertNoSecrets(handoff.callContext);
+
+  const headers = buildCustomCallingContext(handoff);
+  assert.deepEqual(headers.map((h) => h.key), ["CallDetails.SessionId", "CallDetails.CallTopic", "CallDetails.CallContext", "CallDetails.RouteId"]);
+  assert.ok(headers.every((h) => h.kind === "voip" && h.value.length <= 1024));
+  assert.ok(hub.frames.some((f) => f.target === "handoff" && f.payload.callTopic === handoff.callTopic), "the console hears about the handoff");
+
+  const stats = audit.stats(crm);
+  assert.equal(stats.refusals, 1);
+  assert.equal(stats.handoffs, 1);
+});
+
+test("a person asked for mid-proposal: the handoff has the request, not the new number", () => {
+  const { flow } = makeFlow();
+  const id = startTeams(flow);
+  assert.equal(handleUtterance(flow, id, NEW_MOBILE).ok, true);
+  assert.equal(handleUtterance(flow, id, "Actually, I need a person.").ok, true);
+  const handoff = flow.snapshot(id).handoff;
+  assert.equal(handoff.callTopic, "Sales rep – Fabrikam");
+  const context = JSON.parse(handoff.callContext);
+  assert.equal(context.verifiedBy, "Teams sign-in");
+  assert.match(context.proposal, /Dana Ruiz/);
+  assertNoSecrets(handoff.callContext);
+});
+
+test("a failed PIN hands off as unverified, and no record is named", () => {
+  const { flow, crm, audit } = makeFlow();
+  const id = startMobile(flow);
+  const failed = flow.submitPin(id, "135790");
+  assert.deepEqual([failed.ok, failed.reason, failed.transferred], [false, "wrong_pin", true]);
+  const handoff = flow.snapshot(id).handoff;
+  assert.equal(handoff.callTopic, "Unverified caller – no records opened");
+  const context = JSON.parse(handoff.callContext);
+  assert.equal(context.verified, false);
+  assert.equal(context.callerId, "number ending 0197");
+  assert.equal(context.note, "No records were opened or read out.");
+  // Sales Operations learns whose registered mobile it was, so a lost phone can be followed up; no account or contact is named.
+  assert.equal(context.check, "Caller ID matched Alex Morgan's registered mobile; PIN failed");
+  assert.ok(!/Fabrikam|Dana/.test(handoff.callContext));
+  assertNoSecrets(handoff.callContext);
+  assert.equal(flow.snapshot(id).record, null);
+  const stats = audit.stats(crm);
+  assert.equal(stats.verificationFailures, 1);
+  assert.equal(stats.lookups, 0);
+  assert.equal(stats.handoffs, 1);
+});
+
+test("the agent can stop a write inside the undo window", () => {
+  const cancel = AGENT_TOOLS.find((t) => t.name === "cancel_pending_commit");
+  assert.ok(cancel, "cancel_pending_commit is a tool");
+  assert.match(cancel.description, /undo window/);
+  assert.match(AGENT_TOOLS.find((t) => t.name === "commit_proposal").description, /undo window/);
+  assert.match(buildInstructions(null, "en-US"), /cancel_pending_commit/);
 });
 
 test("agent tool schemas do not let the model choose Teams IDs, PINs, phone numbers, or URLs", () => {

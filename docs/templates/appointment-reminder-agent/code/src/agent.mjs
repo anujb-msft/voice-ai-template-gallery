@@ -7,7 +7,7 @@ export const AGENT_TOOLS = [
   { type: "function", name: "cancel_appointment", description: "Cancel only after the proposal was read back and the patient explicitly said yes.", parameters: { type: "object", properties: { proposalId: { type: "string" }, confirmation: { type: "string" } }, required: ["proposalId", "confirmation"] } },
   { type: "function", name: "request_reschedule", description: "Record a reschedule request and transfer to scheduling or file a callback.", parameters: { type: "object", properties: {} } },
   { type: "function", name: "opt_out", description: "Persist suppression before ending the call.", parameters: { type: "object", properties: {} } },
-  { type: "function", name: "nurse_line", description: "Use for clinical questions; transfers during hours or returns after-hours advice number.", parameters: { type: "object", properties: {} } },
+  { type: "function", name: "nurse_line", description: "Use for clinical questions; give no medical advice. Call it first without connect: the server offers the nurse line while it is open, or gives the after-hours advice number. Call it again with connect=true only after the patient says yes to being connected.", parameters: { type: "object", properties: { connect: { type: "boolean", description: "true only after the patient agreed to be connected to the nurse line" } } } },
   { type: "function", name: "repeat_last", description: "Repeat the last server-owned phrase.", parameters: { type: "object", properties: {} } },
   { type: "function", name: "end_call", description: "End politely when finished.", parameters: { type: "object", properties: { reason: { type: "string" } } } }
 ];

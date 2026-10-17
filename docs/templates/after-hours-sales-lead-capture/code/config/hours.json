@@ -15,7 +15,13 @@
   ],
   "holidays": ["2026-09-07", "2026-11-26", "2026-12-25"],
   "support": {
-    "phone": "+1 800 555 0199",
+    "phone": "+1 425 555 0190",
     "hours": "Monday through Friday, 7 AM to 5 PM Pacific"
+  },
+  "onCall": {
+    "rep": "ben",
+    "displayName": "On-call sales rep",
+    "days": [1, 2, 3, 4, 5],
+    "until": "21:00"
   }
 }

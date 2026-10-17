@@ -3,6 +3,7 @@ import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import { config } from "./config.mjs";
 
+/** The audit trail on disk. Caller utterances are stored only when PERSIST_TRANSCRIPTS is on. */
 export class SqliteAudit {
   name = "sqlite";
   constructor(path = config.dbPath) {
@@ -13,7 +14,9 @@ export class SqliteAudit {
     this.persistTranscripts = config.persistTranscripts;
   }
   startCall(call) {
-    this.db.prepare(`INSERT OR REPLACE INTO calls (id, masked_phone, state, started_at) VALUES (@id, @maskedPhone, @state, @startedAt)`).run(call);
+    this.db
+      .prepare(`INSERT OR REPLACE INTO calls (id, masked_phone, state, started_at, simulated) VALUES (@id, @maskedPhone, @state, @startedAt, @simulated)`)
+      .run({ id: call.id, maskedPhone: call.maskedPhone ?? null, state: call.state, startedAt: call.startedAt, simulated: call.simulated ? 1 : 0 });
   }
   updateCall(id, patch) {
     const map = { state: "state", outcome: "outcome", endedAt: "ended_at", durationMs: "duration_ms", lastLocationId: "last_location_id", lastQuote: "last_quote", simulated: "simulated" };
@@ -27,26 +30,45 @@ export class SqliteAudit {
   }
   recordQuote(callId, quote) {
     this.db.prepare(`INSERT INTO quotes (call_id, commodity, location_id, freshness, phrase, created_at) VALUES (?, ?, ?, ?, ?, ?)`).run(callId, quote.commodity, quote.locationId, quote.freshness, quote.phrase, new Date().toISOString());
-    this.recordEvent(callId, "system", "quote", JSON.stringify({ commodity: quote.commodity, locationId: quote.locationId, freshness: quote.freshness }));
   }
   recordTranscript(callId, role, text) {
     if (!this.persistTranscripts) return;
     this.db.prepare(`INSERT INTO transcripts (call_id, role, text, created_at) VALUES (?, ?, ?, ?)`).run(callId, role, text, new Date().toISOString());
   }
   eventsFor(callId) { return this.db.prepare(`SELECT source, kind, detail, created_at AS at FROM call_events WHERE call_id=? ORDER BY id`).all(callId); }
+
+  /** Delete the simulated calls (the demo console's reset). Real calls stay. */
+  reset() {
+    const simulated = `SELECT id FROM calls WHERE simulated = 1`;
+    this.db.transaction(() => {
+      this.db.prepare(`DELETE FROM call_events WHERE call_id IN (${simulated})`).run();
+      this.db.prepare(`DELETE FROM quotes WHERE call_id IN (${simulated})`).run();
+      this.db.prepare(`DELETE FROM transcripts WHERE call_id IN (${simulated})`).run();
+      this.db.prepare(`DELETE FROM calls WHERE simulated = 1`).run();
+    })();
+  }
+
   stats({ minutesPerAutomatedCall = config.pricing.minutesPerAutomatedCall } = {}) {
+    const count = (sql) => this.db.prepare(sql).get().n;
     const countRows = (sql) => Object.fromEntries(this.db.prepare(sql).all().map((r) => [r.k, r.n]));
-    const callsAutomated = this.db.prepare(`SELECT COUNT(*) AS n FROM calls WHERE outcome IS NOT NULL AND outcome NOT LIKE 'transferred:%'`).get().n;
+    const events = (...kinds) => count(`SELECT COUNT(*) AS n FROM call_events WHERE kind IN (${kinds.map((k) => `'${k}'`).join(", ")})`);
+    const callsAutomated = count(`SELECT COUNT(*) AS n FROM calls WHERE outcome IS NOT NULL AND outcome NOT LIKE 'transferred:%' AND outcome NOT LIKE 'callback_requested:%'`);
     return {
-      calls: this.db.prepare(`SELECT COUNT(*) AS n FROM calls`).get().n,
+      calls: count(`SELECT COUNT(*) AS n FROM calls`),
       callsAutomated,
       estimatedStaffMinutesSaved: callsAutomated * minutesPerAutomatedCall,
+      quotesGiven: count(`SELECT COUNT(*) AS n FROM quotes`),
       quotesByCommodity: countRows(`SELECT commodity AS k, COUNT(*) AS n FROM quotes GROUP BY k`),
       quotesByLocation: countRows(`SELECT location_id AS k, COUNT(*) AS n FROM quotes GROUP BY k`),
-      delayedQuotes: this.db.prepare(`SELECT COUNT(*) AS n FROM quotes WHERE freshness='delayed'`).get().n,
-      closePriceQuotes: this.db.prepare(`SELECT COUNT(*) AS n FROM quotes WHERE freshness='close'`).get().n,
-      feedOutages: this.db.prepare(`SELECT COUNT(*) AS n FROM call_events WHERE kind='feed_outage'`).get().n,
-      transfersByReason: countRows(`SELECT COALESCE(detail, 'none') AS k, COUNT(*) AS n FROM call_events WHERE kind='transfer_started' GROUP BY k`),
+      delayedQuotes: count(`SELECT COUNT(*) AS n FROM quotes WHERE freshness='delayed'`),
+      closePriceQuotes: count(`SELECT COUNT(*) AS n FROM quotes WHERE freshness='close'`),
+      clarifications: events("clarification"),
+      feedOutages: events("feed_outage"),
+      adviceDeclined: events("advice_guard"),
+      contractsDeclined: events("contract_guard"),
+      transfers: count(`SELECT COUNT(*) AS n FROM calls WHERE outcome LIKE 'transferred:%'`),
+      callbacks: events("callback_requested"),
+      transfersByReason: countRows(`SELECT substr(outcome, 13) AS k, COUNT(*) AS n FROM calls WHERE outcome LIKE 'transferred:%' GROUP BY k`),
       byOutcome: countRows(`SELECT COALESCE(outcome, 'none') AS k, COUNT(*) AS n FROM calls GROUP BY k`),
     };
   }

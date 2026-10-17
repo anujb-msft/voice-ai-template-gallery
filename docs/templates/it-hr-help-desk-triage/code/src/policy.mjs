@@ -7,13 +7,20 @@ export class Taxonomy {
   constructor(data) { this.topics = data.topics; this.byId = new Map(this.topics.map((t) => [t.id, t])); }
   static load(path = config.paths.taxonomy) { return new Taxonomy(readJson(path)); }
   get(id) { return this.byId.get(id); }
-  classify(utterance, { confidenceMin = config.classifierConfidenceMin } = {}) {
+  /** Every topic with at least one keyword hit, best first. Ties keep taxonomy order. */
+  candidates(utterance) {
     const t = normalise(utterance);
-    const scored = this.topics.map((topic) => ({ topic, hits: topic.keywords.filter((k) => t.includes(normalise(k).trim())).length })).filter((x) => x.hits > 0).sort((a,b)=>b.hits-a.hits);
-    if (!scored.length) return { domain: "unclear", confidence: 0, topicId: null, needsClarification: true };
+    return this.topics
+      .map((topic) => ({ topicId: topic.id, domain: topic.domain, label: topic.label ?? topic.id, hits: topic.keywords.filter((k) => t.includes(normalise(k).trim())).length }))
+      .filter((c) => c.hits > 0)
+      .sort((a, b) => b.hits - a.hits);
+  }
+  classify(utterance, { confidenceMin = config.classifierConfidenceMin } = {}) {
+    const scored = this.candidates(utterance);
+    if (!scored.length) return { domain: "unclear", confidence: 0, topicId: null, label: null, needsClarification: true, candidates: [] };
     const [best, second] = scored;
-    const confidence = best.topic.domain === "both" && best.hits >= 2 ? 0.92 : (second ? (second.hits === best.hits ? 0.45 : second.hits / best.hits >= 0.5 ? 0.6 : 0.82) : Math.min(0.98, 0.72 + best.hits * 0.12));
-    return { domain: best.topic.domain, confidence, topicId: best.topic.id, needsClarification: confidence < confidenceMin };
+    const confidence = best.domain === "both" && best.hits >= 2 ? 0.92 : (second ? (second.hits === best.hits ? 0.45 : second.hits / best.hits >= 0.5 ? 0.6 : 0.82) : Math.min(0.98, 0.72 + best.hits * 0.12));
+    return { domain: best.domain, confidence, topicId: best.topicId, label: best.label, needsClarification: confidence < confidenceMin, candidates: scored.slice(0, 3) };
   }
 }
 
@@ -61,7 +68,8 @@ export class RoutingPolicy {
 }
 
 function parseHeader(file) {
-  const raw = readFileSync(file, "utf8");
+  // Normalize CRLF so Windows checkouts (core.autocrlf=true) parse the same as LF.
+  const raw = readFileSync(file, "utf8").replace(/\r\n?/g, "\n");
   const m = /^---\n([\s\S]*?)\n---\n([\s\S]*)$/m.exec(raw);
   if (!m) throw new Error(`missing front matter: ${file}`);
   const meta = {};

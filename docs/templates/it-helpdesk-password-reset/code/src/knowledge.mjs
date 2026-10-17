@@ -37,7 +37,7 @@ function parse(markdown) {
     buffer = [];
   };
 
-  for (const line of markdown.split("\n")) {
+  for (const line of markdown.split(/\r?\n/)) {
     const h2 = /^##\s+(.*)$/.exec(line);
     const h3 = /^###\s+(.*)$/.exec(line);
     if (h2) {
@@ -91,4 +91,56 @@ export function watchKnowledge() {
       knowledgeBase();
     }, 200);
   });
+}
+
+const STOPWORDS = new Set(
+  ("a an the i im me my mine you your we our us is are was were be been am to of in on at for and or but do does did " +
+    "can cant could will would should just this that these those it its what whats why how when where who so if not " +
+    "no yes have has had with about from up out again then there they them he she his her get got any some also " +
+    "please ok okay oh um uh like really very " +
+    "zero one two three four five six seven eight nine").split(" "),
+);
+const SYNONYMS = { rules: "requirements", policy: "requirements", requirement: "requirements" };
+
+function tokens(text) {
+  return String(text ?? "")
+    .toLowerCase()
+    .replace(/['’]/g, "")
+    .split(/[^a-z0-9]+/)
+    .filter((w) => w.length > 1 && !STOPWORDS.has(w))
+    .map((w) => (w.length > 4 && w.endsWith("s") && !w.endsWith("ss") ? w.slice(0, -1) : w))
+    .map((w) => SYNONYMS[w] ?? w);
+}
+
+/**
+ * The approved answer to a caller's question, or null when the knowledge base
+ * does not cover it. A deliberately plain keyword match, weighted so rare words
+ * ("VPN", "MFA") count for more than common ones ("password"): the agent may
+ * only answer from here, and saying "I'm not sure" beats a confident wrong match.
+ */
+export function findAnswer(question, entries = knowledgeBase().entries, { threshold = 2.2 } = {}) {
+  const asked = new Set(tokens(question));
+  if (!asked.size || !entries.length) return null;
+  const docs = entries.map((e) => ({
+    entry: e,
+    title: new Set([...tokens(e.question), ...tokens(e.section)]),
+    body: new Set(tokens(e.answer)),
+  }));
+  const idf = (t) => {
+    const df = docs.filter((d) => d.title.has(t) || d.body.has(t)).length;
+    return Math.log((docs.length + 1) / (df + 0.5));
+  };
+  let best = null;
+  for (const d of docs) {
+    let score = 0;
+    let titleHits = 0;
+    for (const t of asked) {
+      if (d.title.has(t)) {
+        score += 2 * idf(t);
+        titleHits += 1;
+      } else if (d.body.has(t)) score += 0.5 * idf(t);
+    }
+    if (titleHits && score >= threshold && (!best || score > best.score)) best = { score, entry: d.entry };
+  }
+  return best ? { question: best.entry.question, answer: best.entry.answer.replace(/\s+/g, " ").trim(), section: best.entry.section } : null;
 }

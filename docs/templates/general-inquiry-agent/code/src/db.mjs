@@ -17,13 +17,14 @@ export class SqliteAudit {
 
   startCall(call) {
     this.db.prepare(`INSERT OR REPLACE INTO calls
-      (id, masked_phone, state, started_at, session_id)
-      VALUES (@id, @maskedPhone, @state, @startedAt, @sessionId)`).run({
+      (id, masked_phone, state, started_at, session_id, simulated)
+      VALUES (@id, @maskedPhone, @state, @startedAt, @sessionId, @simulated)`).run({
       id: call.id,
       maskedPhone: call.maskedPhone ?? null,
       state: call.state,
       startedAt: new Date(call.startedAt).toISOString(),
       sessionId: call.sessionId ?? null,
+      simulated: Number(Boolean(call.simulated)),
     });
   }
 
@@ -75,6 +76,17 @@ export class SqliteAudit {
     const events = this.db.prepare(`SELECT call_id AS callId, kind, meta_json AS metaJson FROM call_events`).all()
       .map((e) => ({ ...e, meta: e.metaJson ? JSON.parse(e.metaJson) : null }));
     return computeStats(calls, events);
+  }
+
+  /** Drop simulated calls and everything recorded about them; real calls stay. */
+  reset() {
+    const simulatedCalls = "SELECT id FROM calls WHERE simulated = 1";
+    const removed = this.db.transaction(() => {
+      this.db.prepare(`DELETE FROM call_events WHERE call_id IN (${simulatedCalls})`).run();
+      this.db.prepare(`DELETE FROM transcripts WHERE call_id IN (${simulatedCalls})`).run();
+      return this.db.prepare("DELETE FROM calls WHERE simulated = 1").run().changes;
+    })();
+    return { removed };
   }
 
   close() {

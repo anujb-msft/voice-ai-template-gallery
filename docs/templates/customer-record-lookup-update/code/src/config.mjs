@@ -44,20 +44,14 @@ export const config = {
   },
   pinRequiredForPstn: !/^(0|false|no)$/i.test(process.env.PIN_REQUIRED_FOR_PSTN ?? "true"),
   persistTranscripts: /^(1|true|yes)$/i.test(process.env.TRANSCRIPT_RETENTION ?? "false"),
-  afterCallMinutesBaseline: Number(process.env.AFTER_CALL_MINUTES_BASELINE ?? 6),
-  demoNow: process.env.DEMO_NOW ?? "2026-06-10T12:00:00-07:00",
+  // Simulation only: where the demo clock starts. Empty means the demo-day preset. Real calls run on real time.
+  demoNow: process.env.DEMO_NOW ?? "",
+  timeZone: process.env.TIME_ZONE ?? "America/Los_Angeles",
+  // How long a confirmed write waits, cancellable, before it commits. 0 commits at once.
+  commitUndoMs: Math.max(0, Number(process.env.COMMIT_UNDO_MS ?? 6000) || 0),
   callTimeBudgetMs: Number(process.env.CALL_TIME_BUDGET_MS ?? 480_000),
   wrapUpMs: Number(process.env.WRAP_UP_MS ?? 420_000),
 };
-
-export function nowDate(cfg = config) {
-  const d = new Date(cfg.demoNow);
-  return Number.isNaN(d.getTime()) ? new Date() : d;
-}
-
-export function todayIso(cfg = config) {
-  return nowDate(cfg).toISOString().slice(0, 10);
-}
 
 export function assertCallConfig(cfg = config) {
   const missing = [];
@@ -88,7 +82,7 @@ export function readiness({ crmCounts = {}, repCount = 0, routing = null } = {},
       acsNumberFallback: true,
     },
     teams: { ready: unprovisioned.length === 0, unprovisionedTargets: unprovisioned, cloud: cfg.acs.teamsCloud },
-    crm: { adapter: cfg.crm.adapter, ready: cfg.crm.adapter === "sqlite", seedCounts: crmCounts },
+    crm: { adapter: cfg.crm.adapter, ready: ["sqlite", "memory"].includes(cfg.crm.adapter), seedCounts: crmCounts },
     reps: { ready: repCount > 0, count: repCount, pinRequiredForPstn: cfg.pinRequiredForPstn },
   };
 }

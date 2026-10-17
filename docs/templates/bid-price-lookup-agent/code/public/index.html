@@ -3,45 +3,112 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Contoso Grain Co-op — Bid Line</title>
+<title>Contoso Grain Co-op — Bid line</title>
+<link rel="stylesheet" href="/presenter-kit.css" />
 <link rel="stylesheet" href="/styles.css" />
 </head>
 <body>
+
 <header class="top">
-  <div class="brand"><span class="logo"></span><strong>Contoso Grain Co-op</strong><span class="pill">Bid line demo</span></div>
-  <div class="top-right"><span class="mode" id="mode">checking…</span><button class="ghost" id="statsBtn">Refresh metrics</button></div>
+  <div class="brand"><span class="logo"></span> <strong id="org">Contoso Grain Co-op</strong> <span class="pill">Bid line</span></div>
+  <div class="top-right">
+    <span id="clock" hidden></span>
+    <select id="voice" aria-label="Room voice"></select>
+    <span id="mode">checking…</span>
+    <button class="ghost" id="reset" type="button" title="Clear the simulated calls and metrics, bring the price feed up, and restore the starting clock">Reset demo</button>
+  </div>
 </header>
+
+<nav id="stack"></nav>
+<section id="director" aria-label="Demo script"></section>
+
 <main class="grid">
+
+  <!-- ------------------------------------------------------------ the call -->
   <section class="card call">
-    <div class="card-head"><h2>Typed call simulation</h2><span class="state-chip" id="stateChip" data-state="idle">no call</span></div>
-    <button class="primary" id="newCall">Answer demo call</button>
-    <div class="budget" id="budgetWrap" hidden><div class="budget-bar"><span id="budgetFill"></span></div><span class="budget-label" id="budgetLabel"></span></div>
-    <ol class="transcript" id="transcript"><li class="empty">Start a call, then type “what’s corn at Riverside”, “all locations for corn”, or “I want to sell”.</li></ol>
-    <form class="say" id="sayForm"><input id="sayInput" placeholder="Caller says…" disabled /><button class="primary" id="sayBtn" disabled>Say</button></form>
-    <div class="controls"><button class="ghost" data-dtmf="*" disabled>DTMF *</button><button class="ghost" data-dtmf="0" disabled>DTMF 0</button><button class="ghost" id="silence" disabled>Silence</button><button class="ghost danger" id="hangup" disabled>Hang up</button></div>
+    <div class="card-head">
+      <h2>The call</h2>
+      <span id="stateChip">no call</span>
+    </div>
+
+    <div class="caller-row">
+      <label for="callerSelect">Caller ID</label>
+      <select id="callerSelect"></select>
+      <button class="primary" id="newCall" type="button">Answer a call</button>
+    </div>
+
+    <div id="budget" hidden title="The per-call time budget. Simulated calls are exempt, so this only shows on a real call."></div>
+
+    <ol id="transcript"></ol>
+
+    <form class="say" id="sayForm" autocomplete="off">
+      <input id="sayInput" type="text" placeholder="What does the caller say?" disabled />
+      <button class="primary" type="submit" id="sayBtn" disabled>Say</button>
+    </form>
+
+    <div class="controls">
+      <span class="controls-label">Keypad</span>
+      <div class="keys" id="keys">
+        <button type="button" data-digit="*" title="Press * to hear the last answer again, re-checked first" disabled>* <small>repeat</small></button>
+        <button type="button" data-digit="0" title="Press 0 for a merchandiser" disabled>0 <small>merchandiser</small></button>
+      </div>
+      <button class="ghost" id="silence" type="button" disabled>Silence</button>
+      <button class="ghost danger" id="hangup" type="button" disabled>Hang up</button>
+    </div>
   </section>
-  <section class="card decision">
-    <div class="card-head"><h2>Current quote</h2></div>
-    <dl class="facts">
-      <div><dt>Location</dt><dd id="factLocation">—</dd></div>
-      <div><dt>Commodity</dt><dd id="factCommodity">—</dd></div>
-      <div><dt>Freshness</dt><dd id="factFreshness">—</dd></div>
-      <div><dt>Reference</dt><dd id="factReference">—</dd></div>
-      <div><dt>Basis</dt><dd id="factBasis">—</dd></div>
-    </dl>
-    <h3 class="sub-head">Bid board</h3>
-    <div class="board-actions"><button class="ghost" id="staleBtn">Make stale</button><button class="ghost danger" id="feedDownBtn">Feed down</button></div>
-    <ul class="routes" id="bidBoard"></ul>
+
+  <!-- ------------------------------------------------------------ the quote -->
+  <section class="card quote">
+    <div class="card-head">
+      <h2>The quote</h2>
+      <span class="tag" title="The model only hears the commodity and the location. Policy code on the server reads the feed, decides whether a price is fresh, and writes the sentence the agent reads.">the server decides</span>
+    </div>
+
+    <div id="decision"></div>
+    <div id="gauge" title="How old the futures price is, against the fresh window in config. Past the window the agent must say the prices may be delayed."></div>
+
+    <div id="priceCard" class="price-card" hidden></div>
+
+    <dl id="facts"></dl>
+
+    <h3 class="sub-head">Price feed</h3>
+    <div class="feed-row">
+      <span id="feedStatus" data-tone="muted">checking…</span>
+      <button class="ghost" id="feedToggle" type="button" disabled title="Simulation only: make every read from the price feed fail, or bring it back">Take the feed down</button>
+    </div>
   </section>
+
+  <!-- ------------------------------------------------------- the Teams side -->
   <section class="card teams">
-    <div class="card-head"><h2>Teams handoff preview</h2><span class="tag">mock</span></div>
-    <div class="toast" id="toast" hidden><p class="topic" id="toastTopic">—</p><p class="context" id="toastContext"></p></div>
-    <p class="empty" id="toastEmpty">No transfer yet.</p>
-    <h3 class="sub-head">VoIP headers</h3><pre class="headers" id="headers">—</pre>
+    <div class="card-head">
+      <h2>What the merchandiser sees</h2>
+      <span class="tag" title="A mock of the Teams incoming-call toast, built from the real handoff context">mock</span>
+    </div>
+
+    <div id="toast" hidden></div>
+    <p class="empty" id="toastEmpty">No call has been handed over yet.</p>
+
+    <h3 class="sub-head">VoIP headers on the wire</h3>
+    <pre id="headers">—</pre>
+    <p class="sub-note" id="headersNote" hidden></p>
+
+    <h3 class="sub-head">Merchandisers <span class="sub-note">open or closed on the demo clock</span></h3>
+    <ul id="locations"></ul>
   </section>
-  <section class="card trail"><div class="card-head"><h2>Audit trail</h2></div><ol class="events" id="events"><li class="empty">Nothing yet.</li></ol></section>
+
+  <!-- ------------------------------------------------------------- the trail -->
+  <section class="card trail">
+    <div class="card-head">
+      <h2>Decision trail</h2>
+      <span class="sub-note">every quote, caveat, refusal and handoff is audited</span>
+    </div>
+    <ol id="events"></ol>
+  </section>
+
 </main>
-<footer class="metrics" id="metrics"></footer>
+
+<footer id="metrics"></footer>
+
 <script src="/app.js" type="module"></script>
 </body>
 </html>

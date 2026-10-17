@@ -1,12 +1,26 @@
 import { WebSocketServer } from "ws";
 import { VoiceLiveSession, buildInstructions } from "./voice-live.mjs";
+import { forModel } from "../agent.mjs";
 import { hangUp } from "./acs.mjs";
 import { config } from "../config.mjs";
+import { STATES } from "../flow.mjs";
 
 const log = (...a) => console.log(new Date().toISOString(), "[bridge]", ...a);
 
+/** Time for a closing line (goodbye, after hours, a callback confirmed) to play before the line is hung up. */
+const CLOSING_GRACE_MS = 6000;
+
+/** Once a transfer has started, the call is on its way to a person and is not the agent's to end. */
+const HANDED_OFF = new Set([STATES.TRANSFERRING, STATES.TRANSFERRED]);
+
 class CallBridge {
-  constructor({ callId, acsSocket, flow }) { this.callId = callId; this.acs = acsSocket; this.flow = flow; }
+  constructor({ callId, acsSocket, flow }) {
+    this.callId = callId;
+    this.acs = acsSocket;
+    this.flow = flow;
+    this.closing = null;
+  }
+
   async start() {
     this.voice = new VoiceLiveSession({
       instructions: buildInstructions(this.flow.priceBook, config.locale),
@@ -15,41 +29,99 @@ class CallBridge {
       onToolCall: (name, args) => this.#onToolCall(name, args),
     });
     await this.voice.connect();
-    this.flow.registerAgent(this.callId, { instruct: (text) => this.voice.instruct(text), nudge: (text, opts) => this.voice.nudge(text, opts) });
+    this.flow.registerAgent(this.callId, {
+      // The flow wrote the words. The model's job is to say them, not to rephrase a price.
+      instruct: (text, spoken) => this.voice.instruct(spoken ? `${text}\nSay exactly: "${spoken}"` : text),
+      nudge: (text, opts) => this.voice.nudge(text, opts),
+    });
     this.flow.answered(this.callId);
   }
-  #toCaller(base64Pcm) { if (this.acs.readyState === this.acs.OPEN) this.acs.send(JSON.stringify({ kind: "AudioData", audioData: { data: base64Pcm } })); }
-  #stopCallerPlayback() { if (this.acs.readyState === this.acs.OPEN) this.acs.send(JSON.stringify({ kind: "StopAudio", stopAudio: {} })); }
+
+  #toCaller(base64Pcm) {
+    if (this.acs.readyState === this.acs.OPEN) this.acs.send(JSON.stringify({ kind: "AudioData", audioData: { data: base64Pcm } }));
+  }
+
+  #stopCallerPlayback() {
+    if (this.acs.readyState === this.acs.OPEN) this.acs.send(JSON.stringify({ kind: "StopAudio", stopAudio: {} }));
+  }
+
   #onVoiceEvent(e) {
     switch (e.kind) {
-      case "user_speech_started": this.#stopCallerPlayback(); this.voice.cancelResponse(); break;
-      case "user_transcript": this.flow.pushTranscript(this.callId, "caller", e.text); break;
-      case "agent_transcript": break;
-      case "error": log("voice error", JSON.stringify(e.error)); break;
+      case "user_speech_started":
+        this.#stopCallerPlayback();
+        this.voice.cancelResponse();
+        break;
+      case "user_transcript":
+        this.flow.pushTranscript(this.callId, "caller", e.text);
+        break;
+      case "error":
+        log("voice error", JSON.stringify(e.error));
+        break;
     }
   }
+
   async #onToolCall(name, args) {
-    const result = await this.#invokeTool(name, args);
-    this.flow.recordAgentAction(this.callId, { tool: name, ok: !result?.error && result?.ok !== false, detail: result?.error ?? result?.reason ?? null });
-    return result;
+    const result = await this.#invokeTool(name, args ?? {});
+    this.flow.recordAgentAction(this.callId, {
+      tool: name,
+      ok: !result?.error && result?.ok !== false,
+      detail: result?.error ?? result?.reason ?? null,
+    });
+    this.closeIfEnded();
+    return forModel(result);
   }
+
   async #invokeTool(name, args) {
     switch (name) {
-      case "get_bid": return this.flow.getBid(this.callId, args);
-      case "list_bids": return this.flow.listBids(this.callId, args);
-      case "transfer_to_merchandiser": return this.flow.transferToMerchandiser(this.callId, args);
-      case "repeat_last": return this.flow.repeatLast(this.callId);
-      case "end_call": setTimeout(() => this.stop(), 4000); return this.flow.endCall(this.callId, args.reason ?? "agent_ended");
-      default: return { error: `Unknown tool ${name}` };
+      case "get_bid":
+        return this.flow.getBid(this.callId, args);
+      case "list_bids":
+        return this.flow.listBids(this.callId, args);
+      case "transfer_to_merchandiser":
+        return this.flow.transferToMerchandiser(this.callId, args);
+      case "request_callback":
+        return this.flow.requestCallback(this.callId, args);
+      case "repeat_last":
+        return this.flow.repeatLast(this.callId);
+      case "end_call":
+        // Ending now would drop the caller on the way to a person.
+        if (HANDED_OFF.has(this.flow.get(this.callId)?.state)) return { ok: false, reason: "transfer_in_progress" };
+        return this.flow.endCall(this.callId, "caller_done");
+      default:
+        return { ok: false, error: `Unknown tool ${name}` };
     }
   }
+
+  /** Once the flow has ended the call, let the closing line play, then hang up. Safe to call more than once. */
+  closeIfEnded() {
+    if (this.closing || this.flow.get(this.callId)?.state !== "ended") return;
+    this.closing = setTimeout(() => this.stop(), CLOSING_GRACE_MS);
+  }
+
   handleAcsMessage(raw) {
     let msg;
-    try { msg = JSON.parse(raw); } catch { return; }
+    try {
+      msg = JSON.parse(raw);
+    } catch {
+      return;
+    }
     if (msg.kind === "AudioMetadata") return log("acs audio metadata", JSON.stringify(msg.audioMetadata));
     if (msg.kind === "AudioData" && msg.audioData?.data && !msg.audioData.silent) this.voice?.writeCallerAudio(msg.audioData.data);
   }
-  stop() { this.flow.unregisterAgent(this.callId); this.voice?.close(); try { this.acs.close(); } catch {} hangUp(this.flow.get(this.callId)?.callConnectionId); }
+
+  stop() {
+    clearTimeout(this.closing);
+    this.flow.unregisterAgent(this.callId);
+    this.voice?.close();
+    try {
+      this.acs.close();
+    } catch {
+      /* already closed */
+    }
+    // A call handed to a person belongs to Teams now, so it is not ours to hang up.
+    const call = this.flow.get(this.callId);
+    if (call && !HANDED_OFF.has(call.state)) hangUp(call.callConnectionId);
+  }
 }
 
 export const activeBridges = new Map();
@@ -63,9 +135,18 @@ export function attachMediaBridge(flow, path = "/ws/media") {
     const bridge = new CallBridge({ callId, acsSocket: socket, flow });
     activeBridges.set(callId, bridge);
     socket.on("message", (raw) => bridge.handleAcsMessage(raw));
-    socket.on("close", () => { bridge.voice?.close(); flow.unregisterAgent(callId); activeBridges.delete(callId); });
+    socket.on("close", () => {
+      bridge.voice?.close();
+      flow.unregisterAgent(callId);
+      activeBridges.delete(callId);
+    });
     socket.on("error", (e) => log("media socket error", e.message));
-    try { await bridge.start(); } catch (e) { log("failed to start Voice Live session:", e.message); socket.close(); }
+    try {
+      await bridge.start();
+    } catch (e) {
+      log("failed to start Voice Live session:", e.message);
+      socket.close();
+    }
   });
   log(`ACS media bridge listening on ${path}`);
   return wss;

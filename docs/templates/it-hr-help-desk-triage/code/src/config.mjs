@@ -55,12 +55,12 @@ export function assertCallConfig(cfg = config) {
 
 export const isSimulated = () => assertCallConfig().length > 0;
 
-export function readiness({ routing = null, knowledge = null, outages = null } = {}, cfg = config) {
+export function readiness({ routing = null, knowledge = null, outages = null } = {}, cfg = config, at = nowDate(cfg)) {
   const missing = assertCallConfig(cfg);
-  const placeholder = /^0{8}-0{4}-0{4}-0{4}-0{12}$/;
+  // The sample routing.json ships 00000000-0000-0000-0000-0000000001xx object ids until provisioning replaces them.
+  const placeholder = /^0{8}-0{4}-0{4}-0{4}-[0-9a-f]{12}$/i;
   const destinations = routing?.destinations ?? [];
   const unprovisionedRoutes = destinations.filter((d) => placeholder.test(d.target?.objectId ?? "")).map((d) => d.id);
-  const at = nowDate(cfg);
   return {
     voiceLive: { ready: Boolean(cfg.voiceLive.endpoint), auth: cfg.voiceLive.apiKey ? "api-key" : "entra", model: cfg.voiceLive.model, apiVersion: cfg.voiceLive.apiVersion },
     telephony: { ready: Boolean(cfg.acs.endpoint || cfg.acs.connectionString) && Boolean(cfg.publicBaseUrl), auth: cfg.acs.endpoint ? "entra" : cfg.acs.connectionString ? "connection-string" : "none", missing: missing.filter((k) => k !== "VOICE_LIVE_ENDPOINT") },

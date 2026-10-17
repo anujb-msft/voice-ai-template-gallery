@@ -1,392 +1,166 @@
+/*
+ * Contoso IT help desk — the password-reset console's own styles. The shared
+ * look comes from presenter-kit.css, which loads first; this file holds the
+ * template's accent color, the mock reset page (the employee's browser) and
+ * the handset (what the employee's phone heard).
+ */
+
 :root {
-  --bg: #0b1020;
-  --card: #141a2e;
-  --card-2: #1b2237;
-  --line: #2a3350;
-  --text: #e8ecf7;
-  --muted: #9aa6c4;
-  --accent: #4f8cff;
-  --accent-2: #7bb0ff;
-  --ok: #35d07f;
-  --warn: #ffb020;
-  --err: #ff6b6b;
-  --radius: 14px;
+  --accent: #4da3ff;
+  --accent-2: #8cc6ff;
+  /* The accent is light, so text on it needs dark ink. */
+  --on-accent: #04121f;
 }
 
-* { box-sizing: border-box; }
+/* ------------------------------------------------------------------ layout */
 
-body {
-  margin: 0;
-  min-height: 100vh;
-  background: radial-gradient(1200px 700px at 15% -10%, #1b2b55 0%, transparent 60%), var(--bg);
-  background-color: var(--bg);
-  color: var(--text);
-  font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
-  display: grid;
-  place-items: center;
-  padding: 32px 20px;
+/* The phone and the browser side by side, the decision and the service desk beside them. */
+@media (min-width: 1101px) {
+  .grid { grid-template-rows: auto 1fr; }
+  .call { grid-column: 1; grid-row: 1 / span 2; }
+  .portal { grid-column: 2; grid-row: 1 / span 2; align-self: stretch; display: flex; flex-direction: column; }
+  .portal .browser { flex: 1; }
+  .decision { grid-column: 3; grid-row: 1; }
+  .teams { grid-column: 3; grid-row: 2; }
+  .trail { grid-row: 3; }
 }
 
-.stage {
-  width: 100%;
-  max-width: 560px;
-  display: grid;
-  gap: 22px;
-  align-items: start;
+/* ----------------------------------------------------------------- handset */
+
+.handset {
+  display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 4px 14px;
+  margin: 0 0 12px; padding: 10px 14px; border-radius: 12px;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 22%, transparent), color-mix(in srgb, var(--accent) 6%, transparent));
+  border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
+  animation: pk-in 0.25s ease-out;
 }
-
-.card {
-  background: linear-gradient(180deg, var(--card) 0%, var(--card-2) 100%);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  padding: 28px;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
+.handset-who { font-size: 11px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--muted); }
+.handset-code { font: 700 26px/1.1 var(--mono); letter-spacing: 0.12em; color: var(--accent-2); white-space: nowrap; }
+.handset-when { font-size: 12px; color: var(--muted); text-align: right; }
+.handset[data-expired="true"] {
+  background: color-mix(in srgb, var(--err) 8%, transparent);
+  border-color: color-mix(in srgb, var(--err) 40%, transparent);
 }
+.handset[data-expired="true"] .handset-code { color: var(--err); text-decoration: line-through; opacity: 0.8; }
+.handset[data-expired="true"] .handset-when { color: var(--err); }
 
-.brand {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-weight: 650;
-  letter-spacing: 0.2px;
-  margin-bottom: 18px;
+/* Keypad digits pressed on the identity step: how many, never which. */
+.keyed { font: 600 12px/1 var(--mono); color: var(--accent-2); white-space: nowrap; }
+
+/* ------------------------------------------------------ the mock reset page */
+
+.browser {
+  display: flex; flex-direction: column;
+  border: 1px solid var(--line); border-radius: 12px; overflow: hidden;
+  background: #0d1426;
 }
-
-.logo {
-  width: 20px; height: 20px; border-radius: 5px;
-  background: conic-gradient(from 45deg, var(--accent), #9b6bff, var(--accent));
+.browser-bar {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 12px; font-size: 12px;
+  background: var(--card-2); border-bottom: 1px solid var(--line);
 }
-
-.pill {
-  margin-left: auto;
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.6px;
-  color: var(--accent-2);
-  border: 1px solid rgba(79, 140, 255, 0.4);
-  background: rgba(79, 140, 255, 0.1);
-  padding: 4px 9px;
-  border-radius: 999px;
+.browser-dots { display: inline-flex; gap: 5px; flex: none; }
+.browser-dots i { width: 9px; height: 9px; border-radius: 50%; background: var(--line); }
+.browser-url {
+  flex: 1; min-width: 0;
+  padding: 3px 10px; border-radius: 999px;
+  background: rgba(11, 16, 32, 0.6); border: 1px solid var(--line);
+  color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
+#portalLink { color: var(--accent-2); text-decoration: none; white-space: nowrap; font-weight: 600; }
+#portalLink:hover { text-decoration: underline; }
+.browser-body { flex: 1; display: grid; gap: 14px; align-content: start; padding: 16px; min-height: 300px; }
 
-h1 { font-size: 24px; margin: 0 0 4px; }
-h2 { font-size: 18px; margin: 0 0 4px; }
-h3 { font-size: 15px; margin: 0 0 10px; }
-.sub { color: var(--muted); margin: 0 0 20px; }
-
-label {
-  display: block;
-  font-size: 12px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: var(--muted);
-  margin: 14px 0 6px;
+/* Verify identity → confirm it's you → new password. */
+.stepper {
+  list-style: none; margin: 0; padding: 0;
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px;
 }
-
-input {
-  width: 100%;
-  padding: 11px 13px;
-  border-radius: 10px;
-  border: 1px solid var(--line);
-  
-  background-color: #0e142a;
-  color: var(--text);
-  font-size: 15px;
-  outline: none;
-  transition: border-color 0.15s, box-shadow 0.15s;
+.stepper li {
+  display: flex; align-items: center; gap: 7px;
+  font-size: 12px; color: var(--muted);
+  padding-bottom: 8px; border-bottom: 2px solid var(--line);
+  transition: color 0.2s ease, border-color 0.2s ease;
 }
-
-input:focus {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(79, 140, 255, 0.18);
+.stepper .dot {
+  flex: none; display: grid; place-items: center;
+  width: 20px; height: 20px; border-radius: 50%;
+  font-size: 11px; font-weight: 700;
+  border: 1px solid var(--line); background: rgba(11, 16, 32, 0.6);
 }
+.stepper li[data-state="current"] { color: var(--text); border-color: var(--accent); }
+.stepper li[data-state="current"] .dot { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.stepper li[data-state="done"] { color: var(--text); border-color: var(--ok); }
+.stepper li[data-state="done"] .dot { background: var(--ok); border-color: var(--ok); color: #04121f; font-size: 0; }
+.stepper li[data-state="done"] .dot::after { content: "✓"; font-size: 11px; }
+.stepper li[data-state="stopped"] { color: var(--err); border-color: var(--err); }
+.stepper li[data-state="stopped"] .dot { border-color: var(--err); color: var(--err); }
 
-input.code {
-  font-size: 28px;
-  letter-spacing: 12px;
-  text-align: center;
-  font-variant-numeric: tabular-nums;
+.portal-status {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 10px 12px; border-radius: 10px;
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 28%, transparent);
 }
-
-button {
-  font: inherit;
-  font-weight: 600;
-  border-radius: 10px;
-  padding: 11px 16px;
-  border: 1px solid transparent;
-  cursor: pointer;
-  transition: filter 0.15s, opacity 0.15s;
-}
-
-button:disabled { opacity: 0.45; cursor: not-allowed; }
-button:not(:disabled):hover { filter: brightness(1.12); }
-
-.primary {
-  width: 100%;
-  margin-top: 18px;
-  background: linear-gradient(180deg, var(--accent) 0%, #3a72e0 100%);
-  color: #fff;
-}
-
-.secondary {
-  margin-top: 14px;
-  background: transparent;
-  border-color: var(--line);
-  color: var(--text);
-}
-
-.forgot {
-  display: block;
-  text-align: center;
-  margin-top: 14px;
-  color: var(--accent-2);
-  text-decoration: none;
-  font-weight: 600;
-}
-.forgot:hover { text-decoration: underline; }
-
-.error {
-  margin-top: 12px;
-  color: var(--err);
-  font-size: 13px;
-  background: rgba(255, 107, 107, 0.1);
-  border: 1px solid rgba(255, 107, 107, 0.3);
-  border-radius: 8px;
-  padding: 9px 11px;
-}
-
-code {
-  background: rgba(255, 255, 255, 0.07);
-  padding: 1px 5px;
-  border-radius: 5px;
-  font-size: 12.5px;
-}
-
-/* ---------------------------------------------------------------- wizard */
-
-.steps {
-  list-style: none;
-  display: flex;
-  gap: 8px;
-  padding: 0;
-  margin: 0 0 22px;
-}
-
-.steps li {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 12.5px;
-  color: var(--muted);
-  padding: 9px 11px;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  transition: all 0.25s;
-}
-
-.steps li .dot {
-  width: 20px; height: 20px;
-  display: grid; place-items: center;
-  border-radius: 50%;
-  background: var(--line);
-  font-size: 11px;
-  font-weight: 700;
-  flex: none;
-}
-
-.steps li.active {
-  color: var(--text);
-  border-color: var(--accent);
-  background: rgba(79, 140, 255, 0.1);
-}
-.steps li.active .dot { background: var(--accent); color: #fff; }
-.steps li.done .dot { background: var(--ok); color: #06210f; }
-.steps li.done { color: var(--text); }
-
-.status {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 16px;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.03);
-}
-.status p { margin: 0; color: var(--muted); font-size: 13.5px; }
-
+.portal-status strong { display: block; font-size: 14px; }
+.portal-status p { margin: 2px 0 0; font-size: 12.5px; color: var(--muted); }
 .spinner {
-  width: 22px; height: 22px; flex: none;
-  border: 2.5px solid var(--line);
+  flex: none; width: 16px; height: 16px; margin-top: 2px; border-radius: 50%;
+  border: 2px solid color-mix(in srgb, var(--accent) 30%, transparent);
   border-top-color: var(--accent);
-  border-radius: 50%;
-  animation: spin 0.9s linear infinite;
+  animation: hd-spin 0.9s linear infinite;
 }
-.spinner[hidden] { display: none; }
-@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes hd-spin { to { transform: rotate(360deg); } }
 
-.panel { margin-top: 20px; }
+.pane { display: grid; gap: 8px; }
+.pane label { font-size: 11px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--muted); }
+.pane label .muted { font-weight: 500; text-transform: none; letter-spacing: 0; }
+.pane-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
+.pane input[readonly] { color: var(--muted); }
+.pane input.code { font: 600 22px/1.2 var(--mono); letter-spacing: 0.35em; text-align: center; padding: 7px 10px; }
+.note { margin: 0; font-size: 12.5px; color: var(--muted); }
+.note[data-tone] { color: var(--tone); }
 
-.panel.done { text-align: center; padding: 18px 0; }
-.tick {
-  width: 52px; height: 52px; margin: 0 auto 12px;
-  display: grid; place-items: center;
-  border-radius: 50%;
-  background: rgba(53, 208, 127, 0.15);
-  border: 1px solid var(--ok);
-  color: var(--ok);
-  font-size: 26px;
+/* "Forgot password?" — the link that starts it all. */
+.linkish {
+  justify-self: start; padding: 0; border: 0; background: none;
+  color: var(--accent-2); font-size: 13px; font-weight: 600;
+  text-decoration: underline; text-underline-offset: 3px;
 }
+.linkish:hover:not(:disabled) { color: var(--text); }
 
-.policy {
-  list-style: none;
-  padding: 0;
-  margin: 12px 0 0;
-  display: grid;
-  gap: 5px;
-}
-.policy li {
-  font-size: 13px;
-  color: var(--muted);
-  padding-left: 22px;
-  position: relative;
-}
-.policy li::before {
-  content: "○";
-  position: absolute;
-  left: 4px;
-  color: var(--muted);
-}
-.policy li.ok { color: var(--ok); }
-.policy li.ok::before { content: "✓"; color: var(--ok); }
+/* The password rules, ticked off by the server as the employee types. */
+#policy { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 12px; margin-top: 4px; }
+#policy li { font-size: 12.5px; }
 
-/* ------------------------------------------------------------ transcript */
+.result {
+  grid-template-columns: auto 1fr; align-items: center; gap: 12px;
+  padding: 14px; border-radius: 10px;
+  background: color-mix(in srgb, var(--tone, var(--accent)) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--tone, var(--accent)) 35%, transparent);
+  animation: pk-in 0.25s ease-out;
+}
+.result-icon {
+  display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%;
+  font-size: 17px; font-weight: 800;
+  color: var(--tone, var(--accent-2));
+  background: color-mix(in srgb, var(--tone, var(--accent)) 18%, transparent);
+}
+.result p { margin: 0; font-size: 13px; color: var(--muted); }
+.result p strong { display: block; color: var(--text); font-size: 15px; margin-bottom: 2px; }
 
-.feed-wrap {
-  margin-top: 20px;
-  border-top: 1px solid var(--line);
-  padding-top: 12px;
+.recall {
+  padding: 12px; border-radius: 10px; font-size: 13px; color: var(--muted);
+  background: color-mix(in srgb, var(--warn) 8%, transparent);
+  border: 1px dashed color-mix(in srgb, var(--warn) 45%, transparent);
 }
-.feed-wrap > summary {
-  cursor: pointer;
-  font-size: 12px;
-  color: var(--muted);
-  list-style: none;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  user-select: none;
-}
-.feed-wrap > summary::-webkit-details-marker { display: none; }
-.feed-wrap > summary::before {
-  content: "▸";
-  font-size: 10px;
-  transition: transform 0.15s ease;
-}
-.feed-wrap[open] > summary::before { transform: rotate(90deg); }
-.feed-wrap > summary:hover { color: var(--text); }
-.badge-demo {
-  font-size: 9.5px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.6px;
-  padding: 2px 6px;
-  border-radius: 999px;
-  border: 1px solid var(--line);
-  color: var(--muted);
-}
+.recall button { justify-self: start; }
 
-.feed-wrap + .feed-wrap { margin-top: 10px; }
+/* ------------------------------------------------------- the service desk */
 
-.activity {
-  margin-top: 12px;
-  max-height: 190px;
-  overflow-y: auto;
-  display: grid;
-  gap: 7px;
-}
-.feed-empty { font-size: 12px; color: var(--muted); }
+.pk-caller-card .muted { font-size: 11.5px; }
 
-.act {
-  display: flex;
-  align-items: baseline;
-  gap: 9px;
-  font-size: 13px;
-}
-.act .mark {
-  font-size: 11px;
-  font-weight: 700;
-  width: 15px;
-  flex: 0 0 auto;
-  text-align: center;
-}
-.act.ok .mark { color: var(--ok); }
-.act.bad .mark { color: var(--warn); }
-.act .what { color: var(--text); opacity: 0.9; flex: 1; }
-.act .tool {
-  font-size: 10.5px;
-  color: var(--muted);
-  opacity: 0.75;
-  white-space: nowrap;
-}
-
-.transcript {
-  margin-top: 12px;
-  max-height: 190px;
-  overflow-y: auto;
-  display: grid;
-  gap: 8px;
-}
-
-.line {
-  font-size: 13px;
-  display: flex;
-  gap: 9px;
-  align-items: baseline;
-}
-.line .who {
-  font-size: 10.5px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.6px;
-  flex: none;
-  width: 52px;
-}
-.line.agent .who { color: var(--accent-2); }
-.line.caller .who { color: var(--warn); }
-.line .what { color: var(--text); opacity: 0.9; }
-
-/* ------------------------------------------------------- call interruptions */
-
-.reconnect {
-  margin-top: 16px;
-  padding: 14px 16px;
-  border: 1px solid var(--line);
-  border-left: 3px solid var(--warn, #e0a83a);
-  border-radius: 10px;
-  background: rgba(224, 168, 58, 0.06);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  flex-wrap: wrap;
-}
-.reconnect-copy {
-  display: grid;
-  gap: 3px;
-}
-.reconnect-copy strong {
-  font-size: 14px;
-}
-.reconnect-copy span {
-  font-size: 12.5px;
-  color: var(--muted);
-}
-.reconnect button {
-  flex: 0 0 auto;
-  width: auto;
-  padding: 9px 18px;
-  font-size: 13px;
-}
+/* State changes and nudges are in the trail for completeness; the checks are the story. */
+.pk-trail li[data-kind="state"],
+.pk-trail li[data-kind="agent_nudge"],
+.pk-trail li[data-kind="tool"] { opacity: 0.55; }

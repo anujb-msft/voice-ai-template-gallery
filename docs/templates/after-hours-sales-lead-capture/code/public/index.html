@@ -1,1 +1,113 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>Contoso — After-hours Lead Capture</title><link rel="stylesheet" href="/styles.css"/></head><body><header><h1>Contoso Industrial Supply <span>After-hours lead capture</span></h1><div id="mode">checking…</div></header><main><section class="card"><h2>Simulated call</h2><button id="newCall">Answer after-hours call</button><button id="hotFixture">Run hot lead fixture</button><ol id="transcript"></ol><form id="sayForm"><input id="say" placeholder="Type caller utterance" disabled/><button disabled id="sayBtn">Say</button></form><button id="silence" disabled>Silence</button></section><section class="card"><h2>Lead form</h2><pre id="draft">—</pre><h2>Score / owner</h2><pre id="score">—</pre></section><section class="card"><h2>Outbox</h2><pre id="outbox">—</pre></section><section class="card wide"><h2>Events</h2><ol id="events"></ol></section></main><footer id="stats"></footer><script type="module" src="/app.js"></script></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Contoso Industrial Supply — After-hours lead capture</title>
+<link rel="stylesheet" href="/presenter-kit.css" />
+<link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+
+<header class="top">
+  <div class="brand"><span class="logo"></span> <strong id="org">Contoso Industrial Supply</strong> <span class="pill">Lead capture</span></div>
+  <div class="top-right">
+    <span id="clock" hidden></span>
+    <select id="voice" aria-label="Room voice"></select>
+    <span id="mode">checking…</span>
+    <button class="ghost" id="reset" type="button" title="Clear the simulated calls, leads and metrics, and restore the starting clock">Reset demo</button>
+  </div>
+</header>
+
+<nav id="stack"></nav>
+<section id="director" aria-label="Demo script"></section>
+
+<main class="grid">
+
+  <!-- ------------------------------------------------------------ the call -->
+  <section class="card call">
+    <div class="card-head">
+      <h2>The call</h2>
+      <span id="stateChip">no call</span>
+    </div>
+
+    <div class="caller-row">
+      <label for="callerSelect">Caller ID</label>
+      <select id="callerSelect"></select>
+      <button class="primary" id="newCall" type="button">Answer a call</button>
+    </div>
+
+    <div id="budget" hidden title="The per-call time budget. When it runs out, the assistant saves what it has and ends the call politely."></div>
+
+    <ol id="transcript"></ol>
+
+    <form class="say" id="sayForm" autocomplete="off">
+      <input id="sayInput" type="text" placeholder="What does the caller say?" disabled />
+      <button class="primary" type="submit" id="sayBtn" disabled>Say</button>
+    </form>
+
+    <div class="controls">
+      <span class="controls-label">Keypad</span>
+      <div class="keys" id="keys">
+        <button type="button" data-digit="0" title="Press 0 to ask for a person" disabled>0 <small>a person</small></button>
+      </div>
+      <button class="ghost" id="silence" type="button" disabled>Silence</button>
+      <button class="ghost danger" id="hangup" type="button" disabled>Hang up</button>
+    </div>
+  </section>
+
+  <!-- --------------------------------------------------------- the decision -->
+  <section class="card decision">
+    <div class="card-head">
+      <h2>Lead and routing decision</h2>
+      <span class="tag" title="The model gathers the details. The server scores the lead, picks the owner, and decides between the sales queue, a page to the on-call rep and the morning queue.">the server decides</span>
+    </div>
+
+    <div id="decision"></div>
+    <div id="gauge" title="The lead score against the hot threshold in config/qualification.json. The server scores; the model never does."></div>
+
+    <div class="page-row">
+      <div id="window" hidden></div>
+      <button class="ghost" id="noAnswer" type="button" hidden title="Simulate the on-call rep not picking up in Teams">Simulate no answer</button>
+    </div>
+
+    <h3 class="sub-head">Why this score</h3>
+    <ul id="checks"></ul>
+
+    <h3 class="sub-head">Lead record</h3>
+    <dl id="facts"></dl>
+
+    <h3 class="sub-head">The rules <span class="sub-note">on the demo clock</span></h3>
+    <ul id="rules"></ul>
+  </section>
+
+  <!-- ------------------------------------------------------- the Teams side -->
+  <section class="card teams">
+    <div class="card-head">
+      <h2>What the sales team sees in Teams</h2>
+      <span class="tag" title="A mock of Teams, built from the real handoff context and the real follow-up message">mock</span>
+    </div>
+
+    <div id="toast" hidden></div>
+    <p class="empty" id="toastEmpty">Nothing has reached the sales team yet.</p>
+
+    <h3 class="sub-head">VoIP headers on the wire <span class="sub-note">sent with a live handoff</span></h3>
+    <pre id="headers">—</pre>
+  </section>
+
+  <!-- ------------------------------------------------------------- the trail -->
+  <section class="card trail">
+    <div class="card-head">
+      <h2>Decision trail</h2>
+      <span class="sub-note">every field, score and routing decision is audited</span>
+    </div>
+    <ol id="events"></ol>
+  </section>
+
+</main>
+
+<footer id="metrics"></footer>
+
+<script src="/app.js" type="module"></script>
+</body>
+</html>

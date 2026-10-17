@@ -3,113 +3,167 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Contoso — Sign in</title>
+<title>Contoso — IT help desk</title>
+<link rel="stylesheet" href="/presenter-kit.css" />
 <link rel="stylesheet" href="/styles.css" />
 </head>
 <body>
-<div class="stage">
 
-  <!-- ------------------------------------------------------ sign-in card -->
-  <section class="card" id="loginCard">
-    <div class="brand"><span class="logo"></span> Contoso</div>
-    <h1>Sign in</h1>
-    <p class="sub">Use your corporate account to continue.</p>
+<header class="top">
+  <div class="brand"><span class="logo"></span> <strong>Contoso</strong> <span class="pill">IT help desk</span></div>
+  <div class="top-right">
+    <span id="clock" hidden></span>
+    <select id="voice" aria-label="Room voice"></select>
+    <span id="mode">checking…</span>
+    <button class="ghost" id="reset" type="button" title="Clear the simulated calls, tickets and metrics, restore the demo employees, and set the starting clock">Reset demo</button>
+  </div>
+</header>
 
-    <form id="loginForm" autocomplete="off">
-      <label for="username">Username</label>
-      <input id="username" name="username" type="text" value="alex.morgan" spellcheck="false" />
+<nav id="stack"></nav>
+<section id="director" aria-label="Demo script"></section>
 
-      <label for="password">Password</label>
-      <input id="password" name="password" type="password" placeholder="••••••••••" />
+<main class="grid">
 
-      <div class="error" id="loginError" hidden></div>
+  <!-- ------------------------------------------------------------ the call -->
+  <section class="card call">
+    <div class="card-head">
+      <h2>The callback</h2>
+      <span id="stateChip">no call</span>
+    </div>
 
-      <button class="primary" type="submit">Sign in</button>
-      <a class="forgot" id="forgotLink" href="#">Forgot password?</a>
+    <div class="caller-row">
+      <label for="employeeSelect">Employee who asked for the reset</label>
+      <select id="employeeSelect"></select>
+      <button class="primary" id="newCall" type="button" title="The employee clicks “Forgot password?”, and the agent calls them back">Place the callback</button>
+    </div>
+
+    <div class="handset" id="handset" hidden title="What the employee's phone heard. The transcript, the audit and the reset page never hold the code.">
+      <span class="handset-who" id="handsetWho">On the phone</span>
+      <strong class="handset-code" id="handsetCode"></strong>
+      <span class="handset-when" id="handsetWhen"></span>
+    </div>
+
+    <ol id="transcript"></ol>
+
+    <form class="say" id="sayForm" autocomplete="off">
+      <input id="sayInput" type="text" placeholder="What does the employee say?" disabled />
+      <button class="primary" type="submit" id="sayBtn" disabled>Say</button>
     </form>
+
+    <div class="controls">
+      <span class="controls-label">Keypad</span>
+      <div class="keys" id="keys"></div>
+      <span class="keyed" id="keyed" hidden></span>
+      <button class="ghost" id="silence" type="button" disabled>Silence</button>
+      <button class="ghost danger" id="hangup" type="button" disabled>Hang up</button>
+    </div>
   </section>
 
-  <!-- ------------------------------------------------------ reset wizard -->
-  <section class="card wide" id="resetCard" hidden>
-    <div class="brand"><span class="logo"></span> Contoso <span class="pill">IT assistant</span></div>
+  <!-- ------------------------------------------------------ the reset page -->
+  <section class="card portal">
+    <div class="card-head">
+      <h2>The reset page</h2>
+      <span class="tag" title="A mock of the employee's browser, driven by the same server state as the call. The real page is /portal.html.">in step with the call</span>
+    </div>
 
-    <ol class="steps" id="steps">
-      <li data-step="1"><span class="dot">1</span> Verify identity</li>
-      <li data-step="2"><span class="dot">2</span> Confirm it's you</li>
-      <li data-step="3"><span class="dot">3</span> New password</li>
-    </ol>
+    <div class="browser">
+      <div class="browser-bar">
+        <span class="browser-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span class="browser-url">🔒 passwordreset.contoso.com</span>
+        <a id="portalLink" href="/portal.html" target="_blank" rel="noopener" title="Open the real reset page in a new tab">open ↗</a>
+      </div>
 
-    <div class="status" id="status">
-      <div class="spinner" id="spinner"></div>
-      <div>
-        <h2 id="statusLabel">Calling you now</h2>
-        <p id="statusHint">Answer your phone — our IT assistant is calling you.</p>
+      <div class="browser-body">
+        <ol class="stepper" id="portalSteps">
+          <li data-step="1"><span class="dot">1</span>Verify identity</li>
+          <li data-step="2"><span class="dot">2</span>Confirm it's you</li>
+          <li data-step="3"><span class="dot">3</span>New password</li>
+        </ol>
+
+        <div class="portal-status" id="portalStatus">
+          <span class="spinner" id="portalSpinner" aria-hidden="true"></span>
+          <div>
+            <strong id="portalLabel">Sign in</strong>
+            <p id="portalHint"></p>
+          </div>
+        </div>
+
+        <!-- Signed out: the "Forgot password?" that starts it all. -->
+        <div class="pane" id="paneSignin">
+          <label for="portalUser">Username</label>
+          <input id="portalUser" type="text" readonly tabindex="-1" />
+          <button class="linkish" id="forgot" type="button">Forgot password?</button>
+        </div>
+
+        <form class="pane" id="paneCode" autocomplete="off" hidden>
+          <label for="portalCode">The 6-digit code from the call</label>
+          <div class="pane-row">
+            <input id="portalCode" class="code" type="text" inputmode="numeric" maxlength="6" placeholder="000000" spellcheck="false" />
+            <button class="primary" id="portalCodeBtn" type="submit">Continue</button>
+          </div>
+          <p class="note" id="codeNote">Listen for the code on the call. It is never sent to this page.</p>
+        </form>
+
+        <form class="pane" id="panePassword" autocomplete="off" hidden>
+          <label for="portalPassword">New password <span class="muted">· shown in clear for the demo</span></label>
+          <div class="pane-row">
+            <input id="portalPassword" type="text" spellcheck="false" />
+            <button class="primary" id="portalSave" type="submit">Update password</button>
+          </div>
+          <ul id="policy" title="Checked on the server as the employee types"></ul>
+        </form>
+
+        <div class="pane result" id="paneResult" hidden>
+          <span class="result-icon" id="resultIcon" aria-hidden="true"></span>
+          <p id="resultText"></p>
+        </div>
+
+        <div class="pane recall" id="paneRecall" hidden>
+          <span>The call ended before the reset finished. The page can ask for the call again, and the reset picks up where it left off.</span>
+          <button class="ghost" id="recall" type="button">Call me again</button>
+        </div>
       </div>
     </div>
-
-    <!--
-      Shown when the call drops or the caller hangs up before finishing. The
-      reset session survives, so the fix is a redial rather than starting over.
-    -->
-    <div class="reconnect" id="reconnect" hidden>
-      <div class="reconnect-copy">
-        <strong id="reconnectTitle">The call ended</strong>
-        <span id="reconnectHint">You can pick up right where you left off.</span>
-      </div>
-      <button class="primary" id="callAgain">Call me again</button>
-    </div>
-
-    <!-- step: verification code -->
-    <div class="panel" id="panelCode" hidden>
-      <label for="codeInput">Enter the 6-digit code the assistant reads to you</label>
-      <input id="codeInput" inputmode="numeric" maxlength="6" placeholder="000000" class="code" />
-      <div class="error" id="codeError" hidden>That code didn't match — listen for it again.</div>
-    </div>
-
-    <!-- step: new password -->
-    <div class="panel" id="panelPassword" hidden>
-      <label for="newPassword">New password</label>
-      <input id="newPassword" type="password" placeholder="Type your new password" />
-      <ul class="policy" id="policy"></ul>
-      <button class="primary" id="savePassword" disabled>Update password</button>
-      <div class="error" id="passwordError" hidden></div>
-    </div>
-
-    <!-- step: done -->
-    <div class="panel done" id="panelDone" hidden>
-      <div class="tick">✓</div>
-      <h2>Password updated</h2>
-      <p>You can sign in now. No help desk ticket was needed.</p>
-      <button class="secondary" id="restart">Back to sign in</button>
-    </div>
-
-    <!--
-      Demo instrumentation, not product UX — remove both of these for a real
-      deployment.
-
-      The activity log is the governance story made visible: the model cannot
-      touch the database or the directory, it can only call a fixed set of
-      server-side tools, and every attempt is recorded. It is immune to
-      transcription errors, which is why it leads.
-
-      The transcript is proof the conversation is genuinely live, but speech
-      recognition slips show up here verbatim, so it stays collapsed.
-    -->
-    <details class="feed-wrap" id="activityWrap" open>
-      <summary>Agent activity <span class="badge-demo">demo view</span></summary>
-      <div class="activity" id="activity" aria-live="polite">
-        <div class="feed-empty" id="activityEmpty">No agent actions yet.</div>
-      </div>
-    </details>
-
-    <details class="feed-wrap" id="transcriptWrap">
-      <summary>Live call transcript <span class="badge-demo">demo view</span></summary>
-      <div class="transcript" id="transcript" aria-live="polite"></div>
-    </details>
   </section>
 
-</div>
-<script src="/vendor/signalr/signalr.min.js"></script>
-<script src="/app.js"></script>
+  <!-- --------------------------------------------------------- the decision -->
+  <section class="card decision">
+    <div class="card-head">
+      <h2>Reset decision</h2>
+      <span class="tag" title="The agent asks. Policy code on the server decides: the digits, the code, its expiry, the password rules, the refusals and the handoff.">the server decides</span>
+    </div>
+
+    <div id="decision"></div>
+    <dl id="facts"></dl>
+  </section>
+
+  <!-- ------------------------------------------------------- the Teams side -->
+  <section class="card teams">
+    <div class="card-head">
+      <h2>What the service desk sees</h2>
+      <span class="tag" title="A mock of the Teams incoming-call toast, built from the real handoff context">mock</span>
+    </div>
+
+    <div id="toast" hidden></div>
+    <p class="empty" id="toastEmpty">No call has been handed over yet.</p>
+
+    <h3 class="sub-head">VoIP headers on the wire</h3>
+    <pre id="headers">—</pre>
+  </section>
+
+  <!-- ------------------------------------------------------------- the trail -->
+  <section class="card trail">
+    <div class="card-head">
+      <h2>Audit trail</h2>
+      <span class="sub-note">every check, refusal and handoff is recorded, without the ID digits or the codes</span>
+    </div>
+    <ol id="events"></ol>
+  </section>
+
+</main>
+
+<footer id="metrics"></footer>
+
+<script src="/app.js" type="module"></script>
 </body>
 </html>

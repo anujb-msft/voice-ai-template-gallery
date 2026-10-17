@@ -25,7 +25,7 @@ export class DataverseCrmAdapter {
 
   #notBuilt() {
     throw new Error(
-      "The Dataverse CRM adapter is documented but not implemented in this demo. Set CRM_ADAPTER=sqlite for a runnable sample.",
+      "The Dataverse CRM adapter is documented but not implemented in this demo. Set CRM_ADAPTER=sqlite or CRM_ADAPTER=memory for a runnable sample.",
     );
   }
 
