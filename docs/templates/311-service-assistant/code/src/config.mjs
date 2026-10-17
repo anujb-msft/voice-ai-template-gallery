@@ -27,8 +27,8 @@ export const config = {
     apiKey: process.env.VOICE_LIVE_API_KEY ?? "",
     model: process.env.VOICE_LIVE_MODEL ?? "gpt-realtime",
     apiVersion: process.env.VOICE_LIVE_API_VERSION ?? "2026-04-10",
-    voices: list(process.env.VOICE_LIVE_VOICES, "en-US-Ava:DragonHDLatestNeural,es-US-ElviraNeural"),
-    voice: list(process.env.VOICE_LIVE_VOICES, "en-US-Ava:DragonHDLatestNeural,es-US-ElviraNeural")[0],
+    voices: list(process.env.VOICE_LIVE_VOICES, "en-US-Ava:DragonHDLatestNeural,es-US-PalomaNeural"),
+    voice: list(process.env.VOICE_LIVE_VOICES, "en-US-Ava:DragonHDLatestNeural,es-US-PalomaNeural")[0],
   },
   locales: list(process.env.LOCALES, "en-US,es-US"),
   locale: list(process.env.LOCALES, "en-US,es-US")[0],
@@ -72,7 +72,7 @@ export function assertCallConfig(cfg = config) {
 
 export const isSimulated = (cfg = config) => assertCallConfig(cfg).length > 0;
 
-export function readiness({ content = null, departments = null, caseStore = null, geocoder = null } = {}, cfg = config) {
+export function readiness({ content = null, departments = null, caseStore = null, geocoder = null, now = null } = {}, cfg = config) {
   return {
     voiceLive: {
       ready: Boolean(cfg.voiceLive.endpoint),
@@ -96,6 +96,6 @@ export function readiness({ content = null, departments = null, caseStore = null
     corpus: content?.summary?.() ?? null,
     caseStore: { type: caseStore?.name ?? cfg.caseStore },
     geocoder: { type: geocoder?.name ?? cfg.geocoder },
-    departments: departments?.openSummary?.(new Date(clockNow(cfg))) ?? null,
+    departments: departments?.openSummary?.(new Date(now ? now() : clockNow(cfg))) ?? null,
   };
 }

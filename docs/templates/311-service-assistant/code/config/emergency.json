@@ -1,9 +1,22 @@
 {
+  "guidance": {
+    "en": "This sounds like an emergency. Please hang up and dial 911 now.",
+    "es": "Esto parece una emergencia. Por favor, cuelgue y marque 911 ahora."
+  },
   "categories": [
-    { "id": "fire", "redirect": "911", "phrases": { "en": ["fire", "flames", "smoke in the building"], "es": ["incendio", "fuego", "llamas"] } },
-    { "id": "gas", "redirect": "gas utility at 555-0109", "phrases": { "en": ["gas smell", "smell gas", "gas leak"], "es": ["olor a gas", "fuga de gas"] } },
-    { "id": "crime", "redirect": "911", "phrases": { "en": ["crime in progress", "being robbed", "break in happening"], "es": ["crimen en progreso", "robo en progreso"] } },
-    { "id": "power-line", "redirect": "911", "phrases": { "en": ["downed power line", "wire down", "power line down"], "es": ["cable eléctrico caído", "línea eléctrica caída"] } },
-    { "id": "medical", "redirect": "911", "phrases": { "en": ["medical emergency", "heart attack", "can't breathe", "cannot breathe"], "es": ["emergencia médica", "ataque al corazón", "no puede respirar"] } }
+    { "id": "fire", "label": "Fire", "redirect": "911", "phrases": { "en": ["fire", "flames", "smoke in the building"], "es": ["incendio", "fuego", "llamas"] } },
+    {
+      "id": "gas",
+      "label": "Gas leak",
+      "redirect": "gas utility at 555-0109",
+      "phrases": { "en": ["gas smell", "smell gas", "gas leak"], "es": ["olor a gas", "fuga de gas"] },
+      "guidance": {
+        "en": "This sounds like a gas emergency. Please leave the building now and don't switch anything on or off. Once you're outside, call the gas utility at 555-0109, or dial 911.",
+        "es": "Esto parece una emergencia de gas. Salga del edificio ahora y no encienda ni apague nada. Cuando esté afuera, llame a la compañía de gas al 555-0109 o marque 911."
+      }
+    },
+    { "id": "crime", "label": "Crime in progress", "redirect": "911", "phrases": { "en": ["crime in progress", "being robbed", "break in happening"], "es": ["crimen en progreso", "robo en progreso"] } },
+    { "id": "power-line", "label": "Downed power line", "redirect": "911", "phrases": { "en": ["downed power line", "wire down", "power line down"], "es": ["cable eléctrico caído", "línea eléctrica caída"] } },
+    { "id": "medical", "label": "Medical emergency", "redirect": "911", "phrases": { "en": ["medical emergency", "heart attack", "can't breathe", "cannot breathe"], "es": ["emergencia médica", "ataque al corazón", "no puede respirar"] } }
   ]
 }

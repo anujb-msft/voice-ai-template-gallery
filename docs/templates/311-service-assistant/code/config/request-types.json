@@ -1,6 +1,7 @@
 [
   {
     "id": "pothole",
+    "label": { "en": "pothole", "es": "bache" },
     "names": { "en": ["pothole", "hole in the road"], "es": ["bache", "hoyo"] },
     "department": "public-works",
     "required": ["location", "size"],
@@ -10,20 +11,24 @@
       "inTravelLane": { "type": "boolean" }
     },
     "priorityWhen": { "size": "large", "inTravelLane": true },
-    "duplicate": { "radiusM": 50, "windowDays": 7 }
+    "duplicate": { "radiusM": 50, "windowDays": 7 },
+    "sla": { "businessDays": 5, "priorityHours": 24 }
   },
   {
     "id": "streetlight-out",
+    "label": { "en": "streetlight outage", "es": "luz de calle apagada" },
     "names": { "en": ["streetlight out", "street light out", "light is out"], "es": ["luz de la calle", "farola apagada"] },
     "department": "public-works",
     "required": ["location", "poleNumber"],
     "optional": ["landmark"],
     "fields": { "poleNumber": { "type": "string" } },
     "priorityWhen": {},
-    "duplicate": { "radiusM": 50, "windowDays": 7 }
+    "duplicate": { "radiusM": 50, "windowDays": 7 },
+    "sla": { "businessDays": 7, "priorityHours": null }
   },
   {
     "id": "missed-trash",
+    "label": { "en": "missed trash pickup", "es": "recolección de basura omitida" },
     "names": { "en": ["missed trash", "trash was not picked up", "garbage pickup missed"], "es": ["basura no recogida", "no recogieron la basura"] },
     "department": "sanitation",
     "required": ["location", "pickupType"],
@@ -33,10 +38,12 @@
       "cartOutBy": { "type": "string" }
     },
     "priorityWhen": {},
-    "duplicate": { "radiusM": 50, "windowDays": 7 }
+    "duplicate": { "radiusM": 50, "windowDays": 7 },
+    "sla": { "businessDays": 2, "priorityHours": null }
   },
   {
     "id": "graffiti",
+    "label": { "en": "graffiti", "es": "grafiti" },
     "names": { "en": ["graffiti", "tagging"], "es": ["grafiti", "pintada"] },
     "department": "code-enforcement",
     "required": ["location", "surface"],
@@ -46,26 +53,31 @@
       "offensive": { "type": "boolean" }
     },
     "priorityWhen": { "offensive": true },
-    "duplicate": { "radiusM": 50, "windowDays": 7 }
+    "duplicate": { "radiusM": 50, "windowDays": 7 },
+    "sla": { "businessDays": 5, "priorityHours": 24 }
   },
   {
     "id": "abandoned-vehicle",
+    "label": { "en": "abandoned vehicle", "es": "vehículo abandonado" },
     "names": { "en": ["abandoned vehicle", "abandoned car", "car has not moved"], "es": ["vehículo abandonado", "auto abandonado"] },
     "department": "parking-enforcement",
     "required": ["location", "vehicleDescription"],
     "optional": ["plate"],
     "fields": { "vehicleDescription": { "type": "string" }, "plate": { "type": "string" } },
     "priorityWhen": {},
-    "duplicate": { "radiusM": 50, "windowDays": 7 }
+    "duplicate": { "radiusM": 50, "windowDays": 7 },
+    "sla": { "businessDays": 5, "priorityHours": null }
   },
   {
     "id": "noise-complaint",
+    "label": { "en": "noise complaint", "es": "queja por ruido" },
     "names": { "en": ["noise complaint", "loud music", "construction noise"], "es": ["queja de ruido", "música alta", "ruido"] },
     "department": "code-enforcement",
     "required": ["location", "noiseType"],
     "optional": ["timeObserved"],
     "fields": { "noiseType": { "type": "string" }, "timeObserved": { "type": "string" } },
     "priorityWhen": {},
-    "duplicate": { "radiusM": 50, "windowDays": 7 }
+    "duplicate": { "radiusM": 50, "windowDays": 7 },
+    "sla": { "businessDays": 3, "priorityHours": null }
   }
 ]

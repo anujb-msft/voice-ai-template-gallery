@@ -1,28 +1,118 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>311 Service Assistant demo</title>
-  <link rel="stylesheet" href="/styles.css" />
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>City of Contoso — 311 Service Assistant</title>
+<link rel="stylesheet" href="/presenter-kit.css" />
+<link rel="stylesheet" href="/styles.css" />
 </head>
 <body>
-  <header><h1>City of Contoso 311 Service Assistant</h1><p>Demo surface — not a production 311 system.</p></header>
-  <main>
-    <section class="panel controls">
-      <button id="start">Start simulated call</button>
-      <input id="utterance" placeholder="Type caller utterance" />
-      <button id="say">Send</button>
-      <button data-dtmf="0">DTMF 0</button>
-      <button data-dtmf="*">Repeat *</button>
-    </section>
-    <section class="grid">
-      <div class="panel"><h2>Call state</h2><pre id="state">No call yet.</pre></div>
-      <div class="panel"><h2>Transcript</h2><ol id="transcript"></ol></div>
-      <div class="panel"><h2>Open case board</h2><div id="cases"></div></div>
-      <div class="panel"><h2>Metrics</h2><pre id="stats"></pre></div>
-    </section>
-  </main>
-  <script type="module" src="/app.js"></script>
+
+<header class="top">
+  <div class="brand"><span class="logo"></span> <strong>City of Contoso</strong> <span class="pill">311 Service Assistant</span></div>
+  <div class="top-right">
+    <span id="clock" hidden></span>
+    <select id="voice" aria-label="Room voice"></select>
+    <span id="mode">checking…</span>
+    <button class="ghost" id="reset" type="button" title="Clear the simulated calls, service requests, texts and metrics, and restore the starting clock">Reset demo</button>
+  </div>
+</header>
+
+<nav id="stack"></nav>
+<section id="director" aria-label="Demo script"></section>
+
+<main class="grid">
+
+  <!-- ------------------------------------------------------------ the call -->
+  <section class="card call">
+    <div class="card-head">
+      <h2>The call</h2>
+      <span class="head-chips"><span id="langChip" hidden></span><span id="stateChip">no call</span></span>
+    </div>
+
+    <div class="caller-row">
+      <label for="callerSelect">Caller ID</label>
+      <select id="callerSelect"></select>
+      <button class="primary" id="newCall" type="button">Answer a call</button>
+    </div>
+
+    <div id="budget" hidden title="The call's time budget. When it runs out, the agent closes the call politely."></div>
+
+    <ol id="transcript"></ol>
+
+    <form class="say" id="sayForm" autocomplete="off">
+      <input id="sayInput" type="text" placeholder="What does the caller say?" disabled />
+      <button class="primary" type="submit" id="sayBtn" disabled>Say</button>
+    </form>
+
+    <div class="controls">
+      <span class="controls-label">Keypad</span>
+      <div class="keys" id="keys">
+        <button type="button" data-digit="1" title="Press 1 for yes" disabled>1 <small>yes</small></button>
+        <button type="button" data-digit="2" title="Press 2 for no" disabled>2 <small>no</small></button>
+        <button type="button" data-digit="0" title="Press 0 for a person" disabled>0 <small>a person</small></button>
+        <button type="button" data-digit="*" title="Press * to hear the last line again" disabled>* <small>repeat</small></button>
+      </div>
+      <button class="ghost" id="silence" type="button" disabled>Silence</button>
+      <button class="ghost danger" id="hangup" type="button" disabled>Hang up</button>
+    </div>
+  </section>
+
+  <!-- --------------------------------------------------------- the decision -->
+  <section class="card decision">
+    <div class="card-head">
+      <h2>What the server decided</h2>
+      <span class="tag" title="The voice model talks. Policy code on the server decides: emergencies, verified locations, approved answers, texts and handoffs.">the server decides</span>
+    </div>
+
+    <div id="decision"></div>
+
+    <h3 class="sub-head">Rules on this call <span class="sub-note">enforced in code, not in the prompt</span></h3>
+    <ul id="checks"></ul>
+
+    <div id="recordBlock">
+      <h3 class="sub-head"><span id="caseHead">Service request</span> <span class="sub-note" id="caseNote">nothing filed yet</span></h3>
+      <dl id="caseFacts"></dl>
+    </div>
+
+    <div id="faqBlock" hidden>
+      <h3 class="sub-head">Approved content <span class="sub-note">only reviewed, unexpired articles are read out</span></h3>
+      <ul id="sources"></ul>
+    </div>
+  </section>
+
+  <!-- ------------------------------------------- the caller's and staff's side -->
+  <section class="card teams">
+    <div class="card-head">
+      <h2>What the caller and 311 staff see</h2>
+      <span class="tag" title="Mocks built from the real server state: the text the caller gets, and the Teams incoming-call toast">mock</span>
+    </div>
+
+    <h3 class="sub-head first">Caller's phone <span class="sub-note" id="phoneNote">simulated — never sent</span></h3>
+    <div id="phone"></div>
+
+    <h3 class="sub-head">Teams · 311 staff</h3>
+    <div id="toast" hidden></div>
+    <p class="empty" id="toastEmpty">No call has been handed to a person yet.</p>
+
+    <h3 class="sub-head">VoIP headers on the wire</h3>
+    <pre id="headers">—</pre>
+  </section>
+
+  <!-- ------------------------------------------------------------- the trail -->
+  <section class="card trail">
+    <div class="card-head">
+      <h2>Decision trail</h2>
+      <span class="sub-note">every tool call and every server decision is audited</span>
+    </div>
+    <ol id="events"></ol>
+  </section>
+
+</main>
+
+<footer id="metrics"></footer>
+
+<script src="/app.js" type="module"></script>
 </body>
 </html>

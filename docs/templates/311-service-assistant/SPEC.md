@@ -194,7 +194,8 @@ The model changes state only through server-owned tools:
   case outside the model context.
 - `get_case_status(caseNumber)` returns a phrase with only the status and department.
 - `bulk_pickup(items)` checks eligibility and returns the next open date. The
-  `confirm_bulk_pickup()` tool books the date and returns the case number.
+  `confirm_bulk_pickup(location)` tool books the date for a verified address and returns
+  the case number. An address the geocoder can't verify books nothing.
 - `send_form_link(serviceId)` sends the consented SMS to the caller ID.
 - `transfer(reason, department?)` checks hours and holidays, then either transfers or
   returns the after-hours phrase. The model never sees a Teams target or phone number.
