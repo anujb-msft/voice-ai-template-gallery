@@ -61,7 +61,8 @@ npm start
 The console runs a scripted demo. Press **→** (or **Next ▶**) and it plays six short beats.
 It types the employee's lines on the phone and on the reset page, and the room voice can
 read both sides of the call aloud.
-[DEMO-SCRIPT.md](DEMO-SCRIPT.md) is the running order, with what to say at each step.
+[DEMO-SCRIPT.md](DEMO-SCRIPT.md) is the running order, with what to say at each step, and
+`npm run rehearse` plays it end to end before you do.
 
 You can also drive it yourself:
 
@@ -91,10 +92,19 @@ Try these:
 Run the tests. They need no Azure and no network:
 
 ```bash
-npm test        # 72 cases: the password policy, the state machine, the six beats and the Teams handoff
+npm test          # 72 cases: the password policy, the state machine, the six beats and the Teams handoff
 npm run check
-npm run smoke   # boots its own server on port 8190; checks both WebSockets, a simulated call and the demo controls
+npm run smoke     # boots its own server on port 8190; checks both WebSockets, a simulated call and the demo controls
+npm run rehearse  # plays the six beats on port 8290 as the console does, three ways (~2 min)
 ```
+
+`npm run rehearse` fails if a beat would land anywhere [DEMO-SCRIPT.md](DEMO-SCRIPT.md)
+doesn't say. What each beat leaves on screen is pinned in `scripts/rehearse.mjs`: the call's
+outcome, the decision card, the Teams toast and the trail. It plays the script in order,
+again after a reset, and last beat first with each beat twice, at Auto-play's pace and at
+full speed. It also checks that a live server refuses the demo controls. Neither `.env` nor
+your shell's settings reach its server. Changed a beat on purpose? It prints the outcomes it
+reached, ready to paste over the pins once you've checked them against the script.
 
 `node scripts/ws-test.mjs` is a separate check, and it needs a filled-in `.env`. It checks
 Voice Live authentication, the model, speech output and tool calling without placing a
@@ -441,6 +451,9 @@ scripts/
   seed.mjs                the two fictional employees, for real calls
   smoke-websockets.mjs    boots its own server on port 8190 and checks the WebSockets,
                           a simulated call and the demo controls
+  rehearse.mjs            plays every beat as the console does; pins what each one shows
+  presenter-kit-rehearsal.mjs
+                          the rehearsal engine, vendored like presenter-kit.*
   ws-test.mjs             Voice Live connectivity check, with no phone call (needs .env)
   provision-teams-phone.ps1
                           binds the outbound Teams resource account to ACS
