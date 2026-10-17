@@ -87,7 +87,7 @@ function loadArticles(root) {
 }
 
 function parseFrontMatter(raw) {
-  // Normalise CRLF so Windows checkouts (core.autocrlf=true) parse the same as LF.
+  // Normalize CRLF so Windows checkouts (core.autocrlf=true) parse the same as LF.
   const text = raw.replace(/\r\n?/g, "\n");
   const match = /^---\n([\s\S]*?)\n---\n([\s\S]*)$/m.exec(text);
   if (!match) return { meta: {}, body: text };

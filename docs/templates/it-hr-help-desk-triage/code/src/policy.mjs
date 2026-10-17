@@ -68,7 +68,7 @@ export class RoutingPolicy {
 }
 
 function parseHeader(file) {
-  // Normalise CRLF so Windows checkouts (core.autocrlf=true) parse the same as LF.
+  // Normalize CRLF so Windows checkouts (core.autocrlf=true) parse the same as LF.
   const raw = readFileSync(file, "utf8").replace(/\r\n?/g, "\n");
   const m = /^---\n([\s\S]*?)\n---\n([\s\S]*)$/m.exec(raw);
   if (!m) throw new Error(`missing front matter: ${file}`);

@@ -428,7 +428,7 @@ function decision(snap) {
   if (snap.state === "fallback") {
     return {
       headline: "Couldn't connect",
-      why: "The transfer failed, and so did the fallback queue. The agent apologised and asked the caller to try again shortly.",
+      why: "The transfer failed, and so did the fallback queue. The agent apologized and asked the caller to try again shortly.",
       verdict: "transfer unavailable",
       tone: "err",
     };
@@ -438,7 +438,7 @@ function decision(snap) {
     return {
       headline: "Call ended",
       why: view.transferFailed
-        ? "The transfer couldn't be completed, so the agent apologised and ended the call."
+        ? "The transfer couldn't be completed, so the agent apologized and ended the call."
         : snap.destination
           ? "The caller hung up before the transfer dispatched."
           : "The caller hung up before a handoff.",

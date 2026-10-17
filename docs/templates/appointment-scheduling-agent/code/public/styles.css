@@ -15,9 +15,6 @@
   --slot-closed: rgba(11, 16, 32, 0.6);
 }
 
-/* Some kit panels set their own display (the options list, the budget bar), which would otherwise beat `hidden`. */
-[hidden] { display: none !important; }
-
 /* A dark accent needs a lighter edge to read on the dark cards. */
 .pk-list li[data-active="true"] { border-color: var(--accent-2); }
 .pk-beats button[data-state="current"] { border-color: var(--accent-2); }

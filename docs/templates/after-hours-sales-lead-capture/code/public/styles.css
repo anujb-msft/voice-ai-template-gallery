@@ -11,9 +11,6 @@
   --on-accent: #22040f;
 }
 
-/* Some kit parts (the time budget, the clock) set a display, which would beat the hidden attribute. */
-[hidden] { display: none !important; }
-
 /* The keypad button says what 0 does, so nobody has to remember it. */
 .keys button small { color: var(--muted); font-size: 10px; font-weight: 500; margin-left: 2px; }
 

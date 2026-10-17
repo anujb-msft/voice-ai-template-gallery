@@ -14,8 +14,6 @@
 /* Keypad buttons say what the key does, so nobody has to remember the menu. */
 .keys button small { color: var(--muted); font-size: 10px; font-weight: 500; margin-left: 2px; }
 .leg-controls { margin-top: 8px; }
-/* The kit's budget bar is display:flex, which would otherwise outlast a reset. */
-.pk-budget[hidden] { display: none; }
 
 /* One agent talks to the tenant and pages the technician; the page leg reads in Teams colors. */
 .pk-transcript li.agent[data-party="page"] {

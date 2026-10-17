@@ -82,7 +82,7 @@ export const config = {
 
   /**
    * Pins the clock the routing policy sees, as an ISO 8601 timestamp, so a
-   * demo or smoke run shows the same open and closed routes every time. Honoured
+   * demo or smoke run shows the same open and closed routes every time. Honored
    * only in simulation mode — a live call always uses the real time.
    */
   demoNow: process.env.DEMO_NOW ?? "",

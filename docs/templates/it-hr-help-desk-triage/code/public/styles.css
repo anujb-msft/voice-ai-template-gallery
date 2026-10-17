@@ -12,9 +12,6 @@
   --on-accent: #15102c;
 }
 
-/* Some kit panels set their own display, which would otherwise beat `hidden`. */
-[hidden] { display: none !important; }
-
 /* Keypad buttons say what they do, so nobody has to remember the menu. */
 .keys button small { color: var(--muted); font-size: 10px; font-weight: 500; margin-left: 2px; }
 

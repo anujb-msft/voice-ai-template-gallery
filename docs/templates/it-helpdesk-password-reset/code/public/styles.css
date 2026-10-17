@@ -1,7 +1,7 @@
 /*
  * Contoso IT help desk — the password-reset console's own styles. The shared
  * look comes from presenter-kit.css, which loads first; this file holds the
- * template's accent colour, the mock reset page (the employee's browser) and
+ * template's accent color, the mock reset page (the employee's browser) and
  * the handset (what the employee's phone heard).
  */
 
@@ -11,14 +11,6 @@
   /* The accent is light, so text on it needs dark ink. */
   --on-accent: #04121f;
 }
-
-/* Elements given a display below still honour the hidden attribute. */
-.handset[hidden],
-.keyed[hidden],
-.portal-status[hidden],
-.spinner[hidden],
-.pane[hidden],
-#portalHint[hidden] { display: none; }
 
 /* ------------------------------------------------------------------ layout */
 

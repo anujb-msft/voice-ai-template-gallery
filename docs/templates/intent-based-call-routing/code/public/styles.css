@@ -1,7 +1,7 @@
 /*
  * Switchboard — the routing console's own styles. The shared look comes from
  * presenter-kit.css, which loads first; this file holds the template's accent
- * colour and a few routing-specific touches.
+ * color and a few routing-specific touches.
  */
 
 :root {

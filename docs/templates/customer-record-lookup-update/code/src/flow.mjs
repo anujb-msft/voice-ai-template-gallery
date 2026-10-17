@@ -389,7 +389,7 @@ export class CustomerRecordFlow {
       if (policy.length) {
         const other = leftOutPhrase(built.refused.filter((r) => r.reason !== "not_allowlisted"));
         const many = labels.length > 1;
-        phrase = `${capitalise(joinEnglish(labels))} ${many ? "aren't" : "isn't"} on the list of things I can change by phone, so nothing was written.${other ? ` ${other}` : ""} ${this.#targetName()} can change ${many ? "them" : "it"}. Want me to put you through with the details?`;
+        phrase = `${capitalize(joinEnglish(labels))} ${many ? "aren't" : "isn't"} on the list of things I can change by phone, so nothing was written.${other ? ` ${other}` : ""} ${this.#targetName()} can change ${many ? "them" : "it"}. Want me to put you through with the details?`;
         call.offeredHandoff = { reason: "refused_by_policy", fields: unique(policy.map((r) => r.field)), labels, request: redact(dictation) };
       } else {
         phrase = `${leftOutPhrase(built.refused) || "I didn't hear a change I can make."} Nothing was written.`;
@@ -1382,7 +1382,7 @@ function extractStage(text, stages) {
   const twoWord = stages.find((s) => s.includes(" ") && wholeWord(lower, s.toLowerCase()));
   if (twoWord) return twoWord;
   const closed = lower.match(/\bclosed\s+(?!won\b|lost\b)([a-z]+)/);
-  if (closed) return `Closed ${capitalise(closed[1])}`;
+  if (closed) return `Closed ${capitalize(closed[1])}`;
   return stages.find((s) => !s.includes(" ") && new RegExp(String.raw`\b(?:to|in|into|at|is|stage|as)\s+(?:the\s+)?${escapeRe(s.toLowerCase())}\b`).test(lower)) ?? null;
 }
 
@@ -1401,7 +1401,7 @@ function extractAmount(text, { loose = false } = {}) {
 
 function extractNextStep(text) {
   const m = String(text).match(/\bnext step\s+(?:is\s+)?(?:to\s+)?:?\s*([^.!?]+)/i);
-  if (m) return capitalise(clip(m[1].trim(), 200));
+  if (m) return capitalize(clip(m[1].trim(), 200));
   return /\bpending signature\b/i.test(text) ? "Pending signature" : null;
 }
 
@@ -1467,7 +1467,7 @@ export function leftOutPhrase(refused = []) {
   const policy = unique(refused.filter((r) => r.reason === "not_allowlisted").map((r) => r.label ?? FIELD_NAMES[r.field] ?? r.field));
   if (policy.length) {
     const many = policy.length > 1;
-    out.push(`${capitalise(joinEnglish(policy))} ${many ? "aren't" : "isn't"} on the list of things I can change by phone, so I left ${many ? "them" : "it"} out.`);
+    out.push(`${capitalize(joinEnglish(policy))} ${many ? "aren't" : "isn't"} on the list of things I can change by phone, so I left ${many ? "them" : "it"} out.`);
   }
   for (const r of refused) {
     if (r.reason === "not_allowlisted") continue;
@@ -1641,7 +1641,7 @@ function unique(items) {
   return [...new Set(items.filter((x) => x != null && x !== ""))];
 }
 
-function capitalise(text) {
+function capitalize(text) {
   const s = String(text ?? "");
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
