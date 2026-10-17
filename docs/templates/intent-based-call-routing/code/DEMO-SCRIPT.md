@@ -17,9 +17,14 @@ if you like, speaks) the caller's line, so your hands are free and your eyes are
 
 ```bash
 npm install
+npm run rehearse                   # every beat, three ways, on its own server (~2 min)
 npm start                          # http://127.0.0.1:8091
 curl -s 127.0.0.1:8091/health      # expect "mode": "simulation"
 ```
+
+`npm run rehearse` plays the script the way the console does and fails if any beat would
+land somewhere this page doesn't say. It runs its own server on port 8291 with the shipped
+settings (not your `.env`), so it can run while your demo server is up.
 
 - [ ] Open **Microsoft Edge** at `http://127.0.0.1:8091/?voices=online`. Edge's online
       voices are the Azure neural voices, so the room *hears* a voice product. Without
@@ -153,7 +158,7 @@ gate. **→** *"Yes."* Sales is closed, and its rule is different: divert to Rec
 Point at the toast: **after hours · meant for Sales**, and the `AfterHours` header on the
 wire. Reception knows why this call landed on them.
 
-## 7 — Silence, then the keypad *(~60s)*
+## 7 — Silence → keypad *(~60s)*
 
 **→** An unknown number calls. **→** Silence: the agent asks one clarifying question.
 **→** Silence again: now it offers the keypad.

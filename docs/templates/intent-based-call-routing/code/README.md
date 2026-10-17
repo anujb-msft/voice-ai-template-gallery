@@ -45,7 +45,8 @@ npm start
 
 The console runs a scripted demo: press **→** (or **Next ▶**) and it plays seven short
 beats, typing — and, if you like, speaking — the caller's lines. [DEMO-SCRIPT.md](DEMO-SCRIPT.md)
-is the running order, with what to say at each step.
+is the running order, with what to say at each step, and `npm run rehearse` plays it end to
+end before you do.
 
 Or drive it yourself: pick a **Caller ID**, click **Answer a call**, and type what the
 caller says. A typed transcript drives *the same state machine* a real call would: the
@@ -66,10 +67,19 @@ Try these:
 Run the tests — they need no Azure and no network:
 
 ```bash
-npm test        # 72 cases across the state machine and the Teams handoff
+npm test          # 74 cases across the state machine and the Teams handoff
 npm run check
-npm run smoke   # boots the server on port 8191 and checks both WebSockets and the demo controls
+npm run smoke     # boots the server on port 8191 and checks both WebSockets and the demo controls
+npm run rehearse  # plays the seven beats on port 8291 as the console does, three ways (~2 min)
 ```
+
+`npm run rehearse` fails if a beat would land anywhere [DEMO-SCRIPT.md](DEMO-SCRIPT.md)
+doesn't say: each beat's outcome and decision trail is pinned in `scripts/rehearse.mjs`. It
+plays the script in order, again after a reset, and last beat first with each beat twice, at
+Auto-play's pace and at full speed, and checks that a live server refuses the demo
+controls. Neither `.env` nor your shell's settings reach its server. Changed a beat on
+purpose? It prints the outcomes it reached, ready to paste over the pins once you've
+checked them against the script.
 
 ### Demo controls
 
@@ -337,7 +347,9 @@ public/           the presenter console
                   at the repository root, then run `node scripts/sync-presenter-kit.js`
 scripts/
   smoke-websockets.mjs  boots the server and checks the WebSocket upgrades
-test/             72 cases, no Azure required
+  rehearse.mjs          plays every beat as the console does; pins what each one shows
+  presenter-kit-rehearsal.mjs  the rehearsal engine, vendored like presenter-kit.*
+test/             74 cases, no Azure required
 ```
 
 `flow.mjs`, `routes.mjs`, `handoff.mjs`, `agent.mjs`, `offline.mjs` and `audit.mjs`
