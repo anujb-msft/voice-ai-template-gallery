@@ -1,7 +1,30 @@
 version: 2
 updates:
   - package-ecosystem: npm
-    directory: /docs/templates/it-helpdesk-password-reset/code
+    directories:
+      - /docs/templates/311-service-assistant/code
+      - /docs/templates/after-hours-sales-lead-capture/code
+      - /docs/templates/appointment-reminder-agent/code
+      - /docs/templates/appointment-scheduling-agent/code
+      - /docs/templates/bid-price-lookup-agent/code
+      - /docs/templates/contextual-on-call-pager/code
+      - /docs/templates/customer-record-lookup-update/code
+      - /docs/templates/general-inquiry-agent/code
+      - /docs/templates/intent-based-call-routing/code
+      - /docs/templates/it-helpdesk-password-reset/code
+      - /docs/templates/it-hr-help-desk-triage/code
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    groups:
+      # Routine minor and patch updates arrive grouped; majors stay separate so
+      # a breaking SDK change is reviewed on its own.
+      minor-and-patch:
+        update-types:
+          - minor
+          - patch
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly

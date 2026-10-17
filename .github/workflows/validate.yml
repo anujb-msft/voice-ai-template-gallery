@@ -27,11 +27,44 @@ jobs:
       - name: Verify generated data is current
         run: git diff --exit-code -- docs/data
 
-  password-reset-demo:
+  # Every sample serves its own copy of the presenter kit, so each template
+  # folder stays self-contained. The canonical copy is scripts/presenter-kit/;
+  # this fails when a vendored copy drifts from it.
+  presenter-kit:
     runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Check the vendored presenter kit copies
+        run: node scripts/sync-presenter-kit.js --check
+
+  sample:
+    name: sample (${{ matrix.template }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        template:
+          - 311-service-assistant
+          - after-hours-sales-lead-capture
+          - appointment-reminder-agent
+          - appointment-scheduling-agent
+          - bid-price-lookup-agent
+          - contextual-on-call-pager
+          - customer-record-lookup-update
+          - general-inquiry-agent
+          - intent-based-call-routing
+          - it-helpdesk-password-reset
+          - it-hr-help-desk-triage
     defaults:
       run:
-        working-directory: docs/templates/it-helpdesk-password-reset/code
+        working-directory: docs/templates/${{ matrix.template }}/code
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -41,47 +74,31 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: docs/templates/it-helpdesk-password-reset/code/package-lock.json
+          cache-dependency-path: docs/templates/${{ matrix.template }}/code/package-lock.json
 
-      - name: Test telephony configuration without dependencies
+      # The state machines, policies and Teams handoffs import nothing outside
+      # the standard library, so their tests run before any dependency is
+      # installed. If this step ever needs npm ci, a transport concern has
+      # leaked into the policy layer.
+      - name: Test the policy layer without dependencies
         run: npm test
 
       - name: Install dependencies
         run: npm ci
 
-      - name: Check server syntax
-        run: npm run check
-
-  call-routing-demo:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: docs/templates/intent-based-call-routing/code
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-
-      # The routing state machine, the route policy and the Teams handoff import
-      # nothing outside the standard library, so the tests that cover them run
-      # before any dependency is installed. If this step ever needs npm ci, a
-      # transport concern has leaked into the policy layer.
-      - name: Test the routing policy without dependencies
+      # A test that needs a native module, such as a SQLite store, skips itself
+      # before the install. This second run includes it.
+      - name: Test again with dependencies installed
         run: npm test
 
-      - name: Install dependencies
-        run: npm ci
-
       - name: Check server syntax
         run: npm run check
 
-      # The unit suite is dependency-free by design, so it cannot see transport
-      # faults. This boots the server and checks both WebSocket endpoints accept
-      # an upgrade — they once did not, and the only symptom was a connected call
+      # The unit suites are dependency-free by design, so they cannot see
+      # transport faults. The smoke test boots the server in simulation mode on
+      # its own port (demo port + 100) and checks that the WebSocket endpoints
+      # accept an upgrade and that the demo controls the console relies on
+      # answer. A WebSocket fault once showed up only as a connected call
       # sitting in silence with "MediaStreamingFailed" in the ACS callback.
-      - name: Smoke test the WebSocket endpoints
+      - name: Smoke test the server
         run: npm run smoke

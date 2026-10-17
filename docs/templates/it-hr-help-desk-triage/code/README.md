@@ -136,3 +136,15 @@ With Azure configured, the console's mode chip says **live · Teams Phone**, the
 ## Security notes before production
 
 Replace fixture adapters with least-privilege directory, HRIS, OTP, and ITSM integrations. Review the sensitive categories and safety text with HR, legal, employee relations, and qualified EAP/clinical partners. Do not persist raw audio. Use managed identity or Key Vault for secrets, validate Teams queue membership, and complete privacy/works-council/records review before handling real employee HR matters.
+
+## Microsoft references
+
+- [Teams Phone extensibility overview](https://learn.microsoft.com/azure/communication-services/concepts/interop/tpe/teams-phone-extensibility-overview)
+- [Answer Teams Phone calls with Call Automation](https://learn.microsoft.com/azure/communication-services/quickstarts/tpe/teams-phone-extensibility-answer-teams-calls)
+- [Teams Phone extensibility IVR and transfer](https://learn.microsoft.com/azure/communication-services/quickstarts/tpe/teams-phone-extensibility-interactive-voice-response)
+- [Voice Live API overview](https://learn.microsoft.com/azure/ai-services/speech-service/voice-live)
+- [How to use the Voice Live API](https://learn.microsoft.com/azure/ai-services/speech-service/voice-live-how-to)
+- [Transfer a participant with Call Automation](https://learn.microsoft.com/azure/communication-services/how-tos/call-automation/actions-for-call-control#transfer-a-participant-in-a-call)
+- [Passing contextual data with custom headers](https://learn.microsoft.com/azure/communication-services/how-tos/call-automation/custom-context)
+- [Bidirectional media streaming](https://learn.microsoft.com/azure/communication-services/how-tos/call-automation/audio-streaming-quickstart)
+- [Plan Teams auto attendants and call queues](https://learn.microsoft.com/microsoftteams/plan-auto-attendant-call-queue)

@@ -34,8 +34,11 @@ npm install
 npm start          # http://127.0.0.1:8091
 ```
 
+Open <http://127.0.0.1:8091> and press **→** to run the scripted demo one step at a time;
+[`code/DEMO-SCRIPT.md`](./code/DEMO-SCRIPT.md) is the running order and narration.
+
 ```bash
-npm test           # 63 cases, no Azure and no network required
+npm test           # no Azure and no network required
 ```
 
 ## Common flows to test
