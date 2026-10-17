@@ -113,7 +113,9 @@ you can see both without waiting.
 settings. The console drives each simulated call through the `/api/simulate` routes.
 The scripted beats live in `code/public/beats.js`, and `code/DEMO-SCRIPT.md` is the
 presenter's running order for them
-([operator console](ARCHITECTURE.md#operator-console)).
+([operator console](ARCHITECTURE.md#operator-console)). `npm run rehearse` plays every
+beat the way the console does, on its own server, and fails if one would land somewhere
+the script doesn't say ([testing](ARCHITECTURE.md#5-testing)).
 
 ## Adding a template
 
@@ -137,8 +139,9 @@ Open an issue titled `Template proposal: <Name>` that gives:
 - **Problem**: what the caller and the business need, in two or three sentences.
 - **Buyer** and **success measures**.
 - **Systems** the agent reads or changes.
-- **Ports**: the next free demo port from 8101 up, and a smoke-test port of the demo
-  port plus 100. Neither may appear in the [Ports](ARCHITECTURE.md#ports) table.
+- **Ports**: the next free demo port from 8101 up, a smoke-test port of the demo port
+  plus 100, and a rehearsal port of the demo port plus 200. None may appear in the
+  [Ports](ARCHITECTURE.md#ports) table.
 
 Wait for a maintainer to confirm the id and port before you start, so that two
 contributors don't claim the same ones.
@@ -164,6 +167,7 @@ comes along. Then replace the reference's identity everywhere it appears:
 | `intent-based call routing agent` | A description of your agent | `code/DEMO-SCRIPT.md` |
 | `8091` | Your demo port | `README.md`, `SPEC.md`, `code/README.md`, `code/DEMO-SCRIPT.md`, the `tunnel` script in `code/package.json`, `code/.env.example`, `code/src/config.mjs` |
 | `8191` | Your smoke port | `code/README.md`, `code/scripts/smoke-websockets.mjs` |
+| `8291` | Your rehearsal port | `code/README.md`, `code/DEMO-SCRIPT.md`, `code/scripts/rehearse.mjs` |
 
 Also:
 
@@ -176,10 +180,15 @@ Also:
 - Rewrite, rather than rename, everything that describes call routing: the
   `Call routing` tag, the console title in `code/public/index.html`, the routing
   vocabulary in `code/src/`, `code/test/`, and `code/config/`, the console panels in
-  `code/public/app.js`, the beats in `code/public/beats.js`, and the video and slide
-  drafts.
-- Leave `code/public/presenter-kit.js` and `presenter-kit.css` alone. They're vendored
-  copies of `scripts/presenter-kit/`, and CI fails if they drift
+  `code/public/app.js`, the beats in `code/public/beats.js`, the outcome projection in
+  `code/scripts/rehearse.mjs`, and the video and slide drafts.
+- Empty the pins in `code/scripts/rehearse.mjs` (`const EXPECTED = {};` and
+  `const EXPECTED_STATS = null;`), because they're the reference's outcomes. Once your
+  beats work, `npm run rehearse` prints the outcomes they reach. Check each against
+  `code/DEMO-SCRIPT.md`, then paste them in.
+- Leave `code/public/presenter-kit.js`, `presenter-kit.css`, and
+  `code/scripts/presenter-kit-rehearsal.mjs` alone. They're vendored copies of
+  `scripts/presenter-kit/`, and CI fails if they drift
   ([operator console](ARCHITECTURE.md#operator-console)).
 - Leave `index.html` alone apart from `data-template-id`. The page renders entirely from
   the manifest ([template pages](ARCHITECTURE.md#template-pages)).
@@ -187,7 +196,7 @@ Also:
 When you are done, this prints nothing:
 
 ```bash
-grep -rniI -e 8091 -e 8191 -e intent-based docs/templates/$ID
+grep -rniI -e 8091 -e 8191 -e 8291 -e intent-based docs/templates/$ID
 ```
 
 `grep -rniI routing docs/templates/$ID` then finds the routing vocabulary that is left
@@ -254,13 +263,15 @@ Adapt `code/` to your scenario, keeping the reference's architecture
   ([data privacy and security](ARCHITECTURE.md#data-privacy-and-security)).
 - Document every environment variable in `code/.env.example` and in the specification's
   "Demo surface and configuration" section.
-- Cover the policy core with unit tests, and point the smoke test at your smoke port
-  ([testing](ARCHITECTURE.md#5-testing)).
+- Cover the policy core with unit tests, point the smoke test at your smoke port, and
+  point the rehearsal at your rehearsal port ([testing](ARCHITECTURE.md#5-testing)).
 - Make the console a demo, not just a test harness
   ([operator console](ARCHITECTURE.md#operator-console)). Write the scenario as beats in
   `code/public/beats.js` that each run on their own, explain every decision in plain
   English, show each handoff as the Teams toast your handoff builder produces, and keep
-  `code/DEMO-SCRIPT.md` in step with the beats.
+  `code/DEMO-SCRIPT.md` in step with the beats. Pin what each beat leaves on screen in
+  `code/scripts/rehearse.mjs`, so `npm run rehearse` keeps the demo and its script in
+  step.
 - Explain any new dependency in the pull request description. The reference's six
   dependencies cover most scenarios.
 - Update `README.md`, `code/README.md`, `code/DEMO-SCRIPT.md`, the video and slide
@@ -348,9 +359,9 @@ alphabetical order:
 ```
 
 Each entry runs `npm test` before `npm ci`, then `npm ci`, `npm test` again,
-`npm run check`, and `npm run smoke`, in your `code/` folder. A test that needs a native
-module, such as a SQLite store, must skip itself when the module isn't installed, so
-it runs only on the second pass.
+`npm run check`, `npm run smoke`, and `npm run rehearse`, in your `code/` folder. A test
+that needs a native module, such as a SQLite store, must skip itself when the module
+isn't installed, so it runs only on the second pass.
 
 Then add your `code/` folder to the `directories` list of the `npm` entry in
 `.github/dependabot.yml`:
@@ -382,14 +393,16 @@ npm test
 npm ci
 npm run check
 npm run smoke
+npm run rehearse
 ```
 
 On Windows, run these in WSL: `npm run check` is a POSIX shell loop, and npm runs
 scripts with `cmd.exe` there.
 
 Run `node scripts/sync-presenter-kit.js --check` from the repository root. Then start
-your sample with `npm start`, and run every beat of the demo in the console: in order,
-out of order, and again after **Reset demo**.
+your sample with `npm start`, and present every beat in the console the way the room
+will see it. `npm run rehearse` proves where each beat lands, in any order and after
+**Reset demo**, but not that the room can follow it.
 
 Preview the gallery, and check your template's card, its **Build this agent** dialog,
 and its page three ways: at full width, at 600 px wide, and with reduced motion. To
@@ -519,12 +532,13 @@ Copy this list into the pull request description, and check each item that appli
 - [ ] The change is focused, and the description links its issue.
 - [ ] I ran `node scripts/generate-template-index.js` and committed any changes in
       `docs/data/`.
-- [ ] `npm test`, `npm run check`, and `npm run smoke` pass in every `code/` folder I
-      changed.
-- [ ] Every beat in `code/public/beats.js` runs cleanly in simulation mode, in any
-      order, and `code/DEMO-SCRIPT.md` matches the beats.
-- [ ] I changed the presenter kit only in `scripts/presenter-kit/`, then ran
-      `node scripts/sync-presenter-kit.js`.
+- [ ] `npm test`, `npm run check`, `npm run smoke`, and `npm run rehearse` pass in every
+      `code/` folder I changed.
+- [ ] Every beat in `code/public/beats.js` runs cleanly in the console, and
+      `code/DEMO-SCRIPT.md` matches the beats. I checked every outcome I re-pinned in
+      `code/scripts/rehearse.mjs` against `code/DEMO-SCRIPT.md`.
+- [ ] I changed the presenter kit and its rehearsal engine only in
+      `scripts/presenter-kit/`, then ran `node scripts/sync-presenter-kit.js`.
 - [ ] The description explains any new dependency.
 - [ ] For a new template: the proposal issue confirmed the id and port, and I added a
       Ports row, a CI matrix entry, and a Dependabot directory.
@@ -569,10 +583,14 @@ repository, in addition to the rest of this guide.
    `it-helpdesk-password-reset`, or any pattern listed under
    [known deviations](ARCHITECTURE.md#7-known-deviations).
 3. Keep the policy core free of npm imports, and keep simulation mode working with no
-   Azure settings. `npm test`, `npm run check`, and `npm run smoke` must pass.
+   Azure settings. `npm test`, `npm run check`, `npm run smoke`, and `npm run rehearse`
+   must pass. When the rehearsal reports a changed outcome, check each printed outcome
+   against `code/DEMO-SCRIPT.md` before you paste it over the pins. If they disagree,
+   fix the demo or the script, never only the pins.
 4. Never edit `docs/data/` by hand. Run `node scripts/generate-template-index.js`, and
-   commit its output. Never edit a template's `code/public/presenter-kit.*` either:
-   change `scripts/presenter-kit/`, then run `node scripts/sync-presenter-kit.js`.
+   commit its output. Never edit a template's `code/public/presenter-kit.*` or
+   `code/scripts/presenter-kit-rehearsal.mjs` either: change `scripts/presenter-kit/`,
+   then run `node scripts/sync-presenter-kit.js`.
 5. Write gallery site code as ES5 (`var` and `function`, no build step), and pass every
    catalogue value you place in HTML through `escapeHtml()`.
 6. Use fictional data only. Never commit credentials, keys, connection strings, tenant

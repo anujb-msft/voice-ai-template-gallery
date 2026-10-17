@@ -27,9 +27,10 @@ jobs:
       - name: Verify generated data is current
         run: git diff --exit-code -- docs/data
 
-  # Every sample serves its own copy of the presenter kit, so each template
-  # folder stays self-contained. The canonical copy is scripts/presenter-kit/;
-  # this fails when a vendored copy drifts from it.
+  # Every sample carries its own copy of the presenter kit (the console's JS
+  # and CSS, and the rehearsal engine behind `npm run rehearse`), so each
+  # template folder stays self-contained. The canonical copy is
+  # scripts/presenter-kit/; this fails when a vendored copy drifts from it.
   presenter-kit:
     runs-on: ubuntu-latest
     steps:
@@ -102,3 +103,12 @@ jobs:
       # sitting in silence with "MediaStreamingFailed" in the ACS callback.
       - name: Smoke test the server
         run: npm run smoke
+
+      # The rehearsal plays the CVP demo script (public/beats.js) the way the
+      # presenter console does, against a server on demo port + 200 with the
+      # shipped settings. It fails when a beat would land somewhere other than
+      # its pinned outcome (scripts/rehearse.mjs), when DEMO-SCRIPT.md drifts
+      # from the beats, when a reset or a different pace changes what the room
+      # sees, or when a live server would accept the demo controls.
+      - name: Rehearse the demo script
+        run: npm run rehearse

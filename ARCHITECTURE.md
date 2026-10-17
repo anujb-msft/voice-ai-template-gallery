@@ -218,7 +218,10 @@ docs/templates/<id>/
     public/              Operator console
       beats.js           The scripted demo, beat by beat
       presenter-kit.*    Vendored from scripts/presenter-kit/; never edit here
-    scripts/             Smoke test and optional provisioning helpers
+    scripts/             Smoke test, rehearsal, and optional provisioning helpers
+      rehearse.mjs       Plays the beats and checks what each one leaves on screen
+      presenter-kit-rehearsal.mjs
+                         Vendored from scripts/presenter-kit/; never edit here
     src/                 Server, policy core, and adapters
       voice/             Azure Communication Services and Voice Live adapters
     test/                node:test suites
@@ -327,8 +330,9 @@ meet.
 | `start` | `node src/server.mjs` | Yes |
 | `dev` | `node --watch src/server.mjs` | Yes |
 | `test` | `node --test test/*.test.mjs` | No |
-| `check` | `node --check` on every `src/*.mjs` and `src/voice/*.mjs` file | No |
+| `check` | `node --check` on every `src/*.mjs`, `src/voice/*.mjs`, `scripts/*.mjs`, and `public/*.js` file | No |
 | `smoke` | `node scripts/smoke-websockets.mjs` | Yes |
+| `rehearse` | `node scripts/rehearse.mjs` | Yes |
 | `tunnel` | `devtunnel host -p <port> --allow-anonymous` | No, but needs the Dev Tunnels CLI |
 
 ### Layering
@@ -573,9 +577,12 @@ The shared building blocks live in the presenter kit:
 - **The canonical copy** is `scripts/presenter-kit/presenter-kit.js` and
   `presenter-kit.css`. These hold hub plumbing, a race-free call session, the demo
   director, the room voice, and the shared visuals: mode chip, demo clock, stack strip,
-  gauge, checklist, countdown, decision trail, Teams toast, and metrics.
-- **Vendored copies.** Each template serves its own copy from `code/public/`, so a
-  downloaded template stays self-contained.
+  gauge, checklist, countdown, decision trail, Teams toast, and metrics. Beside them,
+  `presenter-kit-rehearsal.mjs` is the engine behind every template's
+  `npm run rehearse` ([rehearsals](#5-testing)).
+- **Vendored copies.** Each template serves its own copy of the kit from `code/public/`
+  and keeps its own copy of the rehearsal engine in `code/scripts/`, so a downloaded
+  template stays self-contained.
 - **Editing it.** Change the kit only in `scripts/presenter-kit/`, then run
   `node scripts/sync-presenter-kit.js`. CI runs it with `--check` and fails when a copy
   drifts.
@@ -590,7 +597,7 @@ The shared building blocks live in the presenter kit:
 format:
 
 - the length and the beats;
-- a setup checklist;
+- a setup checklist that starts with `npm run rehearse`;
 - the mode chip;
 - the key table;
 - narration per beat;
@@ -619,22 +626,22 @@ format:
 
 Each sample has its own default port, so several can run side by side. A new template
 claims the next free port from 8101 up in its proposal issue and adds a row here in its
-pull request. Its smoke test uses the demo port plus 100. Pick ports that don't appear
-anywhere in this table.
+pull request. Its smoke test uses the demo port plus 100, and its rehearsal the demo port
+plus 200. Pick ports that don't appear anywhere in this table.
 
-| Template | Demo port | Smoke test port |
-|---|---|---|
-| `it-helpdesk-password-reset` | 8090 | 8190 |
-| `intent-based-call-routing` | 8091 | 8191 |
-| `general-inquiry-agent` | 8092 | 8192 |
-| `after-hours-sales-lead-capture` | 8093 | 8193 |
-| `bid-price-lookup-agent` | 8094 | 8194 |
-| `contextual-on-call-pager` | 8095 | 8195 |
-| `311-service-assistant` | 8096 | 8196 |
-| `customer-record-lookup-update` | 8097 | 8197 |
-| `it-hr-help-desk-triage` | 8098 | 8198 |
-| `appointment-reminder-agent` | 8099 | 8199 |
-| `appointment-scheduling-agent` | 8100 | 8200 |
+| Template | Demo port | Smoke test port | Rehearsal port |
+|---|---|---|---|
+| `it-helpdesk-password-reset` | 8090 | 8190 | 8290 |
+| `intent-based-call-routing` | 8091 | 8191 | 8291 |
+| `general-inquiry-agent` | 8092 | 8192 | 8292 |
+| `after-hours-sales-lead-capture` | 8093 | 8193 | 8293 |
+| `bid-price-lookup-agent` | 8094 | 8194 | 8294 |
+| `contextual-on-call-pager` | 8095 | 8195 | 8295 |
+| `311-service-assistant` | 8096 | 8196 | 8296 |
+| `customer-record-lookup-update` | 8097 | 8197 | 8297 |
+| `it-hr-help-desk-triage` | 8098 | 8198 | 8298 |
+| `appointment-reminder-agent` | 8099 | 8199 | 8299 |
+| `appointment-scheduling-agent` | 8100 | 8200 | 8300 |
 
 ## 5. Testing
 
@@ -643,9 +650,10 @@ Run the cheapest checks first:
 | Tier | Command | Needs `npm ci` | Covers |
 |---|---|---|---|
 | Unit | `npm test` | No | State machine, policy, handoff payloads, and configuration helpers, with fakes for every adapter |
-| Syntax | `npm run check` | No | Every server module parses |
+| Syntax | `npm run check` | No | Every server module and console script parses |
 | Smoke | `npm run smoke` | Yes | The server boots, `/health` answers, every WebSocket path accepts an upgrade, and the demo controls answer |
-| Manual | `code/DEMO-SCRIPT.md` | Yes | Every beat of the scripted demo in simulation mode, then a real call |
+| Rehearsal | `npm run rehearse` | Yes | Every beat of the scripted demo, played as the console plays it, leaves on screen what `code/DEMO-SCRIPT.md` says, in any order and at any pace |
+| Manual | `code/DEMO-SCRIPT.md` | Yes | What the room sees and hears on the presenter's machine, then a real call |
 
 `npm run check` is a POSIX shell loop, and npm on Windows runs scripts with `cmd.exe`.
 On Windows, run it in WSL, or set npm's `script-shell` to a POSIX shell such as Git
@@ -671,6 +679,32 @@ Smoke tests:
   or failed.
 - MUST NOT need an already running server or any network access beyond localhost.
 
+Rehearsals:
+
+- `scripts/rehearse.mjs` configures the vendored engine,
+  `scripts/presenter-kit-rehearsal.mjs`. It mirrors the parts of `public/app.js` that
+  are the template's own (the start body, what the console waits for before the next
+  call, and its actions) and projects what each beat leaves on screen: final state, the
+  decisions the console renders, and the decision trail, with no ids or times. It pins
+  those outcomes, and the metrics, as `EXPECTED` and `EXPECTED_STATS`.
+- The engine starts the server on the demo port plus 200 in a sealed environment: only
+  operating-system variables such as `PATH` and the runner's own settings reach it, and
+  `.env` isn't loaded. So it rehearses the shipped settings whatever the developer's
+  `.env` or shell holds. The runner adds only what a rehearsal needs, such as keeping
+  stores in memory.
+- It checks that `code/DEMO-SCRIPT.md` lists the same beats in the same order, that the
+  console's files load, and that the demo clock is adjustable. It then plays every beat
+  over HTTP and the hub, with the console's waits: in order at Auto-play's pace, then
+  after **Reset demo** at a presenter's pace, then last beat first with each beat
+  twice at full speed. Each run must reach the pinned outcomes, and a final reset must
+  restore the starting metrics.
+- Booted again with fictional live settings (`.invalid` hosts), the server must report
+  live and refuse every demo control with 403.
+- When a beat changes on purpose, the failure prints the outcomes it reached, ready to
+  paste over the pins once each has been checked against `code/DEMO-SCRIPT.md`.
+- MUST NOT need an already running server or any network access beyond localhost. It
+  isn't part of `npm test`, because it needs the installed dependencies.
+
 ## 6. Continuous integration
 
 `.github/workflows/validate.yml` runs on every pull request and on pushes to `main`,
@@ -679,11 +713,13 @@ with read-only `contents` permission:
 - `catalogue` runs the generator, then `git diff --exit-code -- docs/data` to prove the
   committed catalogue is current.
 - `presenter-kit` runs `node scripts/sync-presenter-kit.js --check`, which fails when a
-  template's vendored copy of the kit differs from `scripts/presenter-kit/`.
+  template's vendored copy of the kit or the rehearsal engine differs from
+  `scripts/presenter-kit/`.
 - `sample` is a matrix with one entry per template. Each entry runs `npm test` before
   `npm ci`, which proves the policy core needs no dependencies, then `npm ci`,
-  `npm test` again, `npm run check`, and `npm run smoke`. A test that needs a native
-  module, such as a SQLite store, skips itself on the first run and runs on the second.
+  `npm test` again, `npm run check`, `npm run smoke`, and `npm run rehearse`. A test
+  that needs a native module, such as a SQLite store, skips itself on the first run and
+  runs on the second.
 
 A new template MUST add its id to the `sample` matrix and its `code/` directory to the
 `npm` entry's `directories` list in `.github/dependabot.yml`.
