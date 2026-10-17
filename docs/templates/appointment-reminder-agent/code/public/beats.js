@@ -42,7 +42,7 @@ export function createBeats({ setClock, restore }) {
           label: "Place the reminder call to Jordan R. (A-20418)",
           cue: "Before it dials, the server checks consent, calling hours and the reminder window on the demo clock: 10:00 AM, two days before the visit.",
         },
-        says("Jordan", "Yes, this is Jordan.", "“This is Jordan” is a claim, not proof. The agent asks for a date of birth and still hasn't said why it's calling."),
+        says("Jordan", "Yes, this is Jordan.", "“This is Jordan” is a claim, not proof. The agent asks for a date of birth and still hasn't shared any appointment details."),
         says("Jordan", "March 12th, 1984.", "The server checks the date of birth against the record. Only a match unlocks the appointment details: the minimum necessary."),
         says("Jordan", "Yes, I'll be there.", "Jordan confirms. The server marks A-20418 confirmed: watch the schedule panel."),
       ],
@@ -102,7 +102,7 @@ export function createBeats({ setClock, restore }) {
           language: "en",
           outcome: "answered",
           label: "Place the reminder call to Camila L. (A-20424)",
-          cue: "The agent asks for Camila by first name, and that's all it says.",
+          cue: "The agent asks for Camila by first name and shares no appointment details.",
         },
         says(
           "Camila's sister",

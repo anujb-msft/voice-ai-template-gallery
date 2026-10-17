@@ -578,7 +578,7 @@ function decision(snap) {
           }
         : {
             headline: "Checking identity",
-            why: `They say they're ${first}. A claim isn't proof, so the agent asks for a date of birth before it says why it's calling.`,
+            why: `They say they're ${first}. A claim isn't proof, so the agent asks for a date of birth before it shares any appointment details.`,
             verdict: "identity first",
             tone: "warn",
           };

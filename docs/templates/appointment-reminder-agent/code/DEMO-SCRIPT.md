@@ -21,9 +21,14 @@ free and your eyes are on the room.
 
 ```bash
 npm install
+npm run rehearse                   # every beat, three ways, on its own server (~1 min)
 npm start                          # http://127.0.0.1:8099
 curl -s 127.0.0.1:8099/health      # expect "mode": "simulation"
 ```
+
+`npm run rehearse` plays the script the way the console does and fails if any beat would
+land somewhere this page doesn't say. It runs its own server on port 8299 with the shipped
+settings (not your `.env`), so it can run while your demo server is up.
 
 - [ ] Open **Microsoft Edge** at `http://127.0.0.1:8099/?voices=online`. Edge's online
       voices are the Azure neural voices, so the room *hears* a voice product. Without
@@ -96,7 +101,7 @@ it's Contoso Health's automated assistant with an appointment reminder and asks 
 by first name: no department, no provider, no time.
 
 **→** *"Yes, this is Jordan."* "This is Jordan" is a claim, not proof. The agent asks for a
-date of birth and still hasn't said why it's calling.
+date of birth and still hasn't shared any appointment details.
 
 **→** *"March 12th, 1984."* The server checks the date of birth against the record. Only a
 match unlocks the appointment details: the minimum necessary. The agent reads them out:
@@ -181,7 +186,7 @@ The narration reads: *"Family members answer phones. A reminder must not tell th
 kind of appointment Camila has, or when."*
 
 **→** **Place the reminder call to Camila L. (A-20424).** The agent asks for Camila by first
-name, and that's all it says.
+name and shares no appointment details.
 
 **→** *"No, this is her sister."* Not the patient, so the server allows a callback request
 only: no department, no provider, no time. The agent asks the sister to have Camila call

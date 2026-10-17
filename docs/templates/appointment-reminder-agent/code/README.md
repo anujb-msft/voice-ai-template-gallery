@@ -62,7 +62,8 @@ npm start
 The console runs a scripted demo: press **→** (or **Next ▶**) and it plays six short
 beats, placing the reminder call and typing the patient's lines. Switch **Voice off** to
 **Speak agent + caller** to hear both sides in the browser's own speech.
-[DEMO-SCRIPT.md](DEMO-SCRIPT.md) is the running order, with what to say at each step.
+[DEMO-SCRIPT.md](DEMO-SCRIPT.md) is the running order, with what to say at each step, and
+`npm run rehearse` plays it end to end before you do.
 
 Or drive it yourself: pick a **Patient to remind**, choose **Who picks up** and a
 **Language**, press **Place the call**, and type what the patient says. The on-screen
@@ -90,15 +91,24 @@ appointment is not called again.
 Run the tests — they need no Azure and no network:
 
 ```bash
-npm test        # 52 cases: the flow, the schedule store, the campaign and handoff, the audit, the offline harness
-npm run check   # syntax-checks the source, scripts, tests and console
-npm run smoke   # boots its own simulation server on port 8199 and checks both WebSockets and the demo controls
-npm run offline # one reminder call in the terminal, on an in-memory schedule: Jordan confirms A-20418
+npm test          # 52 cases: the flow, the schedule store, the campaign and handoff, the audit, the offline harness
+npm run check     # syntax-checks the source, scripts, tests and console
+npm run smoke     # boots its own simulation server on port 8199 and checks both WebSockets and the demo controls
+npm run rehearse  # plays the six beats on port 8299 as the console does, three ways (~1 min)
+npm run offline   # one reminder call in the terminal, on an in-memory schedule: Jordan confirms A-20418
 ```
 
 `node src/offline.mjs --transcript cancel` (or `reschedule`, `wrong-party`, `voicemail`,
 `optout`) runs the other scripted calls the same way, and `--at <ISO 8601>` pins the
 clock.
+
+`npm run rehearse` fails if a beat would land anywhere [DEMO-SCRIPT.md](DEMO-SCRIPT.md)
+doesn't say: each beat's outcome and decision trail is pinned in `scripts/rehearse.mjs`, and
+so are the metrics it ends on. It plays the script in order, again after a reset, and last
+beat first with each beat twice, at Auto-play's pace and at full speed, and checks that a
+live server refuses the demo controls. Neither `.env` nor your shell's settings reach its
+server. Changed a beat on purpose? It prints the outcomes it reached, ready to paste over the
+pins once you've checked them against the script.
 
 ### Demo controls
 
@@ -395,6 +405,8 @@ public/               the presenter console
                       at the repository root, then run `node scripts/sync-presenter-kit.js`
 scripts/
   smoke-websockets.mjs       boots a simulation server and checks the WebSockets and demo controls
+  rehearse.mjs               plays every beat as the console does; pins what each one shows
+  presenter-kit-rehearsal.mjs  the rehearsal engine, vendored like presenter-kit.*
   provision-teams-phone.ps1  notes only: points back to this README
 test/                 52 cases, no Azure required
 ```
