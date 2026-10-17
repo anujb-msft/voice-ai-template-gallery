@@ -580,6 +580,26 @@ Open by saying you are ${this.routes.organization}'s automated assistant, then a
     }
   }
 
+  /**
+   * ACS accepted the transfer request, then reported CallTransferFailed: the
+   * queue never picked up. The caller is still on the line with the agent, so
+   * reopen the call and climb the same ladder a refused request does. The
+   * attempt count bounds it, so a target that always fails can't loop.
+   */
+  async transferFailed(callId, message = "transfer failed") {
+    const call = this.get(callId);
+    if (!call || call.simulated || call.state !== STATES.TRANSFERRED || !call.destination) {
+      return { ok: false, reason: "nothing_to_recover" };
+    }
+    call.outcome = null;
+    call.endedAt = null;
+    call.dispatched = false;
+    this.audit.updateCall(call.id, { outcome: null, endedAt: null, durationMs: null });
+    this.#setState(call, STATES.TRANSFERRING);
+    this.#event(call, "system", "transfer_failed", message);
+    return this.#handleTransferFailure(call, new Error(message));
+  }
+
   async #handleTransferFailure(call, error) {
     const isFallback = call.destination.routeId === this.routes.fallbackRouteId;
 

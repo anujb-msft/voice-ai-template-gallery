@@ -219,13 +219,15 @@ app.post(
           log("[call] transfer accepted", callId);
           break;
 
-        case "CallTransferFailed":
-          // The flow already owns the retry ladder, so re-enter it rather than
-          // improvising a second recovery path here.
-          log("[call] transfer failed", event.data?.resultInformation?.message);
-          flow.get(callId) && (flow.get(callId).dispatched = false);
-          await flow.dispatchTransfer(callId).catch((e) => log("[call] recovery failed", e.message));
+        case "CallTransferFailed": {
+          // ACS accepted the transfer, then the queue never picked up. The flow
+          // owns the retry ladder and its attempt count, so re-enter it rather
+          // than retrying here, which would loop on a target that always fails.
+          const message = event.data?.resultInformation?.message ?? "transfer failed";
+          log("[call] transfer failed", message);
+          await flow.transferFailed(callId, message).catch((e) => log("[call] recovery failed", e.message));
           break;
+        }
 
         case "CallDisconnected":
           flow.endCall(callId, "caller_hung_up");

@@ -515,6 +515,42 @@ test("a transfer that succeeds on the retry still completes normally", async () 
   assert.equal(snap.destination.routeId, "support");
 });
 
+test("a transfer ACS accepts and then reports failed climbs the same bounded ladder", async () => {
+  const attempts = [];
+  const { flow, audit } = makeFlow({ transfer: async (_call, destination) => attempts.push(destination.routeId) });
+  const id = answer(flow);
+  flow.proposeRoute(id, confident("sales"));
+  flow.confirmRoute(id, "sales");
+  await flow.settled(id);
+  assert.equal(flow.get(id).state, STATES.TRANSFERRED);
+
+  // However many CallTransferFailed events arrive, the ladder ends.
+  for (let i = 0; i < 5; i++) await flow.transferFailed(id, "no answer");
+
+  assert.deepEqual(attempts, ["sales", "sales", "reception"]);
+  assert.equal(flow.get(id).state, STATES.FALLBACK);
+  assert.equal(flow.get(id).outcome, null);
+  assert.equal(audit.eventsFor(id).filter((e) => e.kind === "transfer_failed").length, 3);
+});
+
+test("a stray transfer failure cannot reopen a simulated or ended call", async () => {
+  const { flow } = makeFlow({ transfer: async () => {} });
+  const { id: simulated } = flow.create({ fromPhone: UNKNOWN_CALLER, simulated: true });
+  flow.answered(simulated);
+  flow.proposeRoute(simulated, confident("billing"));
+  flow.confirmRoute(simulated, "billing");
+  await flow.settled(simulated);
+  assert.equal((await flow.transferFailed(simulated, "late")).ok, false);
+  assert.equal(flow.get(simulated).state, STATES.TRANSFERRED);
+
+  const ended = answer(flow);
+  flow.endCall(ended, "caller_hung_up");
+  assert.equal((await flow.transferFailed(ended, "late")).ok, false);
+  assert.equal(flow.get(ended).state, STATES.ENDED);
+
+  assert.equal((await flow.transferFailed("no-such-call")).ok, false);
+});
+
 test("the real transfer receives the destination target and the handoff context", async () => {
   const seen = [];
   const { flow } = makeFlow({ transfer: async (call, destination) => seen.push({ call, destination }) });
