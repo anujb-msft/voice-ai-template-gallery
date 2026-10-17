@@ -10,6 +10,24 @@ export function clip(value, limit = TOPIC_LIMIT) {
   return text.length <= limit ? text : `${text.slice(0, limit - 1).trimEnd()}…`;
 }
 
+const OPENERS = /^(?:(?:um+|uh+|er+|so|well|oh|hi|hey|hello|okay|ok|yes|yeah)\b[\s,.!-]*|(?:i(?:\s+(?:want|need|would like)\s+to|'d like to|\s+wanna)|can you|could you|please)\s+)+/i;
+
+/**
+ * A caller's words as a Teams toast topic: filler and "I want to" dropped,
+ * trailing punctuation removed, cut on a word boundary, first letter capped.
+ * "I want to report a pothole on Elm Street." → "Report a pothole on Elm Street"
+ */
+export function topicFrom(text, limit = TOPIC_LIMIT) {
+  let topic = String(text ?? "").replace(/\s+/g, " ").trim().replace(OPENERS, "").replace(/[\s.,;:!?…-]+$/, "");
+  if (!topic) return null;
+  if (topic.length > limit) {
+    const cut = topic.slice(0, limit - 1);
+    const space = cut.lastIndexOf(" ");
+    topic = `${(space > limit / 2 ? cut.slice(0, space) : cut).replace(/[\s,;:-]+$/, "")}…`;
+  }
+  return topic.charAt(0).toUpperCase() + topic.slice(1);
+}
+
 export function teamsIdentifier(target) {
   if (!target?.objectId) throw new Error("handoff target has no objectId");
   if (target.type === "user") return { microsoftTeamsUserId: target.objectId };

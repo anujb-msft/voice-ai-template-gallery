@@ -53,7 +53,8 @@ export function assertCallConfig(cfg = config) {
 }
 
 export function readiness(contentIndex, hours, cfg = config) {
-  const placeholder = /^0{8}-0{4}-0{4}-0{4}-0{11}\d$/;
+  // hours.json ships 00000000-0000-0000-0000-000000000092; a real Entra object ID never starts with four zero groups.
+  const placeholder = /^0{8}-0{4}-0{4}-0{4}-\d{12}$/;
   const queueId = hours?.queue?.objectId ?? "";
   return {
     voiceLive: {

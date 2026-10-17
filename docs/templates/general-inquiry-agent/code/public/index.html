@@ -1,67 +1,105 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>General Inquiry Agent Demo</title>
-  <link rel="stylesheet" href="/styles.css" />
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>City of Contoso — Information line</title>
+<link rel="stylesheet" href="/presenter-kit.css" />
+<link rel="stylesheet" href="/styles.css" />
 </head>
 <body>
-  <header>
-    <div>
-      <p class="eyebrow">Demo surface · City of Contoso</p>
-      <h1>General Inquiry Agent</h1>
+
+<header class="top">
+  <div class="brand"><span class="logo"></span> <strong>City of Contoso</strong> <span class="pill">Information line</span></div>
+  <div class="top-right">
+    <span id="clock" hidden></span>
+    <select id="voice" aria-label="Room voice"></select>
+    <span id="mode">checking…</span>
+    <button class="ghost" id="reset" type="button" title="Clear the simulated calls and metrics, and restore the starting clock">Reset demo</button>
+  </div>
+</header>
+
+<nav id="stack"></nav>
+<section id="director" aria-label="Demo script"></section>
+
+<main class="grid">
+
+  <!-- ------------------------------------------------------------ the call -->
+  <section class="card call">
+    <div class="card-head">
+      <h2>The call</h2>
+      <span id="stateChip">no call</span>
     </div>
-    <span id="mode" class="pill">loading</span>
-  </header>
 
-  <main class="grid">
-    <section class="panel controls">
-      <h2>Offline typed call</h2>
-      <p>This console drives the same state machine and retrieval tools as a live call. Real transfers are simulated unless Azure config is present.</p>
-      <button id="newCall">Start call</button>
-      <form id="sayForm">
-        <input id="sayInput" placeholder="Type caller utterance…" disabled />
-        <button id="sayBtn" disabled>Send</button>
-      </form>
-      <div class="buttons">
-        <button id="silence" disabled>No input</button>
-        <button data-digit="0" id="dtmf0" disabled>DTMF 0</button>
-        <button id="hangup" disabled>Hang up</button>
+    <div class="caller-row">
+      <label for="callerSelect">Caller ID</label>
+      <select id="callerSelect"></select>
+      <button class="primary" id="newCall" type="button">Answer a call</button>
+    </div>
+
+    <div id="budget" hidden title="The call's time budget. When it runs out, the caller goes to a person."></div>
+
+    <ol id="transcript"></ol>
+
+    <form class="say" id="sayForm" autocomplete="off">
+      <input id="sayInput" type="text" placeholder="What does the caller say?" disabled />
+      <button class="primary" type="submit" id="sayBtn" disabled>Say</button>
+    </form>
+
+    <div class="controls">
+      <span class="controls-label">Keypad</span>
+      <div class="keys" id="keys">
+        <button type="button" data-digit="0" title="Press 0 for a person" disabled>0 <small>a person</small></button>
       </div>
-      <div class="facts">
-        <div><b id="stateChip">idle</b><span>State</span></div>
-        <div><b id="topic">—</b><span>Topic</span></div>
-        <div><b id="answers">0</b><span>Citations</span></div>
-      </div>
-    </section>
+      <button class="ghost" id="silence" type="button" disabled>Silence</button>
+      <button class="ghost danger" id="hangup" type="button" disabled>Hang up</button>
+    </div>
+  </section>
 
-    <section class="panel">
-      <h2>Transcript</h2>
-      <ol id="transcript" class="transcript"><li class="empty">Start a call to begin.</li></ol>
-    </section>
+  <!-- --------------------------------------------------------- the decision -->
+  <section class="card decision">
+    <div class="card-head">
+      <h2>Grounding decision</h2>
+      <span class="tag" title="The model searches and words the answer. Policy code on the server decides which articles it may use, when it must add a caveat, and whether a person can take the call.">the server decides</span>
+    </div>
 
-    <section class="panel wide">
-      <h2>Retrieval and citations</h2>
-      <div id="searches" class="cards"><p class="empty">No searches yet.</p></div>
-    </section>
+    <div id="decision"></div>
+    <ul id="checks"></ul>
 
-    <section class="panel">
-      <h2>Handoff context</h2>
-      <div id="handoff" class="handoff empty">No transfer yet.</div>
-    </section>
+    <h3 class="sub-head">Source on screen</h3>
+    <dl id="facts"></dl>
 
-    <section class="panel">
-      <h2>Events</h2>
-      <ol id="events" class="events"><li class="empty">No events yet.</li></ol>
-    </section>
+    <h3 class="sub-head">Content and desk <span class="sub-note">judged on the demo clock</span></h3>
+    <ul id="library"></ul>
+  </section>
 
-    <section class="panel wide">
-      <h2>Stats</h2>
-      <button id="statsBtn">Refresh</button>
-      <div id="metrics" class="metrics"></div>
-    </section>
-  </main>
-  <script src="/app.js" type="module"></script>
+  <!-- ------------------------------------------------------- the Teams side -->
+  <section class="card teams">
+    <div class="card-head">
+      <h2>What the Teams agent sees</h2>
+      <span class="tag" title="A mock of the Teams incoming-call toast, built from the real handoff context">mock</span>
+    </div>
+
+    <div id="toast" hidden></div>
+    <p class="empty" id="toastEmpty">No call has been handed over yet.</p>
+
+    <h3 class="sub-head">VoIP headers on the wire</h3>
+    <pre id="headers">—</pre>
+  </section>
+
+  <!-- ------------------------------------------------------------- the trail -->
+  <section class="card trail">
+    <div class="card-head">
+      <h2>Audit trail</h2>
+      <span class="sub-note">every search, answer, refusal and handoff is audited</span>
+    </div>
+    <ol id="events"></ol>
+  </section>
+
+</main>
+
+<footer id="metrics"></footer>
+
+<script src="/app.js" type="module"></script>
 </body>
 </html>

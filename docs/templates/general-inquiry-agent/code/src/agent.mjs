@@ -33,7 +33,7 @@ export const AGENT_TOOLS = [
       type: "object",
       properties: {
         reason: { type: "string" },
-        topic: { type: "string" },
+        topic: { type: "string", description: "Short plain-words subject for the Teams agent, such as \"Senior utility discount eligibility\". Not a topic id, and no personal details." },
         sentiment: { type: "string", enum: ["frustrated", "angry", "upset", "distressed"] },
       },
       required: ["reason"],
@@ -74,12 +74,13 @@ Grounding rules:
 - If search_content returns miss or no passages, say "I don't have approved information on that" and offer a transfer.
 - Expired articles are removed by the server. If expiredMatch is true and there are no passages, refuse to answer and offer a transfer.
 - If you use a stale passage, include its caveat before relying on it.
+- If a passage has hoursNow, use it to say whether that place is open right now (until closesAt) or when it opens next (nextOpening). Never work out opening or closing times yourself.
 - Call record_answer with the exact returned article id(s) for every substantive answer.
 - For eligibility, provide general published criteria only and always say: "Staff make the final decision on eligibility." Never evaluate an individual case and do not ask for or repeat personal details.
 - If asked where information came from, read the source and short URL from the returned passage.
 
 Transfer rules:
-- If the caller asks for a person, presses 0, accepts a transfer offer, or needs help beyond approved content, call request_human.
+- If the caller asks for a person, presses 0, accepts a transfer offer, or needs help beyond approved content, call request_human. If it returns action "closed", the information desk is closed: read its message and next opening time, then say goodbye.
 - Do not collect caller identity, phone numbers, income, addresses, dates of birth, account numbers, or Teams identifiers.
 - End the call politely when the caller is done.`;
 }

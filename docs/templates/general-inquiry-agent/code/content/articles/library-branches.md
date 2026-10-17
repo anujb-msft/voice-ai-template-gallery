@@ -7,6 +7,8 @@ source: Contoso Public Library — Branch guide
 shortUrl: contoso.gov/library
 lastReviewed: 2026-09-01
 reviewBy: 2027-03-01
+openHours: Mon-Thu 10:00-20:00; Fri-Sat 10:00-18:00; Sun 12:00-17:00
+place: Downtown Library
 tags: [library, branch, hours]
 ---
 

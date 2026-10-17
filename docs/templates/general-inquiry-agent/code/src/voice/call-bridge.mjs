@@ -21,7 +21,10 @@ class CallBridge {
     });
 
     await this.voice.connect();
+    // `voiced`: Voice Live reports what the agent actually said, so the flow
+    // doesn't also log its scripted lines to the transcript.
     this.flow.registerAgent(this.callId, {
+      voiced: true,
       instruct: (text) => this.voice.instruct(text),
       nudge: (text, opts) => this.voice.nudge(text, opts),
     });

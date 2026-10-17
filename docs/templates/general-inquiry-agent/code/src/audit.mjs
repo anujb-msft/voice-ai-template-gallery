@@ -30,6 +30,15 @@ export class MemoryAudit {
     return this.events.filter((e) => e.callId === callId);
   }
 
+  /** Drop simulated calls and everything recorded about them; real calls stay. */
+  reset() {
+    const simulated = new Set([...this.calls.values()].filter((c) => c.simulated).map((c) => c.id));
+    for (const id of simulated) this.calls.delete(id);
+    this.events = this.events.filter((e) => !simulated.has(e.callId));
+    this.transcripts = this.transcripts.filter((t) => !simulated.has(t.callId));
+    return { removed: simulated.size };
+  }
+
   stats() {
     return computeStats([...this.calls.values()], this.events);
   }
@@ -39,7 +48,9 @@ export function computeStats(calls, events) {
   const count = (kind) => events.filter((e) => e.kind === kind).length;
   const callsN = calls.length;
   const answers = count("answer_recorded");
-  const transfers = count("transfer_succeeded") + count("transfer_simulated");
+  // A transfer ACS accepted and then reported failed never reached a person.
+  const transfers = count("transfer_succeeded") + count("transfer_simulated")
+    - events.filter((e) => e.kind === "transfer_failed" && e.meta?.accepted).length;
   const humanRequests = count("human_requested");
   const callsWithAnswer = new Set(events.filter((e) => e.kind === "answer_recorded").map((e) => e.callId));
   const callsWithHuman = new Set(events.filter((e) => e.kind === "human_requested" || e.kind.startsWith("transfer_")).map((e) => e.callId));
@@ -59,6 +70,8 @@ export function computeStats(calls, events) {
     transfers,
     failedTransfers: count("transfer_failed"),
     humanRequests,
+    afterHoursClosures: count("after_hours_closed"),
+    offersDeclined: count("offer_declined"),
     escalationRate: callsN ? Number((humanRequests / callsN).toFixed(3)) : 0,
     deflectionRate: callsN ? Number((deflected / callsN).toFixed(3)) : 0,
     perTopicCounts: topics,

@@ -207,7 +207,8 @@ Remaining steps, on the Azure side:
   3. Set the calling webhook on your Azure Bot to https://eventgrid.azure.net
      so Teams delivers calls through Event Grid.
 
-  4. Start the sample and check GET /health — telephony and teams should both
-     report ready before you dial the City of Contoso information line.
+  4. Start the sample and check GET /health — telephony, voiceLive and
+     teamsPhone should all report ready before you dial the City of Contoso
+     information line.
 
 "@ -ForegroundColor Cyan

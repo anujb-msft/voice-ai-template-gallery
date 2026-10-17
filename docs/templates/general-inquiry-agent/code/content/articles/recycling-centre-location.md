@@ -7,6 +7,8 @@ source: Contoso Public Works — Recycling centre page
 shortUrl: contoso.gov/recyclecentre
 lastReviewed: 2026-08-20
 reviewBy: 2027-02-20
+openHours: Tue-Sat 09:00-16:00
+place: The Contoso Recycling Centre
 tags: [recycling centre, location, drop off]
 ---
 

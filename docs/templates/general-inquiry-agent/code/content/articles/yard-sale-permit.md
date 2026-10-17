@@ -5,7 +5,7 @@ topic: permits-licences
 owner: Contoso Clerk's Office
 source: Contoso Clerk's Office — Temporary sales
 shortUrl: contoso.gov/yardsale
-lastReviewed: 2026-05-10
+lastReviewed: 2025-10-01
 reviewBy: 2026-04-01
 tags: [yard sale, garage sale, permit, expired]
 ---
