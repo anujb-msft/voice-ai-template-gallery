@@ -59,7 +59,8 @@ npm start
 
 The console runs a scripted demo: press **→** (or **Next ▶**) and it plays five short
 beats, typing — and, if you like, speaking — the caller's lines. [DEMO-SCRIPT.md](DEMO-SCRIPT.md)
-is the running order, with what to say at each step.
+is the running order, with what to say at each step, and `npm run rehearse` plays it end to
+end before you do.
 
 Or drive it yourself: pick a **Caller ID**, click **Answer a call**, and type what the
 caller says. A typed transcript drives *the same state machine* a real call would: the
@@ -96,10 +97,21 @@ type a whole sentence, start the server with `COMMIT_UNDO_MS=10000`.
 Run the tests — they need no Azure and no network:
 
 ```bash
-npm test        # 53 cases: identity, the allow-list, the undo window, the handoff, the demo controls
+npm test         # 53 cases: identity, the allow-list, the undo window, the handoff, the demo controls
 npm run check
-npm run smoke   # boots its own server on port 8197 and checks both WebSockets, the undo window and the demo controls
+npm run smoke    # boots its own server on port 8197 and checks both WebSockets, the undo window and the demo controls
+npm run rehearse # plays the five beats on port 8297 as the console does, three ways (~80 s)
 ```
+
+`npm run rehearse` fails if a beat would land anywhere [DEMO-SCRIPT.md](DEMO-SCRIPT.md)
+doesn't say: what each beat leaves on screen — the checklist, the record card, the
+write-back, the Teams toast and the audit trail — is pinned in `scripts/rehearse.mjs`, and
+so are the closing numbers. It plays the script in order, again after a reset, and last
+beat first with each beat twice, at Auto-play's pace and at full speed, and checks that a
+live server refuses the demo controls. Its server runs the shipped SQLite CRM in memory, so
+`./data/crm.db` is never touched, and neither `.env` nor your shell's settings reach it.
+Changed a beat on purpose? It prints the outcomes it reached, ready to paste over the pins
+once you've checked them against the script.
 
 ### Demo controls
 
@@ -442,6 +454,8 @@ public/             the presenter console
                     at the repository root, then run `node scripts/sync-presenter-kit.js`
 scripts/
   smoke-websockets.mjs       boots its own server on 8197 and checks the WebSocket upgrades
+  rehearse.mjs               npm run rehearse: plays every beat as the console does; pins what each one shows
+  presenter-kit-rehearsal.mjs  the rehearsal engine, vendored like presenter-kit.*
   provision-teams-phone.ps1  the Teams side of Teams Phone extensibility
 test/               53 cases, no Azure required
 ```
