@@ -69,7 +69,7 @@ answers*, *Voicemail keeps it private*, *Not worth waking anyone* and *Questions
 phone numbers* — typing, and if you pick a room voice also speaking, the tenant's and
 the technician's lines. Keys **1**–**5** jump to a beat, and **Auto-play** plays the
 rest of a beat hands-free. [DEMO-SCRIPT.md](DEMO-SCRIPT.md) is the running order, with
-what to say at each step.
+what to say at each step, and `npm run rehearse` plays it end to end before you do.
 
 Or drive it yourself: pick a clock preset in the header, pick a **Caller ID**, click
 **Answer a call**, and type what the tenant says. Once a page rings, the same box
@@ -98,10 +98,21 @@ Try these. Start each one with **Reset demo**, then pick the clock and the calle
 Run the tests — they need no Azure and no network:
 
 ```bash
-npm test        # 48 cases: policy, state machine, page brief, Teams payloads, the offline stand-in
-npm run check   # node --check on every module (a POSIX shell loop)
-npm run smoke   # boots its own server on port 8195 and checks both WebSockets and the demo controls
+npm test          # 55 cases: policy, state machine, page brief, Teams payloads, the offline stand-in
+npm run check     # node --check on every module (a POSIX shell loop)
+npm run smoke     # boots its own server on port 8195 and checks both WebSockets and the demo controls
+npm run rehearse  # plays the five beats on port 8295 as the console does, three ways (~1.5 min)
 ```
+
+`npm run rehearse` fails if a beat would land anywhere [DEMO-SCRIPT.md](DEMO-SCRIPT.md)
+doesn't say: each beat's outcome — who was on call and why, every page in order and how it
+ended, the technician's card, what the agent said and what voicemail was spared — and its
+decision trail is pinned in `scripts/rehearse.mjs`. It plays the script in order, again
+after a reset, and last beat first with each beat twice, at Auto-play's pace and at full
+speed, and checks that a live server refuses the demo controls. Neither `.env` nor your
+shell's settings reach its server. Changed a beat, the rotation or the paging policy on
+purpose? It prints the outcomes it reached, ready to paste over the pins once you've checked
+them against the script.
 
 ### Demo controls
 
@@ -473,6 +484,8 @@ public/             the presenter console
                     at the repository root, then run `node scripts/sync-presenter-kit.js`
 scripts/
   smoke-websockets.mjs       boots its own server and checks both WebSockets and the demo controls
+  rehearse.mjs               plays every beat as the console does; pins what each one shows
+  presenter-kit-rehearsal.mjs  the rehearsal engine, vendored like presenter-kit.*
   provision-teams-phone.ps1  prints the Teams Phone provisioning checklist; changes nothing
 test/               no Azure and no network required
 ```

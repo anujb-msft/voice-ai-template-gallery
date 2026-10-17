@@ -20,9 +20,15 @@ eyes are on the room.
 
 ```bash
 npm install
+npm run rehearse                   # every beat, three ways, on its own server (~1.5 min)
 npm start                          # http://127.0.0.1:8095
 curl -s 127.0.0.1:8095/health      # expect "mode":"simulation"
 ```
+
+`npm run rehearse` plays the script the way the console does — the pages, the escalation
+timers and the voicemail included — and fails if any beat would land somewhere this page
+doesn't say. It runs its own server on port 8295 with the shipped settings (not your
+`.env`), so it can run while your demo server is up.
 
 - [ ] Open **Microsoft Edge** at `http://127.0.0.1:8095/?voices=online`. Edge's online
       voices are Microsoft neural voices, and with `?voices=online` the voice menu (top
