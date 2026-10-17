@@ -110,6 +110,7 @@ const settings = { callTimeBudgetMs: 300_000, maxRequestsPerCall: 3, transferDel
 let health = null;
 let stack = null;
 let clockLocked = false;
+let resetLocked = false;
 let sending = false;
 let roomLang = "en-US";
 let phoneSig = "";
@@ -185,7 +186,7 @@ connectHub((target, payload) => session.handle(target, payload), {
 });
 const sim = createSimulator({ session, startBody, onSnapshot: applySnapshot, actions: { metrics: showMetrics } });
 const director = createDirector($("director"), {
-  beats: createBeats({ setClock }),
+  beats: createBeats({ setClock, resetDemo }),
   perform,
   voice: roomVoice,
   sayInput: els.sayInput,
@@ -243,6 +244,27 @@ async function setClock(preset) {
       notify("This server answers real calls, so the demo clock stays on real time.", "warn", 6000);
     }
   }
+}
+
+/** Beat 1 starts from a clean stage, so Alex's pothole is filed fresh every time. */
+async function resetDemo() {
+  let result;
+  try {
+    result = await postJson("/api/demo/reset");
+  } catch (error) {
+    if (error.status !== 403) throw error;
+    if (!resetLocked) {
+      resetLocked = true;
+      notify("This server answers real calls, so the demo isn't reset.", "warn", 6000);
+    }
+    return false;
+  }
+  session.reset();
+  clearPanels();
+  setRoomLang("en-US");
+  renderStats(result.stats);
+  await clock.refresh();
+  return true;
 }
 
 /** Before a caller line or a new call: let the current line finish, then switch. */
@@ -1053,16 +1075,10 @@ els.hangup.addEventListener("click", () => act(() => sim.hangup()));
 els.reset.addEventListener("click", async () => {
   director.stop();
   try {
-    const result = await postJson("/api/demo/reset");
-    session.reset();
-    clearPanels();
-    setRoomLang("en-US");
-    renderStats(result.stats);
-    await clock.refresh();
+    if (!(await resetDemo())) return;
     director.load(0);
     notify("Demo reset — no calls, requests or texts; starting clock; beat 1.", "ok");
   } catch (error) {
-    if (error.status === 403) notify("Reset is off while this server answers real calls.", "warn");
-    else notify(error.message, "err");
+    notify(error.message, "err");
   }
 });

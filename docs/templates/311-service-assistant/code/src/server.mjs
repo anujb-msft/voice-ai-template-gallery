@@ -367,6 +367,13 @@ app.post("/api/demo/reset", (_req, res) => {
   res.json({ ok: true, removed: { calls: calls.length, cases: removedCases, texts }, clock: clockView(), stats: stats() });
 });
 
+/** For status-check demos: closes a service request, as its department would. */
+app.post("/api/cases/:id/close", (req, res) => {
+  if (!simulationOnly(res)) return;
+  const closed = cases.close(req.params.id);
+  return closed ? res.json({ ok: true, id: closed.id, status: closed.status }) : res.status(404).json({ error: "unknown case" });
+});
+
 // ------------------------------------------------------------------ console API
 
 app.get("/api/calls/:id", (req, res) => {
@@ -378,11 +385,6 @@ app.get("/api/calls/:id/events", (req, res) => res.json(audit.eventsFor(req.para
 
 /** Service requests without contact details: the console never needs them. */
 app.get("/api/cases", (_req, res) => res.json(cases.all().map(({ contact, attachments, ...c }) => ({ ...c, updates: Boolean(contact?.wantsUpdates) }))));
-
-app.post("/api/cases/:id/close", (req, res) => {
-  const closed = cases.close(req.params.id);
-  return closed ? res.json({ ok: true, id: closed.id, status: closed.status }) : res.status(404).json({ error: "unknown case" });
-});
 
 /** The texts the console's phone panel shows. Simulated ones were never sent. */
 app.get("/api/sms", (_req, res) => res.json(flow.outbox));

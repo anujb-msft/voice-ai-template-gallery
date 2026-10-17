@@ -72,7 +72,8 @@ beats:
 5. a complaint that needs a person.
 
 It types the caller's lines and can also speak them. [DEMO-SCRIPT.md](DEMO-SCRIPT.md) is
-the running order, with what to say at each step.
+the running order, with what to say at each step, and `npm run rehearse` plays it end to
+end before you do.
 
 Or drive it yourself: pick a **Caller ID**, click **Answer a call**, and type what the
 caller says. The keypad buttons send **1** (yes), **2** (no), **0** (a person) and
@@ -100,12 +101,21 @@ Try these after **Reset demo**, with the clock on **Business hours**:
 Run the tests. They need no Azure and no network:
 
 ```bash
-npm test        # 40 cases across the call flow, the demo controls and the Teams handoff
+npm test          # 41 cases across the call flow, the demo controls and the Teams handoff
 npm run check
-npm run smoke   # boots its own server on port 8196 and checks both WebSockets, the simulate routes and the demo controls
+npm run smoke     # boots its own server on port 8196 and checks both WebSockets, the simulate routes and the demo controls
+npm run rehearse  # plays the five beats on port 8296 as the console does, three ways (~1 min)
 ```
 
 `npm run smoke` stops with a message if something is already listening on port 8196.
+
+`npm run rehearse` fails if a beat would land anywhere [DEMO-SCRIPT.md](DEMO-SCRIPT.md)
+doesn't say: each beat's outcome, case card and decision trail is pinned in
+`scripts/rehearse.mjs`. It plays the script in order, again after a reset, and last beat
+first with each beat twice, at Auto-play's pace and at full speed, and checks that a live
+server refuses the demo controls. Neither `.env` nor your shell's settings reach its
+server. Changed a beat on purpose? It prints the outcomes it reached, ready to paste over
+the pins once you've checked them against the script.
 
 ### Demo controls
 
@@ -118,6 +128,7 @@ running server can show both the business-hours path and the after-hours path:
 | `GET /api/demo/clock` | The demo clock, its time zone and the presets |
 | `POST /api/demo/clock` | `{ "preset": "business-hours" \| "after-hours" \| "real" }` or `{ "at": "<ISO 8601>" }` |
 | `POST /api/demo/reset` | Forgets the simulated calls, service requests and texts, clears them from the audit and restores the starting clock |
+| `POST /api/cases/:id/close` | Marks a service request closed, as its department would, for a status-check demo |
 
 The presets:
 - `business-hours` is Wednesday, September 30, 2026, at 10:30 a.m. Pacific, when every
@@ -128,9 +139,10 @@ The presets:
 The clock keeps running from the time you set. Case numbers start again at SR-26-0193
 after a reset.
 
-Both `POST`s return `403` while the server answers real calls, for two reasons. A live
-call always uses the real time, and a reset never deletes a real call's record or a real
-service request. Set `DEMO_NOW` to start the server with the clock already pinned.
+All three `POST`s return `403` while the server answers real calls, for two reasons. A
+live call always uses the real time, and a demo control never deletes a real call's record
+or changes a real service request. Set `DEMO_NOW` to start the server with the clock
+already pinned.
 
 The console also reads three other endpoints:
 - `GET /api/stats`: the metrics in its footer, plus breakdowns by request type,
@@ -397,8 +409,10 @@ public/           the presenter console
 scripts/
   smoke-websockets.mjs     boots the server on port 8196 and checks the WebSockets,
                            the simulate routes and the demo controls
+  rehearse.mjs             plays every beat as the console does; pins what each one shows
+  presenter-kit-rehearsal.mjs  the rehearsal engine, vendored like presenter-kit.*
   provision-teams-phone.ps1 prints the Teams Phone checklist
-test/             36 cases, no Azure required
+test/             41 cases, no Azure required
 ```
 
 None of `flow.mjs`, `offline.mjs`, `agent.mjs`, `handoff.mjs`, `content.mjs`,

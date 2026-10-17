@@ -21,9 +21,14 @@ if you like, speaks) the caller's line, so your hands are free and your eyes are
 
 ```bash
 npm install
+npm run rehearse                   # every beat, three ways, on its own server (~1 min)
 npm start                          # http://127.0.0.1:8096
 curl -s 127.0.0.1:8096/health      # expect "mode": "simulation"
 ```
+
+`npm run rehearse` plays the script the way the console does and fails if any beat would
+land somewhere this page doesn't say. It runs its own server on port 8296 with the shipped
+settings (not your `.env`), so it can run while your demo server is up.
 
 - [ ] Open **Microsoft Edge** at `http://127.0.0.1:8096/?voices=online`. Edge's online
       voices are the Azure neural voices, so the room *hears* a voice product, and Lucía's
@@ -35,8 +40,9 @@ curl -s 127.0.0.1:8096/health      # expect "mode": "simulation"
 - [ ] Press **Reset demo**: no calls, no service requests, no texts on the phone panel, and
       zeroed metrics. Every beat sets the clock it needs (a Wednesday at 10:30 a.m., when
       every department is open), so the time of day you present at doesn't matter.
-- [ ] Run beat 1 once to wake the voices, then press **Reset demo** again, so the pothole is
-      filed fresh as SR-26-0193 instead of joining the report you just rehearsed.
+- [ ] Run beat 1 once to wake the voices, then press **Reset demo** again. Beat 1 resets
+      the demo before Alex calls, so on stage the pothole is filed fresh as SR-26-0193,
+      not added to the report you just rehearsed.
 
 The chip in the top-right corner must say **simulation mode**. If it says **live · Teams
 Phone**, this server found Azure settings in `.env`, and the demo clock and reset are
@@ -50,7 +56,7 @@ is still running.
 | --- | --- |
 | **→**, **PageDown** or a presenter clicker | Run the next step |
 | **Auto-play** | Run the rest of the current beat |
-| **1**–**5** | Jump to a beat. Each beat sets the clock and answers its own call, so beats run in any order |
+| **1**–**5** | Jump to a beat. Each beat sets the clock and answers its own call, so beats run in any order. Beat 1 also resets the demo |
 | **PageUp** | Back to the start of this beat; press again for the previous beat |
 | **Esc** | Stop auto-play and the voices |
 | **N** | Show or hide the narration under the beat strip |
@@ -207,13 +213,8 @@ texts with consent and 1 call in Spanish.
 ## If something goes wrong
 
 - **A beat went sideways.** Press its number. The beat resets its clock and answers a fresh
-  call, so it re-runs from the top.
-- **Beat 1 said "already reported".** You ran it again without a reset, so Alex's report
-  joined SR-26-0193 instead of filing a second case. That is the duplicate check (an open
-  pothole within 50 m, reported in the last 7 days), and it makes a good answer to "what if
-  two people report the same pothole?". If the second report is a hazard, such as a pothole
-  in the travel lane, it also raises that case to priority. Press **Reset demo** to file it
-  fresh.
+  call, so it re-runs from the top. Beat 1 resets the whole demo, so the metrics start
+  again from it.
 - **Everything looks wrong.** **Reset demo**, then **1**.
 - **No sound.** Check the voice menu, and that the URL has `?voices=online` in Edge. Or just
   narrate — the voices are a presenter aid, not part of the product.
@@ -263,6 +264,14 @@ address fixtures (swap in your city's address service). Then `content/articles/`
 approved answers, and `public/beats.js` to rewrite this demo for your city. The report types
 the agent knows about are generated from `config/request-types.json`, so adding one is not a
 prompt rewrite.
+
+**"What if two people report the same pothole?"**
+The second report joins the first instead of filing a second case: an open pothole within
+50 m, reported in the last 7 days, is the same pothole. To show it after beat 1, click
+**Answer a call** and type Alex's two lines again: *"That pothole at Oak Avenue and 5th
+Street was already reported, so I've added your report to case S R, 2 6, 0 1 9 3."* If the
+second report is a hazard, such as a large pothole in the travel lane, it also raises that
+case to priority.
 
 **"What if it doesn't understand?"**
 It asks once more. A second miss goes to 311 staff. After hours, when there is nobody to

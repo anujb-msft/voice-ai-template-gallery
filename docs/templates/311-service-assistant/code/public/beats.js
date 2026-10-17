@@ -4,9 +4,16 @@
  * a beat, and 1–5 jump straight to a beat.
  *
  * Every beat pins the demo clock and answers its own call, so any beat can be
- * re-run on its own, in any order, at any time of day. The caller lines are
- * ones the offline stand-in (src/offline.mjs) handles the same way every time;
- * with Voice Live they are just as natural to say out loud.
+ * re-run on its own, in any order, at any time of day. Beat 1 also resets the
+ * demo first (no calls, requests or texts, and zeroed metrics), so Alex's
+ * pothole is filed fresh as SR-26-0193 instead of joining the report from the
+ * last run-through, and a run from the top ends on the same numbers every
+ * time. Run out of order, case numbers follow the order the beats ran in, but
+ * every beat still ends the same way.
+ *
+ * The caller lines are ones the offline stand-in (src/offline.mjs) handles the
+ * same way every time; with Voice Live they are just as natural to say out
+ * loud.
  *
  * To adapt the demo, edit the lines and the narration here. The narration is
  * written for the room: `talk` while a beat runs, `cue` before a step, `after`
@@ -18,14 +25,23 @@ const ALEX = "+12065550142"; // Alex Chen
 const LUCIA = "+12065550187"; // Lucía Ortega, who speaks Spanish
 const SAM = "+12065550118"; // Sam Rivera
 
-/** @param {{ setClock: (preset: string) => Promise<void> }} hooks */
-export function createBeats({ setClock }) {
+/**
+ * @param {{
+ *   setClock: (preset: string) => Promise<void>,
+ *   resetDemo: () => Promise<boolean>,
+ * }} hooks
+ */
+export function createBeats({ setClock, resetDemo }) {
   const at = (preset) => () => setClock(preset);
+  const fromTheTop = async () => {
+    await resetDemo();
+    await setClock("business-hours");
+  };
 
   return [
     {
       title: "Report a pothole",
-      prepare: at("business-hours"),
+      prepare: fromTheTop,
       talk: "Alex reports a pothole the way people actually talk: a street and a corner. No form, no menu.",
       steps: [
         {
