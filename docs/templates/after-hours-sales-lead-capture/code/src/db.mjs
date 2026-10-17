@@ -184,6 +184,26 @@ export class MemoryLeadStore {
     return { calls: simulatedCalls.size, leads: removedLeads.size };
   }
 
+  /**
+   * A scripted beat's fresh start: forgets the simulated leads from these
+   * numbers, with their follow-up messages, so the beat's caller calls for the
+   * first time again, and lines up the simulated round-robin so the next new
+   * lead goes to `nextRep` (an active rep's id). The calls stay counted. Real
+   * leads and the round-robin real callers see are never touched.
+   */
+  restoreSimulated({ phones = [], nextRep = null } = {}) {
+    const active = this.reps.activeReps();
+    const pointer = nextRep == null ? null : active.findIndex((r) => r.id === nextRep);
+    if (pointer === -1) return { ok: false, reason: "not_an_active_rep" };
+    const numbers = new Set(phones.map((p) => normalisePhone(p)).filter(Boolean));
+    const forgotten = [...this.leads.values()].filter((l) => l.simulated && numbers.has(l.normalizedPhone)).map((l) => l.id);
+    for (const id of forgotten) this.leads.delete(id);
+    this.outbox = this.outbox.filter((o) => !forgotten.includes(o.leadId));
+    if (pointer != null) this.simulatedPointer = pointer;
+    this.persistPointers();
+    return { ok: true, forgotten, nextRep: pointer == null ? null : active[pointer] };
+  }
+
   stats() {
     return computeStats([...this.calls.values()], this.listLeads(), this.nonSales, this.outbox);
   }

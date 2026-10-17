@@ -3,15 +3,13 @@
  * Next ▶ (or →, PageDown, a clicker) runs one step, Auto-play runs the rest of
  * a beat, and 1–6 jump straight to a beat.
  *
- * Every beat pins the demo clock and answers its own call, so any beat can be
- * re-run on its own, in any order. The clock is the story: sales is open 8 AM
- * to 6 PM on weekdays, and the on-call rep covers until 9 PM. The caller lines
- * are ones the offline stand-in agent (src/offline.mjs) handles the same way
- * every time; with Voice Live they are just as natural to say out loud.
- * test/demo.test.mjs runs the same lines and checks every outcome.
- *
- * A beat run again without Reset demo is a repeat call from the same number,
- * so its lead is merged into the earlier one instead of creating a new one.
+ * Every beat pins the demo clock, forgets its caller's earlier lead, lines up
+ * the rep the lead goes to and answers its own call, so any beat can be re-run
+ * on its own, in any order, and lands the same way. The clock is the story:
+ * sales is open 8 AM to 6 PM on weekdays, and the on-call rep covers until
+ * 9 PM. The caller lines are ones the offline stand-in agent (src/offline.mjs)
+ * handles the same way every time; with Voice Live they are just as natural to
+ * say out loud. test/demo.test.mjs runs the same lines and checks every outcome.
  *
  * To adapt the demo, edit the lines and the narration here, then the matching
  * lines in test/demo.test.mjs and DEMO-SCRIPT.md. The narration is written for
@@ -22,18 +20,29 @@
 const DANA = "+14255550193"; // Dana Morgan, Northwind Traders
 const PAT = "+14255550175"; // Pat Kim
 const CASEY = "+14255550128"; // Casey Quinn, Fabrikam (the front desk line)
+const CASEY_MOBILE = "+14255550147"; // the number Casey corrects it to
 const LEE = "+14255550111"; // Lee Park, an existing customer
 const SAM = "+14255550162"; // Sam Rivera, Tailwind Traders
 const ROBIN = "+14255550184"; // Robin Diaz, Wide World Importers
 
-/** @param {{ setClock: (preset: string) => Promise<void> }} hooks */
-export function createBeats({ setClock }) {
-  const at = (preset) => () => setClock(preset);
+/**
+ * @param {{
+ *   setClock: (preset: string) => Promise<void>,
+ *   restore: (caller: { phones: string[], nextRep?: string }) => Promise<void>,
+ * }} hooks
+ */
+export function createBeats({ setClock, restore }) {
+  // A beat that saves a lead starts from scratch: no earlier lead from its
+  // caller to merge into, and the rotation on the rep the script names.
+  const at = (preset, caller) => async () => {
+    await setClock(preset);
+    if (caller) await restore(caller);
+  };
 
   return [
     {
       title: "After hours: capture",
-      prepare: at("after-hours"),
+      prepare: at("after-hours", { phones: [DANA], nextRep: "ava" }),
       talk: "7:30 on a Wednesday evening, and the sales team has gone home. Without this, a buyer with a big order gets voicemail, and maybe calls a competitor next.",
       steps: [
         { type: "start", fromPhone: DANA, label: "Dana Morgan calls from Northwind Traders" },
@@ -66,7 +75,7 @@ export function createBeats({ setClock }) {
     },
     {
       title: "Read back, corrected",
-      prepare: at("after-hours"),
+      prepare: at("after-hours", { phones: [CASEY, CASEY_MOBILE], nextRep: "ben" }),
       talk: "Back to the evening. A lead is only worth something if you can call it back, so the agent reads the number back before it saves anything.",
       steps: [
         { type: "start", fromPhone: CASEY, label: "Casey Quinn calls from Fabrikam's front desk" },
@@ -106,7 +115,7 @@ export function createBeats({ setClock }) {
     },
     {
       title: "Hot and urgent: page on call",
-      prepare: at("after-hours"),
+      prepare: at("after-hours", { phones: [SAM] }),
       talk: "Some calls can't wait for the morning. Ben Ortiz is on call until 9 PM, and the policy decides when he's worth interrupting.",
       steps: [
         { type: "start", fromPhone: SAM, label: "Sam Rivera calls from Tailwind Traders" },
@@ -132,7 +141,7 @@ export function createBeats({ setClock }) {
     },
     {
       title: "After cover ends: morning queue",
-      prepare: at("late-night"),
+      prepare: at("late-night", { phones: [ROBIN], nextRep: "dana" }),
       talk: "The same kind of call at 10:30 at night. On-call cover ended at 9.",
       steps: [
         { type: "start", fromPhone: ROBIN, label: "Robin Diaz calls from Wide World Importers" },

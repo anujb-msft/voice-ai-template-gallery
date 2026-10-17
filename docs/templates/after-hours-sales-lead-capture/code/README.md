@@ -63,7 +63,7 @@ npm start
 The console runs a scripted demo: press **→** (or **Next ▶**) and it plays six short
 beats, setting the demo clock and typing — and, if you like, speaking — the caller's
 lines. [DEMO-SCRIPT.md](DEMO-SCRIPT.md) is the running order, with what to say at each
-step.
+step, and `npm run rehearse` plays it end to end before you do.
 
 Or drive it yourself: pick a **Caller ID**, click **Answer a call**, and type what the
 caller says. A typed call drives *the same state machine* a real call would: the same
@@ -84,10 +84,20 @@ Try these with the demo clock on **After hours**:
 Run the tests — they need no Azure and no network:
 
 ```bash
-npm test        # the state machine, the policy, the Teams handoff and the demo controls
+npm test          # the state machine, the policy, the Teams handoff and the demo controls
 npm run check
-npm run smoke   # boots its own server on port 8193 and checks both WebSockets and the demo controls
+npm run smoke     # boots its own server on port 8193 and checks both WebSockets and the demo controls
+npm run rehearse  # plays the six beats on port 8293 as the console does, three ways (~1.5 min)
 ```
+
+`npm run rehearse` fails if a beat would land anywhere [DEMO-SCRIPT.md](DEMO-SCRIPT.md)
+doesn't say: each beat's outcome, lead and decision trail, and the closing numbers, are
+pinned in `scripts/rehearse.mjs`. It plays the script in order, again after a reset, and
+last beat first with each beat twice, at Auto-play's pace and at full speed, and checks
+that a live server refuses the demo controls. Neither `.env` nor your shell's settings
+reach its server, and its leads stay in memory, so nothing is written to `data/`. Changed
+a beat on purpose? It prints the outcomes it reached, ready to paste over the pins once
+you've checked them against the script.
 
 ### Demo controls
 
@@ -99,12 +109,14 @@ so one running server shows the in-hours, after-hours and late-night paths:
 | `GET /api/demo/clock` | The demo clock, its time zone and presets, whether sales is open, and who is on call |
 | `POST /api/demo/clock` | `{ "preset": "business-hours" \| "after-hours" \| "late-night" \| "real" }` or `{ "at": "<ISO 8601>" }` |
 | `POST /api/demo/reset` | Forget the simulated calls and leads, and restore the starting clock and the owner rotation |
+| `POST /api/demo/restore` | `{ "phones": ["+14255550193"], "nextRep": "ava" }`: forget the simulated leads from those numbers and line up the owner rotation on that rep, so a beat runs as a first call in any order. The calls stay counted |
 | `GET /api/stats` | Calls, leads captured, qualified and routed for follow-up, live transfers, pages, non-sales calls and merged repeats |
 
 The presets are 10:30 AM, 7:30 PM and 10:30 PM on Wednesday, September 2, 2026, Pacific
-time. Both `POST`s return `403` while the server answers real calls: a live call always
-uses the real time, and a reset never deletes a real call's lead. Set `DEMO_NOW` to start
-the server with the clock already pinned, for example `DEMO_NOW=2026-09-02T19:30:00-07:00`.
+time. The three `POST`s return `403` while the server answers real calls: a live call
+always uses the real time, and neither a reset nor a restore ever touches a real call's
+lead. Set `DEMO_NOW` to start the server with the clock already pinned, for example
+`DEMO_NOW=2026-09-02T19:30:00-07:00`.
 
 ## How it works
 
@@ -347,6 +359,8 @@ public/           the presenter console
                   at the repository root, then run `node scripts/sync-presenter-kit.js`
 scripts/
   smoke-websockets.mjs       boots its own server and checks the WebSockets and demo controls
+  rehearse.mjs               plays every beat as the console does; pins what each one shows
+  presenter-kit-rehearsal.mjs  the rehearsal engine, vendored like presenter-kit.*
   provision-teams-phone.ps1  prints the Teams Phone checklist
 test/             flow, handoff and demo tests; no Azure required
 ```

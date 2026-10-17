@@ -13,6 +13,7 @@ import { MemoryLeadStore } from "../src/db.mjs";
 import { classifyUtterance, registerSimulatedAgent, runTranscript, handleUtterance } from "../src/offline.mjs";
 import { readiness } from "../src/config.mjs";
 import { buildCustomCallingContext } from "../src/handoff.mjs";
+import { createBeats } from "../public/beats.js";
 
 // The demo clock presets in src/server.mjs: Wednesday, September 2, 2026, Pacific time.
 const BUSINESS_HOURS = "2026-09-02T10:30:00-07:00";
@@ -463,7 +464,7 @@ test("the six beats end on the metrics the closing slide shows", async () => {
   assert.equal(stats.duplicatesMerged, 0);
 });
 
-test("a beat run twice merges the repeat caller; a reset makes the script repeatable", async () => {
+test("a repeat caller is merged; a reset makes the script repeatable", async () => {
   const t = make();
   await runBeat(t, BEATS.dana);
   const again = await runBeat(t, BEATS.dana);
@@ -480,6 +481,76 @@ test("a beat run twice merges the repeat caller; a reset makes the script repeat
   const fresh = await runBeat(t, BEATS.dana);
   assert.equal(fresh.snap.outcome, "lead_captured");
   assert.equal(fresh.snap.owner.displayName, "Ava Chen");
+});
+
+test("every beat starts fresh, so the script lands the same in any order and twice over", async () => {
+  // What each beat in public/beats.js asks POST /api/demo/restore for before its call.
+  let asked;
+  const beats = createBeats({ setClock: async () => {}, restore: async (caller) => (asked = caller) });
+  const restores = [];
+  for (const beat of beats) {
+    asked = null;
+    await beat.prepare();
+    restores.push(asked);
+  }
+  const script = Object.values(BEATS);
+  assert.equal(beats.length, script.length);
+
+  const t = make();
+  const land = async (i) => {
+    if (restores[i]) assert.equal(t.store.restoreSimulated(restores[i]).ok, true);
+    const { snap } = await runBeat(t, script[i]);
+    return `${snap.outcome} ${snap.owner?.displayName ?? "-"}`;
+  };
+  const inOrder = [];
+  for (let i = 0; i < script.length; i += 1) inOrder.push(await land(i));
+  assert.deepEqual(inOrder, [
+    "lead_captured Ava Chen",
+    "transferred:sales -",
+    "lead_captured Ben Ortiz",
+    "non-sales:existing-customer -",
+    "transferred:on-call Ben Ortiz",
+    "lead_captured Dana Brooks",
+  ]);
+  for (let i = script.length - 1; i >= 0; i -= 1) {
+    assert.equal(await land(i), inOrder[i], `beat ${i + 1}`);
+    assert.equal(await land(i), inOrder[i], `beat ${i + 1}, again`);
+  }
+  const stats = t.store.stats();
+  assert.equal(stats.calls, 18);
+  assert.equal(stats.leadsCaptured, 4);
+  assert.equal(stats.duplicatesMerged, 0);
+});
+
+test("a beat's restore forgets only its caller's simulated lead", async () => {
+  const t = make();
+  await runBeat(t, BEATS.dana);
+  await runBeat(t, BEATS.robin);
+  const real = t.flow.create({ fromPhone: BEATS.dana.phone });
+  t.flow.routeIncoming(real.id);
+  t.flow.saveLead(real.id, {
+    productInterest: "hex bolts",
+    quantity: 8000,
+    timeline: "this week",
+    company: "Contoso Pharmaceuticals",
+    role: "buyer",
+    phoneConfirmed: true,
+  });
+  const pointer = t.store.pointer;
+
+  const restored = t.store.restoreSimulated({ phones: [BEATS.dana.phone], nextRep: "dana" });
+  assert.equal(restored.ok, true);
+  assert.equal(restored.forgotten.length, 1);
+  assert.equal(restored.nextRep.displayName, "Dana Brooks");
+  const kept = t.store.listLeads().map((l) => `${l.normalizedPhone} ${l.simulated ? "simulated" : "real"}`).sort();
+  assert.deepEqual(kept, [`${BEATS.robin.phone} simulated`, `${BEATS.dana.phone} real`]);
+  assert.ok(t.store.listOutbox().every((m) => m.leadId !== restored.forgotten[0]));
+  assert.equal(t.store.listOutbox().length, 4);
+  assert.equal(t.store.stats().calls, 3);
+  // Real callers keep their own rotation.
+  assert.equal(t.store.pointer, pointer);
+  // Chloe is in config/reps.json, but not taking leads.
+  assert.equal(t.store.restoreSimulated({ phones: [], nextRep: "chloe" }).ok, false);
 });
 
 test("a reset keeps real calls and their leads", async () => {

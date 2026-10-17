@@ -425,6 +425,25 @@ app.post("/api/demo/reset", (_req, res) => {
   res.json({ ok: true, cleared, clock: clockView(), stats: store.stats() });
 });
 
+/**
+ * A scripted beat's fresh start, so beats run in any order: forgets the
+ * simulated leads from the beat's caller, so a re-run isn't merged into the
+ * last one as a repeat call, and lines up the owner rotation on the rep the
+ * script names. The calls stay counted, and anything from a real phone is kept.
+ */
+app.post("/api/demo/restore", (req, res) => {
+  if (!simulationOnly(res)) return;
+  const { phones, nextRep = null } = req.body ?? {};
+  if (!Array.isArray(phones) || (nextRep != null && typeof nextRep !== "string")) {
+    return res.status(400).json({ error: 'Send { "phones": ["+14255550193"], "nextRep": "ava" } (nextRep is optional).' });
+  }
+  const restored = store.restoreSimulated({ phones: phones.map(String), nextRep });
+  if (!restored.ok) return res.status(400).json({ error: `"${nextRep}" isn't an active rep in config/reps.json.` });
+  const next = restored.nextRep?.displayName ?? null;
+  log(`[demo] restore: forgot ${restored.forgotten.length} simulated lead(s)${next ? `; ${next} gets the next lead` : ""}`);
+  res.json({ ok: true, forgotten: restored.forgotten.length, nextRep: next, stats: store.stats() });
+});
+
 // ------------------------------------------------------------------ console API
 
 /** The rules the console explains. Teams object ids and contact details stay on the server. */

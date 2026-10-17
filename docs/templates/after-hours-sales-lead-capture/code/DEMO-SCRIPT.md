@@ -27,9 +27,14 @@ word; the text around them says what to point at.
 
 ```bash
 npm install
+npm run rehearse                   # every beat, three ways, on its own server (~1.5 min)
 npm start                          # http://127.0.0.1:8093
 curl -s 127.0.0.1:8093/health      # expect "mode": "simulation"
 ```
+
+`npm run rehearse` plays the script the way the console does and fails if any beat would
+land somewhere this page doesn't say. It runs its own server on port 8293 with the shipped
+settings (not your `.env`), so it can run while your demo server is up.
 
 - [ ] Open **Microsoft Edge** at `http://127.0.0.1:8093/?voices=online`. Edge's online
       voices are the Azure neural voices, so the room *hears* a voice product. Without
@@ -40,9 +45,8 @@ curl -s 127.0.0.1:8093/health      # expect "mode": "simulation"
       if it can't, it shows just the current beat.
 - [ ] Press **Reset demo**: no calls, no leads and zeroed metrics. Every beat sets the clock
       it needs, so the time of day you present at doesn't matter.
-- [ ] Run beat 1 once to wake the voices, then press **Reset demo** again. A beat run twice
-      without a reset is a repeat call from the same number, so its lead is merged into the
-      first one, and that isn't the story beat 1 tells.
+- [ ] Run beat 1 once to wake the voices, then press **Reset demo** again, so the numbers at
+      the end count only the six beats.
 
 The chip in the top-right corner must say **simulation mode**. If it says **live · Teams
 Phone**, this server found Azure settings in `.env`, and the demo clock and reset are
@@ -63,7 +67,7 @@ under **Lead and routing decision** follows the clock.
 | --- | --- |
 | **→**, **PageDown** or a presenter clicker | Run the next step |
 | **Auto-play** | Run the rest of the current beat |
-| **1**–**6** | Jump to a beat. Each beat sets the clock and answers its own call, so beats run in any order |
+| **1**–**6** | Jump to a beat. Each beat sets the clock, forgets any lead its caller already left, lines up the owner and answers its own call, so beats run in any order and land the same way |
 | **PageUp** | Back to the start of this beat; press again for the previous beat |
 | **Esc** | Stop auto-play and the voices |
 | **N** | Show or hide the narration under the beat strip |
@@ -266,10 +270,9 @@ on-call pages answered, 1 call that wasn't sales, and no repeat calls merged.
 
 ## If something goes wrong
 
-- **A beat went sideways.** Press its number. The beat sets its clock and answers a fresh
-  call, so it runs from the top. If it had already saved a lead, the new call is a repeat
-  call from the same number and its lead is merged into the earlier one: the dedupe rule at
-  work, but not the beat's story. Press **Reset demo** first, then the beat's number.
+- **A beat went sideways.** Press its number. The beat sets its clock, forgets any lead its
+  caller already left and answers a fresh call, so it runs from the top and lands the same
+  way, with the same owner. The extra call still counts in the numbers at the end.
 - **Everything looks wrong.** **Reset demo** clears the simulated calls and leads, restores
   the starting clock and loads beat 1.
 - **No sound.** Check the voice menu, and that the URL has `?voices=online` in Edge. Or just

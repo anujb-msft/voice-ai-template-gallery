@@ -191,7 +191,7 @@ const sim = createSimulator({
   actions: { metrics: showMetrics, awaitHandoff },
 });
 const director = createDirector($("director"), {
-  beats: createBeats({ setClock }),
+  beats: createBeats({ setClock, restore }),
   perform,
   voice,
   sayInput: els.sayInput,
@@ -244,6 +244,18 @@ async function setClock(preset) {
       clockLocked = true;
       notify("This server answers real calls, so the demo clock stays on real time.", "warn", 6000);
     }
+  }
+}
+
+/**
+ * Beats start fresh: the caller's earlier lead is forgotten, so a re-run isn't
+ * merged into it as a repeat call, and the lead goes to the rep the script names.
+ */
+async function restore(caller) {
+  try {
+    renderStats((await postJson("/api/demo/restore", caller)).stats);
+  } catch (error) {
+    if (error.status !== 403) throw error;
   }
 }
 

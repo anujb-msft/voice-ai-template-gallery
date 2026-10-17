@@ -118,6 +118,19 @@ export class SqliteLeadStore extends MemoryLeadStore {
     return super.resetSimulated();
   }
 
+  restoreSimulated(options) {
+    return this.db.transaction(() => {
+      const result = super.restoreSimulated(options);
+      const outbox = this.db.prepare("DELETE FROM outbox WHERE lead_id = ?");
+      const lead = this.db.prepare("DELETE FROM leads WHERE id = ?");
+      for (const id of result.forgotten ?? []) {
+        outbox.run(id);
+        lead.run(id);
+      }
+      return result;
+    })();
+  }
+
   close() {
     this.db.close();
   }
