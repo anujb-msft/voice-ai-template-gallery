@@ -43,10 +43,14 @@ npm start
 # open http://127.0.0.1:8091
 ```
 
-Pick a calling number, click **Answer a call**, and type what the caller says. A typed
-transcript drives *the same state machine* a real call would: the same allowlist, the
-same confidence gate, the same business hours, the same handoff assembly. Only the
-classifier and the audio path are stubbed.
+The console runs a scripted demo: press **→** (or **Next ▶**) and it plays seven short
+beats, typing — and, if you like, speaking — the caller's lines. [DEMO-SCRIPT.md](DEMO-SCRIPT.md)
+is the running order, with what to say at each step.
+
+Or drive it yourself: pick a **Caller ID**, click **Answer a call**, and type what the
+caller says. A typed transcript drives *the same state machine* a real call would: the
+same allowlist, the same confidence gate, the same business hours, the same handoff
+assembly. Only the classifier and the audio path are stubbed.
 
 Try these:
 
@@ -57,14 +61,30 @@ Try these:
 | `can I just talk to a person` | straight to Reception, no confirmation |
 | `3` | keypad shortcut, commits with no spoken confirmation |
 | *Silence* twice, then again | two clarifications, then a person |
-| Confirm Billing, then immediately `no, my portal is broken` | the pending transfer is cancelled |
+| Confirm Billing, then immediately `no, my portal is broken` | the pending transfer is cancelled (start with `TRANSFER_DELAY_MS=6000` to type it in time) |
 
 Run the tests — they need no Azure and no network:
 
 ```bash
-npm test     # 63 cases across the state machine and the Teams handoff
+npm test        # 72 cases across the state machine and the Teams handoff
 npm run check
+npm run smoke   # boots the server on port 8191 and checks both WebSockets and the demo controls
 ```
+
+### Demo controls
+
+In simulation mode the console can move the clock the routing policy sees, so one
+running server shows both the business-hours and the after-hours paths:
+
+| Endpoint | What it does |
+| --- | --- |
+| `GET /api/demo/clock` | The demo clock, its time zone and the presets |
+| `POST /api/demo/clock` | `{ "preset": "business-hours" \| "after-hours" \| "real" }` or `{ "at": "<ISO 8601>" }` |
+| `POST /api/demo/reset` | Forget the simulated calls, clear them from the audit and restore the starting clock |
+
+Both `POST`s return `403` while the server answers real calls: a live call always routes
+on the real time, and a reset never deletes a real call's audit record. Set `DEMO_NOW` to
+start the server with the clock already pinned.
 
 ## How it works
 
@@ -131,6 +151,9 @@ still be transferred, but the agent would answer blind.
 | `CallDetails.RouteId` / `AfterHours` | Which route was chosen, and whether it was a diversion |
 | `CallerDetails` | The caller record, serialised whole so `verified: false` cannot be separated from the name |
 
+The console's **VoIP headers on the wire** panel is built on the server by the same
+`buildCustomCallingContext` the transfer uses, so what it shows is what Teams receives.
+
 Call queues and auto attendants are resource accounts, so they are addressed as Teams
 *apps* (`{ teamsAppId }`); a named specialist is addressed as a Teams *user*
 (`{ microsoftTeamsUserId }`). Both take a Microsoft Entra object ID, which is why
@@ -155,6 +178,7 @@ values that make real calls possible.
 | `MAX_CLARIFICATIONS` | `2` | Then a person |
 | `TRANSFER_DELAY_MS` | `1200` | The mind-change window. `0` transfers immediately |
 | `PERSIST_TRANSCRIPTS` | `false` | Decisions are always stored; utterances are not |
+| `DEMO_NOW` | *(empty)* | Simulation only. Pins the routing clock (ISO 8601) so a demo shows the same open and closed routes every run; ignored on real calls |
 
 With all three call variables unset the server logs `SIMULATION MODE` and runs the
 offline console. `GET /health` breaks readiness out per subsystem, because "not ready"
@@ -307,7 +331,13 @@ config/
   routes.json     the routing policy
   callers.json    fictional caller directory
 public/           the presenter console
-test/             63 cases, no Azure required
+  app.js          the panels: call, decision, Teams toast, trail, metrics
+  beats.js        the scripted demo and its narration — edit this to adapt the demo
+  presenter-kit.* shared console building blocks, vendored: edit scripts/presenter-kit/
+                  at the repository root, then run `node scripts/sync-presenter-kit.js`
+scripts/
+  smoke-websockets.mjs  boots the server and checks the WebSocket upgrades
+test/             72 cases, no Azure required
 ```
 
 `flow.mjs`, `routes.mjs`, `handoff.mjs`, `agent.mjs`, `offline.mjs` and `audit.mjs`

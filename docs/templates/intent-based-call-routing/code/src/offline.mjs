@@ -124,7 +124,7 @@ export function handleUtterance(flow, callId, text) {
     routeId,
     confidence,
     callTopic: summarise(said),
-    callSummary: `Caller said: ${said}`,
+    callSummary: inTheirWords(call, said),
   });
 }
 
@@ -135,7 +135,30 @@ export function isAffirmative(text) {
   return AFFIRMATIVE.test(String(text)) && !NEGATIVE.test(String(text));
 }
 
+// Spoken openers that say nothing about the topic: "no wait, …", "um, actually …".
+// A bare "no" stays, so "no one can log in" keeps its meaning.
+const OPENERS = /^(?:(?:no,?\s+(?=wait|actually|sorry)|wait|actually|sorry|um+|uh+|er+|so|well|oh|hi|hey)\b[\s,.!-]*)+/i;
+// The flow's topic limit. Cutting here, at a word, keeps the Teams topic readable.
+const TOPIC_CHARS = 48;
+
 function summarise(text) {
-  const words = String(text).trim().split(/\s+/).slice(0, 7).join(" ");
-  return words.charAt(0).toUpperCase() + words.slice(1);
+  const said = String(text).trim();
+  let topic = (said.replace(OPENERS, "") || said).replace(/[\s,.;:!?]+$/, "");
+  if (topic.length > TOPIC_CHARS) {
+    const cut = topic.slice(0, TOPIC_CHARS - 1);
+    const space = cut.lastIndexOf(" ");
+    topic = `${(space > 0 ? cut.slice(0, space) : cut).replace(/[\s,;:]+$/, "")}…`;
+  }
+  return topic.charAt(0).toUpperCase() + topic.slice(1);
+}
+
+// The caller's own words so far, minus the bare yeses and keypresses, so the
+// agent who picks up hears the whole story — a changed mind included.
+function inTheirWords(call, said) {
+  const lines = (call?.transcript ?? [])
+    .filter((line) => line.role === "caller")
+    .map((line) => String(line.text).trim())
+    .filter((text) => text && !/^[0-9]$/.test(text) && !(isAffirmative(text) && text.split(/\s+/).length <= 3));
+  const story = (lines.length ? lines : [said]).slice(-3).map((text) => `“${text.replace(/[\s.]+$/, "")}”`);
+  return `Caller said: ${story.join(", then ")}`;
 }

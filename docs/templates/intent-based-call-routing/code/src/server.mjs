@@ -12,7 +12,7 @@ import { createHub } from "./realtime.mjs";
 import { handleUtterance, registerSimulatedAgent } from "./offline.mjs";
 import { attachMediaBridge, activeBridges } from "./voice/call-bridge.mjs";
 import { answerInboundCall, transferToTeams, startDtmfRecognition, hangUp } from "./voice/acs.mjs";
-import { resourceAccountFrom } from "./handoff.mjs";
+import { resourceAccountFrom, buildCustomCallingContext } from "./handoff.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const log = (...a) => console.log(new Date().toISOString(), ...a);
@@ -38,6 +38,40 @@ async function createAudit() {
 
 const audit = await createAudit();
 
+// ------------------------------------------------------------------ demo clock
+
+/**
+ * The clock the routing policy sees. Real time unless a demo moves it: in
+ * simulation mode DEMO_NOW, or the console, can pin it inside or outside
+ * business hours, so one running server shows both paths on stage. A server
+ * answering real calls always routes on the real time.
+ */
+const CLOCK_PRESETS = [
+  // A Wednesday, so every weekday route is in play.
+  { id: "business-hours", label: "Business hours", at: "2026-09-30T10:30:00-07:00" },
+  { id: "after-hours", label: "After hours", at: "2026-09-30T19:30:00-07:00" },
+  { id: "real", label: "Real time", at: null },
+];
+
+function startingClock() {
+  if (!config.demoNow) return { at: null, preset: "real" };
+  if (!isSimulated()) {
+    log("[clock] DEMO_NOW is ignored while answering real calls");
+    return { at: null, preset: "real" };
+  }
+  const at = Date.parse(config.demoNow);
+  if (!Number.isFinite(at)) {
+    log(`[clock] DEMO_NOW is not an ISO 8601 timestamp (${config.demoNow}); using the real time`);
+    return { at: null, preset: "real" };
+  }
+  return { at, preset: CLOCK_PRESETS.find((p) => p.at && Date.parse(p.at) === at)?.id ?? "custom" };
+}
+
+const STARTING_CLOCK = startingClock();
+let clockOffsetMs = STARTING_CLOCK.at == null ? 0 : STARTING_CLOCK.at - Date.now();
+let clockPreset = STARTING_CLOCK.preset;
+const now = () => Date.now() + clockOffsetMs;
+
 /** The real transfer. Absent in simulation, which is what makes the flow stub it out. */
 const transfer = isSimulated()
   ? null
@@ -49,7 +83,28 @@ const transfer = isSimulated()
         callId: call.id,
       });
 
-const flow = new RoutingFlow({ routes, callers, audit, transfer, hub });
+/**
+ * The console shows the VoIP headers a transfer actually sends, built by the
+ * same function the transfer uses, rather than its own copy of the list.
+ */
+const flowHub = {
+  send: (callId, target, payload) =>
+    hub.send(callId, target, target === "handoff" ? { ...payload, voipHeaders: buildCustomCallingContext(payload) } : payload),
+};
+
+const flow = new RoutingFlow({ routes, callers, audit, transfer, hub: flowHub, now });
+
+/**
+ * Move the demo clock. Calls in progress shift by the same jump, so switching
+ * to after hours mid-call does not blow that call's time budget — and the
+ * policy core never has to know a demo clock exists.
+ */
+function setClock(at, preset) {
+  const offsetMs = at == null ? 0 : at - Date.now();
+  flow.rebaseClock(offsetMs - clockOffsetMs);
+  clockOffsetMs = offsetMs;
+  clockPreset = preset;
+}
 
 const app = express();
 app.use(express.json({ limit: "256kb" }));
@@ -199,13 +254,14 @@ const TONE_DIGITS = {
 /**
  * The offline demo. A typed transcript drives the same state machine, the same
  * confidence gate, the same business hours and the same handoff assembly as a
- * real call — only the classifier and the audio path are stubbed.
+ * real call — only the classifier and the audio path are stubbed. A simulated
+ * call is never transferred for real, even on a server that answers real calls.
  */
 app.post(
   "/api/simulate",
   asyncRoute(async (req, res) => {
     const fromPhone = req.body?.fromPhone ? normalisePhone(req.body.fromPhone) : null;
-    const call = flow.create({ fromPhone });
+    const call = flow.create({ fromPhone, simulated: true });
     registerSimulatedAgent(flow, call.id);
     flow.answered(call.id);
     res.json({ ok: true, callId: call.id, snapshot: flow.snapshot(call.id) });
@@ -251,17 +307,71 @@ app.post(
   }),
 );
 
+// ----------------------------------------------------------------- demo controls
+
+/** Demo controls refuse to touch a server that is answering real calls. */
+function simulationOnly(res) {
+  if (isSimulated()) return true;
+  res.status(403).json({ error: "Demo controls are off while this server answers real calls." });
+  return false;
+}
+
+const clockView = () => ({
+  now: new Date(now()).toISOString(),
+  timeZone: routes.timeZone,
+  preset: clockPreset,
+  presets: CLOCK_PRESETS.map(({ id, label }) => ({ id, label })),
+  adjustable: isSimulated(),
+});
+
+app.get("/api/demo/clock", (_req, res) => res.json(clockView()));
+
+app.post("/api/demo/clock", (req, res) => {
+  if (!simulationOnly(res)) return;
+  const { preset, at } = req.body ?? {};
+  if (preset != null) {
+    const match = CLOCK_PRESETS.find((p) => p.id === preset);
+    if (!match) return res.status(400).json({ error: `Unknown clock preset "${preset}".` });
+    setClock(match.at == null ? null : Date.parse(match.at), match.id);
+  } else if (at != null) {
+    const parsed = Date.parse(at);
+    if (!Number.isFinite(parsed)) return res.status(400).json({ error: `"${at}" is not an ISO 8601 timestamp.` });
+    setClock(parsed, "custom");
+  } else {
+    return res.status(400).json({ error: "Send { preset } or { at }." });
+  }
+  log(`[clock] demo clock → ${clockPreset} (${new Date(now()).toISOString()})`);
+  res.json(clockView());
+});
+
+/**
+ * A clean stage between run-throughs: no calls in memory, no simulated calls
+ * in the audit (calls from a real phone are kept), and the starting clock.
+ */
+app.post("/api/demo/reset", (_req, res) => {
+  if (!simulationOnly(res)) return;
+  for (const id of flow.calls.keys()) hub.forget(id);
+  flow.reset();
+  audit.reset();
+  setClock(STARTING_CLOCK.at, STARTING_CLOCK.preset);
+  log("[demo] reset");
+  res.json({ ok: true, clock: clockView(), stats: audit.stats() });
+});
+
 // ------------------------------------------------------------------ console API
 
-app.get("/api/routes", (_req, res) =>
+app.get("/api/routes", (_req, res) => {
+  const at = new Date(now());
   res.json({
     organization: routes.organization,
     fallbackRouteId: routes.fallbackRouteId,
+    timeZone: routes.timeZone,
     // Targets are deliberately withheld: the console has no business knowing
     // Teams object ids, and neither does anything else outside routes.json.
-    routes: routes.menu().map((r) => ({ ...r, open: routes.isOpen(r.id) })),
-  }),
-);
+    // Open or closed is judged on the demo clock — the time the policy routes on.
+    routes: routes.menu().map((r) => ({ ...r, open: routes.isOpen(r.id, at), ...routes.describeHours(r.id) })),
+  });
+});
 
 app.get("/api/calls/:id", (req, res) => {
   const snap = flow.snapshot(req.params.id);
@@ -290,8 +400,9 @@ app.get("/health", (_req, res) => {
       confidenceThreshold: config.routing.confidenceThreshold,
       timeBudgetMs: config.routing.timeBudgetMs,
       maxClarifications: config.routing.maxClarifications,
-      transferDelayMs: config.routing.transferDelayMs,
+      transferDelayMs: flow.options.transferDelayMs,
     },
+    clock: { preset: clockPreset, now: new Date(now()).toISOString() },
   });
 });
 
@@ -327,6 +438,7 @@ server.listen(config.port, config.host, () => {
   const missing = assertCallConfig();
   if (missing.length) {
     log(`  SIMULATION MODE    — set ${missing.join(", ")} to answer real calls`);
+    if (clockPreset !== "real") log(`  demo clock         : ${new Date(now()).toISOString()} (${clockPreset})`);
   } else {
     log(`  voice model        : ${config.voiceLive.model} (WebSocket ${config.voiceLive.apiVersion})`);
     log(`  public base URL    : ${config.publicBaseUrl}`);

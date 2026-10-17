@@ -44,6 +44,17 @@ export class MemoryAudit {
     return this.events.filter((e) => e.callId === callId);
   }
 
+  /**
+   * Forget simulated calls and everything recorded about them — the demo
+   * console's reset between run-throughs. Calls from a real phone stay.
+   */
+  reset() {
+    const gone = new Set([...this.calls.values()].filter((c) => c.simulated).map((c) => c.id));
+    for (const id of gone) this.calls.delete(id);
+    this.events = this.events.filter((e) => !gone.has(e.callId));
+    this.transcripts = this.transcripts.filter((t) => !gone.has(t.callId));
+  }
+
   stats() {
     const calls = [...this.calls.values()];
     const tally = (key) =>
@@ -61,9 +72,22 @@ export class MemoryAudit {
       byRoute: tally("confirmedRouteId"),
       clarifications: count("clarification"),
       fallbacks: count("fallback"),
-      transfers: count("transfer_succeeded"),
+      transfers: count("transfer_succeeded") + count("transfer_simulated"),
       failedTransfers: count("transfer_failed"),
       messagesTaken: count("message_taken"),
+      humanRequests: count("human_requested"),
+      medianSecondsToRoute: medianSeconds(
+        calls.filter((c) => String(c.outcome ?? "").startsWith("transferred:")).map((c) => c.durationMs),
+      ),
     };
   }
+}
+
+/** Median of a list of durations in milliseconds, in seconds to one decimal place. */
+export function medianSeconds(durationsMs) {
+  const sorted = durationsMs.filter(Number.isFinite).sort((a, b) => a - b);
+  if (!sorted.length) return null;
+  const mid = Math.floor(sorted.length / 2);
+  const ms = sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+  return Math.round(ms / 100) / 10;
 }

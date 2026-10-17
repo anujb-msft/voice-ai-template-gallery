@@ -7,6 +7,7 @@ const PKG_ROOT = fileURLToPath(new URL("..", import.meta.url));
 const resolvePath = (p) => (isAbsolute(p) ? p : join(PKG_ROOT, p));
 
 const DAY_INDEX = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 function toMinutes(hhmm) {
   const [h, m] = String(hhmm).split(":").map(Number);
@@ -140,6 +141,51 @@ export class RoutePolicy {
       description: r.description ?? "",
       dtmf: r.dtmf ?? null,
     }));
+  }
+
+  /** The time zone business hours are written in, for anything that displays them. */
+  get timeZone() {
+    for (const route of this.byId.values()) if (route.hours?.timeZone) return route.hours.timeZone;
+    return "UTC";
+  }
+
+  /**
+   * Opening hours and the after-hours rule in words, for people rather than the
+   * policy: `{ hours: "Mon–Fri 09:00–17:00", whenClosed: "takes a message" }`.
+   */
+  describeHours(routeId) {
+    const route = this.get(routeId);
+    if (!route) return null;
+    const hours = route.hours ?? {};
+    if (hours.alwaysOpen) return { hours: "Always open", whenClosed: null };
+
+    // Monday-first, so a working week reads Mon–Fri rather than wrapping.
+    const days = [...new Set(hours.days ?? [])].map((d) => (d + 6) % 7).sort((a, b) => a - b);
+    const name = (i) => DAY_NAMES[(i + 1) % 7];
+    const contiguous = days.every((d, i) => i === 0 || d === days[i - 1] + 1);
+    const allDay = (hours.open ?? "00:00") === "00:00" && (hours.close ?? "24:00") === "24:00";
+
+    let text;
+    if (!days.length) text = "Closed";
+    else if (days.length === 7 && allDay) text = "24/7";
+    else {
+      const dayText =
+        days.length === 7
+          ? "Every day"
+          : days.length === 1
+            ? name(days[0])
+            : contiguous
+              ? `${name(days[0])}–${name(days.at(-1))}`
+              : days.map(name).join(", ");
+      text = allDay ? `${dayText}, all day` : `${dayText} ${hours.open ?? "00:00"}–${hours.close ?? "24:00"}`;
+    }
+
+    const after = route.afterHours ?? { behavior: "route", routeId: this.fallbackRouteId };
+    const whenClosed =
+      after.behavior === "message"
+        ? "takes a message"
+        : `goes to ${this.get(after.routeId ?? this.fallbackRouteId)?.label ?? after.routeId ?? this.fallbackRouteId}`;
+    return { hours: text, whenClosed: text === "24/7" ? null : whenClosed };
   }
 
   menuText() {

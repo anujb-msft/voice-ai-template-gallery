@@ -79,8 +79,21 @@ export class RoutingFlow {
 
   // ------------------------------------------------------------------ lifecycle
 
-  /** An inbound call has arrived but has not been answered yet. */
-  create({ callId = randomUUID(), fromPhone = null, incomingCallContext = null, sessionId = null, resourceAccountId = null } = {}) {
+  /**
+   * An inbound call has arrived but has not been answered yet.
+   *
+   * `simulated` marks a call driven from the console or `curl` rather than a
+   * phone. Its transfer is recorded but never dispatched to Teams, even when
+   * the server is configured for live calls.
+   */
+  create({
+    callId = randomUUID(),
+    fromPhone = null,
+    incomingCallContext = null,
+    sessionId = null,
+    resourceAccountId = null,
+    simulated = false,
+  } = {}) {
     const caller = this.callers?.lookup(fromPhone) ?? null;
 
     const call = {
@@ -96,6 +109,7 @@ export class RoutingFlow {
       // line was dialled.
       resourceAccountId,
       arrival: resourceAccountId ? "teams-phone-extensibility" : "acs-direct",
+      simulated: Boolean(simulated) || !this.transfer,
       callConnectionId: null,
       state: STATES.RINGING,
       proposed: null,
@@ -124,6 +138,7 @@ export class RoutingFlow {
       callerVerified: false,
       state: call.state,
       startedAt: new Date(call.startedAt).toISOString(),
+      simulated: call.simulated,
     });
     this.#event(call, "system", "call_created", caller ? `known caller ${caller.displayName}` : "unknown caller");
     return call;
@@ -131,6 +146,30 @@ export class RoutingFlow {
 
   get(callId) {
     return this.calls.get(callId) ?? null;
+  }
+
+  /**
+   * Forget every call, cancelling any transfer still waiting out its
+   * mind-change window. The demo console's reset between run-throughs.
+   */
+  reset() {
+    for (const call of this.calls.values()) this.#cancelPendingDispatch(call);
+    this.calls.clear();
+    this.agents.clear();
+  }
+
+  /**
+   * The injected clock jumped by `deltaMs` (a demo moving from business hours
+   * to after hours, say). Calls still in progress shift with it, so their time
+   * budgets keep measuring time that actually passed, not the jump.
+   */
+  rebaseClock(deltaMs) {
+    if (!Number.isFinite(deltaMs) || deltaMs === 0) return;
+    for (const call of this.calls.values()) {
+      if (TERMINAL.has(call.state)) continue;
+      call.startedAt += deltaMs;
+      if (call.answeredAt != null) call.answeredAt += deltaMs;
+    }
   }
 
   /** Register the live agent so the flow can re-instruct it on every transition. */
@@ -279,7 +318,7 @@ Open by saying you are ${this.routes.organization}'s automated assistant, then a
       return { ok: false, reason: "unmapped_digit" };
     }
     this.#event(call, "caller", "dtmf", `${digit} → ${routeId}`);
-    call.topic = call.topic ?? this.routes.get(routeId)?.label ?? routeId;
+    call.topic = call.topic ?? `Chose ${this.routes.get(routeId)?.label ?? routeId} on the keypad`;
     // A keypress is unambiguous, so it commits without a spoken confirmation.
     return this.#commit(call, routeId, "dtmf");
   }
@@ -320,6 +359,13 @@ Open by saying you are ${this.routes.organization}'s automated assistant, then a
     call.topic = clip(callTopic, TOPIC_LIMIT) ?? call.topic;
     call.summary = clip(callSummary, SUMMARY_LIMIT) ?? call.summary;
     this.#event(call, "agent", "message_taken", call.topic);
+    // Never leave the caller in silence wondering whether it worked.
+    const label = this.routes.get(call.confirmedRouteId)?.label ?? "the team";
+    this.#instruct(
+      call,
+      `The message is recorded. Thank the caller in one sentence, say ${label} will see it when they are back, then call \`end_call\`. Do not promise a specific callback time.`,
+      `Thanks — I've passed that on to ${label}, and they'll see it when they're back. Goodbye for now.`,
+    );
     this.#finish(call, STATES.ENDED, "message_taken");
     return { ok: true, recorded: true };
   }
@@ -514,7 +560,7 @@ Open by saying you are ${this.routes.organization}'s automated assistant, then a
     const context = this.handoffContext(call);
     this.#event(call, "system", "transfer_started", call.destination.routeId);
 
-    if (!this.transfer) {
+    if (!this.transfer || call.simulated) {
       // Offline mode: everything above this line ran for real.
       this.#event(call, "system", "transfer_simulated", call.destination.routeId);
       this.#publish(call, "handoff", context);
@@ -630,6 +676,7 @@ Open by saying you are ${this.routes.organization}'s automated assistant, then a
     return {
       id: call.id,
       state: call.state,
+      simulated: call.simulated,
       maskedPhone: call.maskedPhone,
       caller: call.caller ? { name: call.caller.displayName, company: call.caller.company, verified: false } : null,
       proposed: call.proposed,
