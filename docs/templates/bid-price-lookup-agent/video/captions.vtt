@@ -1,9 +1,297 @@
 WEBVTT
 
-NOTE Draft captions. Replace and time-align after video/demo.mp4 is produced.
+1
+00:00:03.000 --> 00:00:05.778
+<v Narrator>A grain co-op's bid line is usually a recording,
 
-00:00:00.000 --> 00:00:04.000
-This voice AI template demonstration is pending production.
+2
+00:00:05.858 --> 00:00:08.920
+<v Narrator>made once in the morning, while prices move all day.
 
-00:00:04.000 --> 00:00:08.000
-The final video will demonstrate the voice workflow and escalation path.
+3
+00:00:09.370 --> 00:00:13.498
+<v Narrator>Growers press through a menu for a number that may already be stale.
+
+4
+00:00:13.578 --> 00:00:15.350
+<v Narrator>This agent just answers.
+
+5
+00:00:22.050 --> 00:00:25.960
+<v Narrator>Growers call a Teams phone number, through Teams Phone extensibility.
+
+6
+00:00:26.410 --> 00:00:31.197
+<v Narrator>Azure Communication Services Call Automation bridges the audio to Voice Live,
+
+7
+00:00:31.277 --> 00:00:34.140
+<v Narrator>where GPT Realtime holds the conversation.
+
+8
+00:00:34.590 --> 00:00:36.726
+<v Narrator>Your server prices every quote.
+
+9
+00:00:36.806 --> 00:00:41.010
+<v Narrator>To sell or lock a price, the merchandiser takes the call in Teams.
+
+10
+00:00:43.411 --> 00:00:46.808
+<v Narrator>Dale Meyer sells grain at the co-op's Riverside elevator.
+
+11
+00:00:46.888 --> 00:00:48.921
+<v Narrator>He calls for today's corn bid.
+
+12
+00:00:49.886 --> 00:00:51.754
+<v Agent>Contoso Grain Co-op bid line.
+
+13
+00:00:51.834 --> 00:00:53.596
+<v Agent>I'm an automated assistant.
+
+14
+00:00:53.676 --> 00:00:56.228
+<v Agent>Bids are subject to change without notice.
+
+15
+00:00:56.308 --> 00:00:59.018
+<v Agent>Confirm with the merchandiser before selling.
+
+16
+00:00:59.098 --> 00:01:01.046
+<v Agent>Which commodity and location?
+
+17
+00:01:02.373 --> 00:01:04.673
+<v Dale>What's corn paying at Riverside?
+
+18
+00:01:04.998 --> 00:01:08.846
+<v Agent>Corn at Riverside for November delivery is $4.12,
+
+19
+00:01:08.926 --> 00:01:13.888
+<v Agent>that's 35 under December futures, as of 10:42 AM. Anything else?
+
+20
+00:01:15.239 --> 00:01:19.519
+<v Narrator>Every word of that quote was written by your server. The agent only read it.
+
+21
+00:01:20.370 --> 00:01:21.580
+<v Dale>And beans?
+
+22
+00:01:21.882 --> 00:01:26.273
+<v Agent>Soybeans at Riverside for November delivery are $10.11,
+
+23
+00:01:26.353 --> 00:01:31.462
+<v Agent>that's 18 under November futures, as of 10:41 AM. Anything else?
+
+24
+00:01:32.804 --> 00:01:34.754
+<v Dale>That's all, thanks.
+
+25
+00:01:35.057 --> 00:01:38.227
+<v Agent>Thanks for calling Contoso Grain Co-op. Goodbye.
+
+26
+00:01:39.596 --> 00:01:43.178
+<v Narrator>The model never sees a raw bid, basis or futures price,
+
+27
+00:01:43.258 --> 00:01:46.106
+<v Narrator>so it has no number of its own to invent.
+
+28
+00:01:48.170 --> 00:01:51.079
+<v Narrator>Prices age, and a stale price is a wrong one.
+
+29
+00:01:51.159 --> 00:01:55.220
+<v Narrator>Your server decides whether a quote may still be called current.
+
+30
+00:01:56.190 --> 00:01:57.620
+<v Caller>Soybeans at Riverside?
+
+31
+00:01:57.939 --> 00:02:02.330
+<v Agent>Soybeans at Riverside for November delivery are $10.11,
+
+32
+00:02:02.410 --> 00:02:07.519
+<v Agent>that's 18 under November futures, as of 10:41 AM. Anything else?
+
+33
+00:02:08.860 --> 00:02:13.626
+<v Narrator>At 10:45, those futures are four minutes old, inside the twenty-minute window.
+
+34
+00:02:13.706 --> 00:02:15.340
+<v Narrator>So the quote is live.
+
+35
+00:02:16.095 --> 00:02:19.875
+<v Narrator>The clock jumps to 11:20, and the caller asks again.
+
+36
+00:02:22.264 --> 00:02:23.304
+<v Caller>Say that again?
+
+37
+00:02:23.627 --> 00:02:27.187
+<v Agent>Soybeans at Riverside for November delivery are $10.11,
+
+38
+00:02:27.267 --> 00:02:30.480
+<v Agent>that's 18 under November futures, as of 10:41 AM.
+
+39
+00:02:30.560 --> 00:02:33.507
+<v Agent>These prices may be delayed. Anything else?
+
+40
+00:02:34.875 --> 00:02:36.535
+<v Narrator>A repeat is never a replay.
+
+41
+00:02:36.615 --> 00:02:38.175
+<v Narrator>The server checked again,
+
+42
+00:02:38.255 --> 00:02:41.585
+<v Narrator>found thirty-nine-minute-old futures, and added the caveat.
+
+43
+00:02:42.337 --> 00:02:45.817
+<v Narrator>Now it's two in the afternoon, after the 1:20 close.
+
+44
+00:02:48.219 --> 00:02:50.779
+<v Caller>Repeat that, please.
+
+45
+00:02:51.082 --> 00:02:56.422
+<v Agent>As of the last close, soybeans at Riverside for November delivery were $10.05,
+
+46
+00:02:56.502 --> 00:03:00.032
+<v Agent>that's 18 under November futures. Anything else?
+
+47
+00:03:01.394 --> 00:03:05.964
+<v Narrator>No live price exists now, so the agent gives the last settlement, and says so.
+
+48
+00:03:08.346 --> 00:03:14.246
+<v Narrator>Three answers to one question, each decided by policy code. The trail shows why.
+
+49
+00:03:16.302 --> 00:03:19.358
+<v Narrator>Dale calls back. Reading a bid is the agent's job.
+
+50
+00:03:19.438 --> 00:03:23.222
+<v Narrator>Advising on it, or locking it in, belongs to the merchandiser.
+
+51
+00:03:24.223 --> 00:03:26.293
+<v Dale>Corn at Riverside for December?
+
+52
+00:03:26.607 --> 00:03:30.517
+<v Agent>Corn at Riverside for December delivery is $4.14,
+
+53
+00:03:30.597 --> 00:03:35.637
+<v Agent>that's 33 under December futures, as of 10:42 AM. Anything else?
+
+54
+00:03:36.970 --> 00:03:39.760
+<v Dale>Should I lock that in now, or wait?
+
+55
+00:03:40.051 --> 00:03:43.711
+<v Agent>I can't advise on that, but the merchandiser can talk it through with you.
+
+56
+00:03:45.076 --> 00:03:50.286
+<v Narrator>No tool on this line can lock, book or contract a price. Watch the Teams panel.
+
+57
+00:03:51.109 --> 00:03:55.119
+<v Dale>Okay, lock in 5,000 bushels at that price.
+
+58
+00:03:55.462 --> 00:03:59.738
+<v Agent>I can't lock in or book a price on this line — only a merchandiser can.
+
+59
+00:03:59.818 --> 00:04:03.072
+<v Agent>Connecting you with the Riverside merchandiser now.
+
+60
+00:04:04.426 --> 00:04:05.636
+<v Narrator>Nothing was locked.
+
+61
+00:04:05.716 --> 00:04:09.409
+<v Narrator>The Riverside merchandiser's Teams client rings with Dale's last quote,
+
+62
+00:04:09.489 --> 00:04:11.256
+<v Narrator>his own words and the reason.
+
+63
+00:04:13.683 --> 00:04:15.823
+<v Narrator>The model held the conversation.
+
+64
+00:04:15.903 --> 00:04:20.733
+<v Narrator>Your server decided every quote, caveat, refusal and handoff, and counted them.
+
+65
+00:04:22.377 --> 00:04:24.800
+<v Narrator>Under the hood, the model only converses.
+
+66
+00:04:24.880 --> 00:04:29.017
+<v Narrator>It passes on what the grower asked, and reads back the server's sentence.
+
+67
+00:04:29.467 --> 00:04:33.385
+<v Narrator>The server decides the rest: the location, whether a price is live,
+
+68
+00:04:33.465 --> 00:04:37.357
+<v Narrator>delayed or missing, and that every lock request goes to a person.
+
+69
+00:04:39.557 --> 00:04:43.510
+<v Narrator>Making it yours is mostly configuration: your elevators, merchandisers
+
+70
+00:04:43.590 --> 00:04:47.157
+<v Narrator>and hours, your bid sheet, market hours and freshness window.
+
+71
+00:04:47.607 --> 00:04:50.781
+<v Narrator>A licensed feed replaces one fixture class, and the spec
+
+72
+00:04:50.861 --> 00:04:54.217
+<v Narrator>and tests give your coding agent the rules that must hold.
+
+73
+00:04:56.817 --> 00:04:58.300
+<v Narrator>Bid and price lookup.
+
+74
+00:04:58.380 --> 00:05:03.017
+<v Narrator>Run it in simulation in two minutes, then connect it to your own Teams number.

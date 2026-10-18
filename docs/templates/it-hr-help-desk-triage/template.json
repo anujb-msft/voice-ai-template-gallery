@@ -51,13 +51,14 @@
     "expected": [
       {
         "path": "templates/it-hr-help-desk-triage/video/demo.mp4",
-        "status": "pending",
-        "description": "Narrated demonstration recording (MP4)."
+        "status": "ready",
+        "description": "Narrated demo film (5:57), every voice performed by Azure OpenAI GPT Realtime (MP4, hosted on a GitHub Release).",
+        "url": "https://github.com/anujb-msft/voice-ai-template-gallery/releases/download/demo-films/it-hr-help-desk-triage.mp4"
       },
       {
         "path": "templates/it-hr-help-desk-triage/video/poster.webp",
-        "status": "pending",
-        "description": "Poster image for the video player (WebP)."
+        "status": "ready",
+        "description": "Poster frame from the narrated demo film (WebP)."
       },
       {
         "path": "templates/it-hr-help-desk-triage/slides/it-hr-help-desk-triage.pptx",

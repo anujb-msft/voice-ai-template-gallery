@@ -1,9 +1,349 @@
 WEBVTT
 
-NOTE Draft captions. Replace and time-align after video/demo.mp4 is produced.
+1
+00:00:03.000 --> 00:00:07.650
+<v Narrator>Field reps live between meetings, and the CRM lives on a laptop.
 
-00:00:00.000 --> 00:00:04.000
-This voice AI template demonstration is pending production.
+2
+00:00:08.100 --> 00:00:11.353
+<v Narrator>So the briefing gets skipped, and the notes wait until tonight.
 
-00:00:04.000 --> 00:00:08.000
-The final video will demonstrate the voice workflow and escalation path.
+3
+00:00:11.433 --> 00:00:13.310
+<v Narrator>Alex just calls the record desk.
+
+4
+00:00:20.010 --> 00:00:22.514
+<v Narrator>Reps call the record desk straight from Teams,
+
+5
+00:00:22.594 --> 00:00:26.710
+<v Narrator>or dial its Teams number from their mobile, through Teams Phone extensibility.
+
+6
+00:00:27.160 --> 00:00:31.947
+<v Narrator>Azure Communication Services Call Automation bridges the audio to Voice Live,
+
+7
+00:00:32.027 --> 00:00:34.890
+<v Narrator>where GPT Realtime holds the conversation.
+
+8
+00:00:35.340 --> 00:00:38.520
+<v Narrator>Your server verifies the rep, reads and writes the CRM,
+
+9
+00:00:38.600 --> 00:00:42.170
+<v Narrator>and passes what it can't change to Sales Operations in Teams.
+
+10
+00:00:44.592 --> 00:00:49.012
+<v Narrator>Alex is on his way to see Fabrikam, and calls the record desk from his mobile.
+
+11
+00:00:49.960 --> 00:00:53.525
+<v Agent>This is the Contoso sales assistant, an automated agent.
+
+12
+00:00:53.605 --> 00:00:56.680
+<v Agent>Please enter your six-digit Contoso sales PIN.
+
+13
+00:00:58.021 --> 00:01:01.705
+<v Narrator>Caller ID matches his registered mobile, but that's only a hint.
+
+14
+00:01:01.785 --> 00:01:05.811
+<v Narrator>Nothing opens until your server checks his PIN against a stored hash.
+
+15
+00:01:06.710 --> 00:01:09.940
+<v Agent>Thanks, Alex, you're verified. Which account?
+
+16
+00:01:11.247 --> 00:01:12.717
+<v Alex>Brief me on Fabrikam
+
+17
+00:01:13.047 --> 00:01:16.096
+<v Agent>Fabrikam, Strategic tier, your account.
+
+18
+00:01:16.176 --> 00:01:20.023
+<v Agent>Last touch was a call on May 2 about pilot rollout.
+
+19
+00:01:20.103 --> 00:01:25.282
+<v Agent>3 open deals: enterprise renewal at about 250 thousand, in Negotiation,
+
+20
+00:01:25.362 --> 00:01:29.941
+<v Agent>closing June 30, renewal services add-on at about 42 thousand,
+
+21
+00:01:30.021 --> 00:01:35.466
+<v Agent>in Proposal, closing July 10, and analytics expansion at about 80 thousand,
+
+22
+00:01:35.546 --> 00:01:38.062
+<v Agent>in Proposal, closing August 18.
+
+23
+00:01:38.142 --> 00:01:42.256
+<v Agent>One task is due today: send the security questionnaire.
+
+24
+00:01:42.336 --> 00:01:45.797
+<v Agent>Your contact is Dana Ruiz, VP of Operations.
+
+25
+00:01:47.148 --> 00:01:51.115
+<v Narrator>Your server wrote that briefing, from accounts Alex owns or works on.
+
+26
+00:01:51.195 --> 00:01:53.718
+<v Narrator>Phone numbers stay off it until he asks.
+
+27
+00:01:54.523 --> 00:01:55.923
+<v Alex>What's Dana's number?
+
+28
+00:01:56.238 --> 00:02:02.128
+<v Agent>Dana Ruiz's number is 206 555 0120.
+
+29
+00:02:04.201 --> 00:02:07.391
+<v Narrator>Straight after the meeting, Alex calls back from Teams.
+
+30
+00:02:07.471 --> 00:02:10.481
+<v Narrator>His Teams sign-in verifies him, so there's no PIN.
+
+31
+00:02:11.467 --> 00:02:16.587
+<v Agent>Hi Alex, I'm the Contoso sales assistant, an automated agent. Which account?
+
+32
+00:02:17.931 --> 00:02:19.613
+<v Alex>Log the Fabrikam meeting.
+
+33
+00:02:19.693 --> 00:02:21.910
+<v Alex>Dana agreed to the renewal at 240k,
+
+34
+00:02:21.990 --> 00:02:25.594
+<v Alex>moving to Closed Won pending signature, close date June 15th.
+
+35
+00:02:25.674 --> 00:02:28.131
+<v Alex>Remind me to send the contract Friday.
+
+36
+00:02:28.470 --> 00:02:30.618
+<v Agent>Here's what I have for Fabrikam.
+
+37
+00:02:30.698 --> 00:02:33.348
+<v Agent>A meeting activity with Dana Ruiz, today.
+
+38
+00:02:33.428 --> 00:02:36.968
+<v Agent>Enterprise renewal: stage from Negotiation to Closed Won,
+
+39
+00:02:37.048 --> 00:02:39.698
+<v Agent>amount from 250 thousand to 240 thousand,
+
+40
+00:02:39.778 --> 00:02:42.093
+<v Agent>close date from June 30 to June 15,
+
+41
+00:02:42.173 --> 00:02:46.048
+<v Agent>and next step from Security questionnaire to Pending signature.
+
+42
+00:02:46.128 --> 00:02:50.250
+<v Agent>A task for you to send the contract, due Friday, June 12. Save it?
+
+43
+00:02:51.586 --> 00:02:53.754
+<v Narrator>The model only passed Alex's words along.
+
+44
+00:02:53.834 --> 00:02:55.681
+<v Narrator>Your server picked out each field,
+
+45
+00:02:55.761 --> 00:02:58.926
+<v Narrator>checked it against your allow-list, and wrote that read-back.
+
+46
+00:02:59.686 --> 00:03:01.438
+<v Narrator>A bare yes wouldn't count.
+
+47
+00:03:01.518 --> 00:03:05.694
+<v Narrator>Even after “yes, save it”, your server holds the write for six seconds,
+
+48
+00:03:05.774 --> 00:03:07.606
+<v Narrator>and “wait” still stops it.
+
+49
+00:03:08.394 --> 00:03:09.514
+<v Alex>Yes, save it.
+
+50
+00:03:09.842 --> 00:03:13.382
+<v Agent>Saving in six seconds. Say "wait" to stop it.
+
+51
+00:03:14.847 --> 00:03:16.897
+<v Agent>Saved to Fabrikam's record.
+
+52
+00:03:18.253 --> 00:03:23.137
+<v Narrator>Nobody objected, so your server wrote it all in one commit, an audit row per field.
+
+53
+00:03:23.217 --> 00:03:25.563
+<v Narrator>“Undo that” would still reverse it.
+
+54
+00:03:27.632 --> 00:03:31.239
+<v Narrator>Now Alex asks for changes only Sales Operations may make.
+
+55
+00:03:31.319 --> 00:03:35.232
+<v Narrator>What a call can change is set by your server, not the prompt.
+
+56
+00:03:36.257 --> 00:03:41.027
+<v Alex>Raise Fabrikam's credit limit to 500k and move them to net 60 payment terms.
+
+57
+00:03:41.324 --> 00:03:42.224
+<v Agent>The credit limit
+
+58
+00:03:42.304 --> 00:03:45.531
+<v Agent>and the payment terms aren't on the list of things I can change by phone,
+
+59
+00:03:45.611 --> 00:03:48.511
+<v Agent>so nothing was written. Contoso Sales Operations can change them.
+
+60
+00:03:48.591 --> 00:03:50.714
+<v Agent>Want me to put you through with the details?
+
+61
+00:03:52.064 --> 00:03:55.483
+<v Narrator>Your server refused both fields, whatever the model made of them.
+
+62
+00:03:55.563 --> 00:03:58.104
+<v Narrator>And your routing config decides who picks up.
+
+63
+00:03:58.998 --> 00:04:00.078
+<v Alex>Yes, put me through.
+
+64
+00:04:00.417 --> 00:04:04.197
+<v Agent>Putting you through to Contoso Sales Operations with the details.
+
+65
+00:04:05.568 --> 00:04:09.234
+<v Narrator>Sales Operations' Teams queue rings, with the account,
+
+66
+00:04:09.314 --> 00:04:14.268
+<v Narrator>the request and the refusal in the VoIP headers. No PIN, no phone numbers.
+
+67
+00:04:16.338 --> 00:04:20.228
+<v Narrator>Last call: someone has Alex's phone, but not his PIN.
+
+68
+00:04:21.089 --> 00:04:24.654
+<v Agent>This is the Contoso sales assistant, an automated agent.
+
+69
+00:04:24.734 --> 00:04:27.809
+<v Agent>Please enter your six-digit Contoso sales PIN.
+
+70
+00:04:29.151 --> 00:04:32.169
+<v Agent>I couldn't verify you, so I can't open any records.
+
+71
+00:04:32.249 --> 00:04:35.241
+<v Agent>I'll put you through to Contoso Sales Operations.
+
+72
+00:04:36.574 --> 00:04:38.961
+<v Narrator>No second try, and no record opened.
+
+73
+00:04:39.041 --> 00:04:43.864
+<v Narrator>Sales Operations gets only the failed check and the number's last four digits.
+
+74
+00:04:46.281 --> 00:04:48.941
+<v Narrator>These numbers come straight from the audit log.
+
+75
+00:04:49.021 --> 00:04:52.080
+<v Narrator>The model talked; your server decided who was verified,
+
+76
+00:04:52.160 --> 00:04:54.501
+<v Narrator>what was read out and what was written.
+
+77
+00:04:56.137 --> 00:05:00.792
+<v Narrator>The model holds the conversation and passes the rep's words to server tools.
+
+78
+00:05:00.872 --> 00:05:04.817
+<v Narrator>Fields, record IDs and transfer targets come from your server.
+
+79
+00:05:05.267 --> 00:05:08.284
+<v Narrator>Your server verifies the caller, scopes every record,
+
+80
+00:05:08.364 --> 00:05:10.773
+<v Narrator>checks each field against the allow-list,
+
+81
+00:05:10.853 --> 00:05:13.747
+<v Narrator>holds the undo window, and writes the audit rows.
+
+82
+00:05:15.947 --> 00:05:20.140
+<v Narrator>Making it yours is mostly configuration: the fields a call may change,
+
+83
+00:05:20.220 --> 00:05:23.287
+<v Narrator>your reps, and who answers for Sales Operations.
+
+84
+00:05:23.737 --> 00:05:26.289
+<v Narrator>Your CRM plugs in behind one adapter.
+
+85
+00:05:26.369 --> 00:05:31.107
+<v Narrator>The spec, the tests and this demo script give your coding agent the rest.
+
+86
+00:05:33.707 --> 00:05:36.199
+<v Narrator>Customer record lookup and update.
+
+87
+00:05:36.279 --> 00:05:41.667
+<v Narrator>Run it in simulation in two minutes, then connect your own Teams number and CRM.

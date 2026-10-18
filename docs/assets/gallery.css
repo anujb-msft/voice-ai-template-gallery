@@ -2118,7 +2118,8 @@ body {
     column-count: 1;
   }
 
-  .plate {
+  .plate,
+  .plate:first-child {
     grid-template-columns: minmax(240px, 0.8fr) minmax(0, 1fr);
     gap: 24px;
   }
@@ -2147,7 +2148,8 @@ body {
     position: static;
   }
 
-  .plate {
+  .plate,
+  .plate:first-child {
     grid-template-columns: 1fr;
     gap: 16px;
   }
@@ -2983,5 +2985,139 @@ body {
 @media (max-width: 680px) {
   .stage-visual .agent-visual.agent-visual--stage {
     min-height: 260px;
+  }
+}
+
+/* -------------------------------------------------------------------------- */
+/* Film player */
+/* -------------------------------------------------------------------------- */
+/* A template's narrated demo film plays here, streamed from its GitHub Release,
+   rather than downloading. It opens above the plate viewer, in a dark sheet
+   sized so the 16:9 picture always fits the window. */
+.film[hidden] {
+  display: none;
+}
+
+.film {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+
+.film-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(20, 18, 16, 0.82);
+  backdrop-filter: blur(12px);
+}
+
+.film-sheet {
+  position: relative;
+  display: grid;
+  gap: 14px;
+  width: min(1180px, 100%, calc((100vh - 240px) * 16 / 9));
+  min-width: min(560px, 100%);
+  max-height: calc(100vh - 48px);
+  overflow: auto;
+  padding: 20px 22px 18px;
+  border-radius: 28px;
+  background: #1c1a17;
+  color: #f4efe6;
+  box-shadow: 0 32px 120px rgba(0, 0, 0, 0.45);
+}
+
+.film-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.film-kicker {
+  margin: 0;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: #e3a493;
+}
+
+.film-title {
+  margin: 4px 0 0;
+  font-size: 28px;
+  font-weight: 560;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+}
+
+.film-video {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 16px;
+  background: #000;
+}
+
+.film-fallback {
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: rgba(234, 217, 217, 0.12);
+  color: #f1d6d0;
+  font-size: 14px;
+}
+
+.film-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 18px;
+}
+
+.film-foot p {
+  margin: 0;
+  max-width: 62ch;
+  color: #b9b1a4;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.film-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.film-link {
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #f4efe6;
+  font-size: 13px;
+  font-weight: 650;
+  text-decoration: none;
+}
+
+.film-link:hover,
+.film-link:focus-visible {
+  background: #f4efe6;
+  color: #1c1a17;
+}
+
+@media (max-width: 680px) {
+  .film {
+    padding: 0;
+  }
+
+  .film-sheet {
+    width: 100%;
+    min-width: 0;
+    max-height: 100vh;
+    border-radius: 0;
+    padding: 16px;
   }
 }

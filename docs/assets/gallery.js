@@ -137,6 +137,23 @@
   }
 
   /**
+   * Where a ready asset matching `test` is hosted off-site (its manifest
+   * `url`, a GitHub Release download the generator has validated); null when
+   * it is committed beside the template instead.
+   */
+  function hostedAsset(template, test) {
+    var expected = template.assets && Array.isArray(template.assets.expected) ? template.assets.expected : [];
+    var hosted = expected.filter(function (asset) {
+      return test(asset) && asset.status === "ready" && typeof asset.url === "string";
+    });
+    return hosted.length ? hosted[0].url : null;
+  }
+
+  function isFilm(asset) {
+    return /\.mp4$/i.test(asset.path);
+  }
+
+  /**
    * GitHub link for a template's own folder: an absolute link into the
    * configured repository (window.VOICE_AI_REPO, written by
    * scripts/generate-template-index.js) when available, otherwise a
@@ -154,12 +171,17 @@
     return { href: page };
   }
 
+  /**
+   * A hosted film also carries the template id: a plain click plays it in the
+   * film player (openFilm) rather than downloading it, which is all a GitHub
+   * Release download does when opened directly.
+   */
   function videoReference(template) {
-    var pending = pendingAsset(template, function (asset) {
-      return /\.mp4$/i.test(asset.path);
-    });
+    var pending = pendingAsset(template, isFilm);
     if (pending === null) return { href: discoverySearchLinks(template).video };
     if (pending) return { pending: true };
+    var hosted = hostedAsset(template, isFilm);
+    if (hosted) return { href: hosted, film: template.id };
     return { href: (template.paths && template.paths.page ? template.paths.page : "") + "video/demo.mp4" };
   }
 
@@ -375,13 +397,14 @@
 
   function focusableIn(container) {
     return container.querySelectorAll(
-      'a[href], button:not([disabled]), select, textarea, input, [tabindex]:not([tabindex="-1"])'
+      'a[href], button:not([disabled]), select, textarea, input, video[controls], [tabindex]:not([tabindex="-1"])'
     );
   }
 
   var state = { query: "", sort: "name" };
   var active = null;
   var lastFocused = null;
+  var filmOpener = null;
   var toastTimer = null;
 
   function $(selector) {
@@ -397,6 +420,10 @@
   var sheetEl = $("#viewerSheet");
   var agentSelect = $("#agentSelect");
   var toastEl = $("#toast");
+  var filmEl = $("#film");
+  var filmSheetEl = $("#filmSheet");
+  var filmVideoEl = $("#filmVideo");
+  var filmFallbackEl = $("#filmFallback");
 
   function referenceIconMarkup(kind) {
     if (kind === "repo") {
@@ -443,8 +470,10 @@
     }
     return (
       '<a class="reference-link" href="' +
-      ref.href +
-      '" target="_blank" rel="noreferrer" title="' +
+      escapeHtml(ref.href) +
+      '"' +
+      (ref.film ? ' data-film="' + escapeHtml(ref.film) + '"' : "") +
+      ' target="_blank" rel="noreferrer" title="' +
       titles[kind] +
       escapeHtml(templateName) +
       '">' +
@@ -1070,6 +1099,59 @@
     if (lastFocused && typeof lastFocused.focus === "function") lastFocused.focus();
   }
 
+  /**
+   * Plays a template's hosted film in place. A GitHub Release download is
+   * served as an attachment, so opening it directly saves a file; a video
+   * element streams the same URL with range requests instead. The click that
+   * opens the player lets it start with sound.
+   */
+  function openFilm(id, opener) {
+    var template = CATALOG.filter(function (item) {
+      return item.id === id;
+    })[0];
+    var url = template && hostedAsset(template, isFilm);
+    if (!url) return;
+    var expected = template.assets && Array.isArray(template.assets.expected) ? template.assets.expected : [];
+    var poster = expected.filter(function (asset) {
+      return /\/poster\.webp$/i.test(asset.path) && asset.status === "ready";
+    })[0];
+    var page = template.paths && template.paths.page ? template.paths.page : "";
+    var notes = REPO
+      ? "https://github.com/" + REPO.owner + "/" + REPO.name + "/tree/" + (REPO.branch || "main") + "/docs/" + page + "video"
+      : page + "video/transcript.md";
+    filmOpener = opener || document.activeElement;
+    $("#filmTitle").textContent = template.name;
+    $("#filmDownload").setAttribute("href", url);
+    $("#filmNotes").setAttribute("href", notes);
+    filmFallbackEl.hidden = true;
+    if (poster) filmVideoEl.setAttribute("poster", poster.path);
+    else filmVideoEl.removeAttribute("poster");
+    filmVideoEl.setAttribute("aria-label", "Narrated demo film: " + template.name);
+    filmVideoEl.setAttribute("src", url);
+    filmEl.hidden = false;
+    document.body.style.overflow = "hidden";
+    $("#filmClose").focus();
+    var playing = filmVideoEl.play();
+    // A refused autoplay leaves the controls up; a failed load shows the fallback.
+    if (playing && typeof playing.catch === "function") playing.catch(function () {});
+  }
+
+  function closeFilm() {
+    if (filmEl.hidden) return;
+    filmVideoEl.pause();
+    // Dropping the source stops the download; an empty src would raise an error instead.
+    filmVideoEl.removeAttribute("src");
+    filmVideoEl.load();
+    filmEl.hidden = true;
+    if (viewerEl.hidden) document.body.style.overflow = "";
+    if (filmOpener && typeof filmOpener.focus === "function") filmOpener.focus();
+    filmOpener = null;
+  }
+
+  filmVideoEl.addEventListener("error", function () {
+    if (!filmEl.hidden && filmVideoEl.getAttribute("src")) filmFallbackEl.hidden = false;
+  });
+
   function stepPlate(delta) {
     if (!active) return;
     var pool = visible();
@@ -1094,9 +1176,9 @@
     }, 2600);
   }
 
-  function trapFocus(event) {
-    if (event.key !== "Tab" || viewerEl.hidden) return;
-    var focusable = focusableIn(sheetEl);
+  function trapFocus(event, container) {
+    if (event.key !== "Tab") return;
+    var focusable = focusableIn(container);
     if (!focusable.length) return;
     var first = focusable[0];
     var last = focusable[focusable.length - 1];
@@ -1110,7 +1192,18 @@
   }
 
   document.addEventListener("click", function (event) {
+    // Modified clicks keep the link's own behavior: the raw release download.
+    var filmLink = event.target.closest("a[data-film]");
+    if (filmLink && !(event.metaKey || event.ctrlKey || event.shiftKey || event.altKey)) {
+      event.preventDefault();
+      openFilm(filmLink.getAttribute("data-film"), filmLink);
+      return;
+    }
     if (event.target.closest("a[href]")) return;
+    if (event.target.closest("[data-close-film]")) {
+      closeFilm();
+      return;
+    }
     var opener = event.target.closest("[data-open]");
     if (opener) {
       openPlate(opener.getAttribute("data-open"));
@@ -1168,13 +1261,23 @@
   });
 
   document.addEventListener("keydown", function (event) {
+    // The film player sits above the plate viewer, so it takes the keys first.
+    if (!filmEl.hidden) {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        closeFilm();
+      } else {
+        trapFocus(event, filmSheetEl);
+      }
+      return;
+    }
     if (viewerEl.hidden) return;
     if (event.key === "Escape") {
       event.preventDefault();
       closePlate();
       return;
     }
-    trapFocus(event);
+    trapFocus(event, sheetEl);
     var tag = document.activeElement ? document.activeElement.tagName : "";
     if (/^(INPUT|TEXTAREA|SELECT)$/.test(tag) || event.metaKey || event.ctrlKey || event.altKey) {
       return;

@@ -53,12 +53,13 @@
       {
         "path": "templates/it-helpdesk-password-reset/video/demo.mp4",
         "status": "ready",
-        "description": "Approved 3:30 Teams Phone Extensibility demonstration (MP4)."
+        "description": "Narrated demo film (5:13), every voice performed by Azure OpenAI GPT Realtime (MP4, hosted on a GitHub Release).",
+        "url": "https://github.com/anujb-msft/voice-ai-template-gallery/releases/download/demo-films/it-helpdesk-password-reset.mp4"
       },
       {
         "path": "templates/it-helpdesk-password-reset/video/poster.webp",
         "status": "ready",
-        "description": "Poster image from the approved demonstration (WebP)."
+        "description": "Poster frame from the narrated demo film (WebP)."
       },
       {
         "path": "templates/it-helpdesk-password-reset/slides/it-helpdesk-password-reset.pptx",

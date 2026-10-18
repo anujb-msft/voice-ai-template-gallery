@@ -1,9 +1,353 @@
 WEBVTT
 
-NOTE Draft captions. Replace and time-align after video/demo.mp4 is produced.
+1
+00:00:03.000 --> 00:00:06.984
+<v Narrator>On a typical help line, employees guess whether a problem belongs to IT,
 
-00:00:00.000 --> 00:00:04.000
-This voice AI template demonstration is pending production.
+2
+00:00:07.064 --> 00:00:09.960
+<v Narrator>HR or payroll, and often wait in the wrong queue.
 
-00:00:04.000 --> 00:00:08.000
-The final video will demonstrate the voice workflow and escalation path.
+3
+00:00:10.410 --> 00:00:13.218
+<v Narrator>Some problems are too personal for a phone menu.
+
+4
+00:00:13.298 --> 00:00:15.670
+<v Narrator>Here, employees just say what's wrong.
+
+5
+00:00:22.370 --> 00:00:24.809
+<v Narrator>Employees call the help line from Teams,
+
+6
+00:00:24.889 --> 00:00:28.090
+<v Narrator>or from any phone, through Teams Phone extensibility.
+
+7
+00:00:28.540 --> 00:00:33.327
+<v Narrator>Azure Communication Services Call Automation bridges the audio to Voice Live,
+
+8
+00:00:33.407 --> 00:00:36.270
+<v Narrator>where GPT Realtime holds the conversation.
+
+9
+00:00:36.720 --> 00:00:39.572
+<v Narrator>Your server decides who's calling, what they may hear,
+
+10
+00:00:39.652 --> 00:00:41.780
+<v Narrator>and which Teams queue takes the call.
+
+11
+00:00:44.202 --> 00:00:46.715
+<v Narrator>Sam Rivera calls the help line from Teams.
+
+12
+00:00:46.795 --> 00:00:51.202
+<v Narrator>Teams sign-in already says who's calling, so there are no security questions.
+
+13
+00:00:52.143 --> 00:00:55.089
+<v Agent>Hi Sam, this is the Contoso IT and HR help line.
+
+14
+00:00:55.169 --> 00:00:56.981
+<v Agent>I'm an automated assistant.
+
+15
+00:00:57.061 --> 00:01:00.980
+<v Agent>Heads up: we know Outlook is down right now and the team is on it.
+
+16
+00:01:01.060 --> 00:01:02.843
+<v Agent>What can I help you with?
+
+17
+00:01:04.173 --> 00:01:06.503
+<v Sam>My VPN keeps disconnecting
+
+18
+00:01:06.826 --> 00:01:09.741
+<v Agent>From the IT VPN guide: restart GlobalProtect,
+
+19
+00:01:09.821 --> 00:01:14.092
+<v Agent>confirm you are on a trusted network, then choose Refresh connection.
+
+20
+00:01:14.172 --> 00:01:17.506
+<v Agent>If it still disconnects, open a Network/VPN ticket.
+
+21
+00:01:18.852 --> 00:01:21.624
+<v Narrator>That's the approved VPN article, word for word.
+
+22
+00:01:21.704 --> 00:01:25.592
+<v Narrator>Answers come from your knowledge base, not from the model's memory.
+
+23
+00:01:26.481 --> 00:01:29.581
+<v Sam>My laptop screen keeps flickering and I can't work
+
+24
+00:01:29.910 --> 00:01:34.375
+<v Agent>Here's the ticket: Laptop display, on your Surface Laptop ending in 4471.
+
+25
+00:01:34.455 --> 00:01:37.990
+<v Agent>You're blocked, so that's priority 2. Should I file it?
+
+26
+00:01:39.328 --> 00:01:41.375
+<v Narrator>Your server drafted that ticket.
+
+27
+00:01:41.455 --> 00:01:43.821
+<v Narrator>Sam can't work, so the matrix says P2,
+
+28
+00:01:43.901 --> 00:01:47.198
+<v Narrator>and the laptop comes from the directory, not from Sam.
+
+29
+00:01:48.023 --> 00:01:49.473
+<v Sam>Yes, file it
+
+30
+00:01:49.781 --> 00:01:54.521
+<v Agent>Your ticket is INC-004821 — that's I-N-C, 0-0-4-8-2-1.
+
+31
+00:01:54.601 --> 00:01:57.787
+<v Agent>I'll send it to you in Teams chat.
+
+32
+00:01:57.867 --> 00:02:00.821
+<v Agent>Anything else I can help with?
+
+33
+00:02:02.169 --> 00:02:08.229
+<v Narrator>One call, two outcomes: an approved answer, and a ticket filed only on a clear yes.
+
+34
+00:02:10.281 --> 00:02:12.639
+<v Narrator>Now Sam calls from a mobile phone.
+
+35
+00:02:12.719 --> 00:02:17.131
+<v Narrator>Caller ID is easy to fake, so even a matching number is only a hint.
+
+36
+00:02:18.143 --> 00:02:22.273
+<v Sam>What's happening with INC-004610?
+
+37
+00:02:22.557 --> 00:02:26.906
+<v Agent>I can help with that once I've confirmed who you are. What's your work email?
+
+38
+00:02:26.986 --> 00:02:29.747
+<v Agent>I'll send a one-time code to your Teams chat.
+
+39
+00:02:31.075 --> 00:02:34.485
+<v Sam>sam.rivera@contoso.com
+
+40
+00:02:34.805 --> 00:02:37.221
+<v Agent>I sent a six-digit code to your Teams chat.
+
+41
+00:02:37.301 --> 00:02:38.965
+<v Agent>Please read it back to me.
+
+42
+00:02:40.321 --> 00:02:43.059
+<v Narrator>Your server made a one-time code for this call.
+
+43
+00:02:43.139 --> 00:02:46.931
+<v Narrator>In simulation nothing is sent: it appears in this mock Teams chat.
+
+44
+00:02:47.756 --> 00:02:50.506
+<v Sam>654321
+
+45
+00:02:50.793 --> 00:02:54.193
+<v Agent>That code didn't match. Please read the six digits again.
+
+46
+00:02:55.525 --> 00:03:00.195
+<v Narrator>Refused. One more miss, and Sam goes to a person who can verify another way.
+
+47
+00:03:01.044 --> 00:03:03.144
+<v Sam>123456
+
+48
+00:03:03.442 --> 00:03:05.772
+<v Agent>Thanks, Sam — you're verified.
+
+49
+00:03:06.114 --> 00:03:11.278
+<v Agent>INC-004610, "Printer on 4th floor jams", is in progress.
+
+50
+00:03:11.358 --> 00:03:16.684
+<v Agent>Latest update: Field services ordered a replacement tray.
+
+51
+00:03:18.024 --> 00:03:20.163
+<v Narrator>Only then is the ticket read out.
+
+52
+00:03:20.243 --> 00:03:23.411
+<v Narrator>The code works once, and never reaches the audit log
+
+53
+00:03:23.491 --> 00:03:25.764
+<v Narrator>or a console watching a real call.
+
+54
+00:03:27.843 --> 00:03:31.755
+<v Narrator>Some calls need a person straight away, with as little on record as possible.
+
+55
+00:03:31.835 --> 00:03:33.713
+<v Narrator>Watch what the agent doesn't do.
+
+56
+00:03:34.694 --> 00:03:39.074
+<v Sam>My manager keeps making comments about me and I don't know what to do
+
+57
+00:03:39.390 --> 00:03:42.451
+<v Agent>That is something our HR team should handle directly.
+
+58
+00:03:42.531 --> 00:03:45.260
+<v Agent>I will connect you to a confidential HR line.
+
+59
+00:03:46.582 --> 00:03:50.760
+<v Narrator>Your server's guard ran first, before any classifier or tool.
+
+60
+00:03:50.840 --> 00:03:55.592
+<v Narrator>No questions, no ticket, and the transcript keeps only a placeholder.
+
+61
+00:03:56.376 --> 00:03:59.374
+<v Narrator>The person who picks up sees “Confidential HR”.
+
+62
+00:03:59.454 --> 00:04:03.596
+<v Narrator>No topic, no summary, no notes, in the Teams toast or the headers.
+
+63
+00:04:05.867 --> 00:04:08.741
+<v Narrator>Last call of the day, and it's an urgent one.
+
+64
+00:04:08.821 --> 00:04:11.607
+<v Narrator>A security incident can't wait in a queue.
+
+65
+00:04:12.620 --> 00:04:14.500
+<v Sam>I think I clicked a phishing link
+
+66
+00:04:14.799 --> 00:04:19.553
+<v Agent>Here's the ticket: Phishing click, on your Surface Laptop ending in 4471.
+
+67
+00:04:19.633 --> 00:04:23.989
+<v Agent>It's a security incident, so that's priority 1. Should I file it?
+
+68
+00:04:25.339 --> 00:04:29.970
+<v Narrator>Security incidents are P1 by rule, in your server's priority matrix.
+
+69
+00:04:30.050 --> 00:04:32.529
+<v Narrator>The model never sets a priority.
+
+70
+00:04:33.349 --> 00:04:34.134
+<v Sam>Yes
+
+71
+00:04:34.214 --> 00:04:40.167
+<v Agent>Your ticket is INC-004822 — that's I-N-C, 0-0-4-8-2-2.
+
+72
+00:04:40.247 --> 00:04:44.334
+<v Agent>I'll send it to you in Teams chat.
+
+73
+00:04:44.677 --> 00:04:47.915
+<v Agent>This is urgent, so I'm connecting you to IT on-call now.
+
+74
+00:04:47.995 --> 00:04:50.587
+<v Agent>Don't enter any passwords in the meantime.
+
+75
+00:04:51.931 --> 00:04:57.451
+<v Narrator>IT on-call sees the P1, the ticket number and Sam's laptop before picking up.
+
+76
+00:04:59.885 --> 00:05:01.430
+<v Narrator>Every outcome is counted.
+
+77
+00:05:01.510 --> 00:05:04.187
+<v Narrator>Private HR calls show as “fewer than five” until
+
+78
+00:05:04.267 --> 00:05:07.025
+<v Narrator>there are enough that nobody can be singled out.
+
+79
+00:05:08.680 --> 00:05:11.708
+<v Narrator>Under the hood, the model converses and proposes.
+
+80
+00:05:11.788 --> 00:05:16.040
+<v Narrator>It never sets a priority, and it can't send anyone to a private queue.
+
+81
+00:05:16.490 --> 00:05:20.999
+<v Narrator>Your server decides: the guard runs first, identity and confidence are gated,
+
+82
+00:05:21.079 --> 00:05:25.290
+<v Narrator>the matrix sets priority, and each queue gets only its allowed fields.
+
+83
+00:05:27.490 --> 00:05:31.883
+<v Narrator>Making it yours is mostly configuration: your topics and approved articles,
+
+84
+00:05:31.963 --> 00:05:36.220
+<v Narrator>your Teams queues and hours, your sensitive phrases and priority rules.
+
+85
+00:05:36.670 --> 00:05:39.667
+<v Narrator>Delivering the one-time code is left as a stub.
+
+86
+00:05:39.747 --> 00:05:44.670
+<v Narrator>Your coding agent wires it to Teams chat, with the spec and tests as guardrails.
+
+87
+00:05:47.270 --> 00:05:49.061
+<v Narrator>IT and HR help desk triage.
+
+88
+00:05:49.141 --> 00:05:53.740
+<v Narrator>Run it in simulation in two minutes, then connect it to your own Teams number.

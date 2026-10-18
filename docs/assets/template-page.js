@@ -97,6 +97,19 @@
     });
   }
 
+  /**
+   * Where a ready asset matching `test` is hosted off-site (its manifest
+   * `url`, a GitHub Release download the generator has validated); null when
+   * it is committed beside the template instead.
+   */
+  function hostedAsset(test) {
+    var expected = template.assets && Array.isArray(template.assets.expected) ? template.assets.expected : [];
+    var hosted = expected.filter(function (asset) {
+      return test(asset) && asset.status === "ready" && typeof asset.url === "string";
+    });
+    return hosted.length ? hosted[0].url : null;
+  }
+
   function deliverableRow(config) {
     var status = config.pending
       ? '<span class="tpl-deliverable-status tpl-deliverable-status--pending">Pending</span>'
@@ -133,19 +146,49 @@
   }
 
   function videoDeliverable() {
-    var pending = pendingAsset(function (asset) {
+    var isFilm = function (asset) {
       return /\.mp4$/i.test(asset.path);
-    });
+    };
+    var pending = pendingAsset(isFilm);
+    var hosted = hostedAsset(isFilm);
+    if (pending === false && hosted) return filmDeliverable(hosted, isFilm);
     return deliverableRow({
       title: "Video walkthrough",
       pending: pending !== false,
       planHref: relativeToPage(template.paths.videoReadme),
       href: relativeToPage(template.paths.page) + "video/demo.mp4",
       actionLabel: "Watch the demo",
-      note: pending === false
-        ? "A narrated demonstration recording is available."
-        : "The narrated demo recording and poster image are planned but not yet produced.",
+      note: pending !== false
+        ? "The narrated demo recording and poster image are planned but not yet produced."
+        : "A narrated demonstration recording is available.",
     });
+  }
+
+  /**
+   * A film hosted on a GitHub Release plays right here. Opening the release
+   * download directly saves a file (it is served as an attachment), but a
+   * video element streams the same URL; the link stays for a local copy.
+   */
+  function filmDeliverable(url, isFilm) {
+    var expected = template.assets.expected;
+    var film = expected.filter(function (asset) {
+      return isFilm(asset) && asset.url === url;
+    })[0];
+    var poster = expected.filter(function (asset) {
+      return /\/poster\.webp$/i.test(asset.path) && asset.status === "ready";
+    })[0];
+    return (
+      '<li class="tpl-deliverable">' +
+      '<div class="tpl-deliverable-head"><strong>Video walkthrough</strong>' +
+      '<span class="tpl-deliverable-status tpl-deliverable-status--ready">Available</span></div>' +
+      '<video class="tpl-film" controls playsinline preload="none" src="' + escapeHtml(url) + '"' +
+      (poster ? ' poster="' + escapeHtml(relativeToPage(poster.path)) + '"' : "") +
+      ' aria-label="' + escapeHtml("Narrated demo film: " + template.name) + '"></video>' +
+      '<p class="tpl-film-fallback" hidden>This browser can\u2019t stream the film from GitHub. Download it instead.</p>' +
+      "<p>" + escapeHtml(film ? film.description : "A narrated demo film.") + "</p>" +
+      '<a class="tpl-deliverable-link" href="' + escapeHtml(url) + '">Download the film (MP4)</a>' +
+      "</li>"
+    );
   }
 
   function slidesDeliverable() {
@@ -224,6 +267,13 @@
           '<a class="tpl-action tpl-action--secondary" href="' + escapeHtml(galleryHash) + '">Open in the gallery</a>' +
         "</div>" +
       "</article>";
+
+    var film = mount.querySelector(".tpl-film");
+    if (film) {
+      film.addEventListener("error", function () {
+        mount.querySelector(".tpl-film-fallback").hidden = false;
+      });
+    }
   }
 
   render();

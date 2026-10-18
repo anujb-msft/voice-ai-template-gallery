@@ -51,13 +51,14 @@
     "expected": [
       {
         "path": "templates/after-hours-sales-lead-capture/video/demo.mp4",
-        "status": "pending",
-        "description": "Narrated demonstration recording (MP4)."
+        "status": "ready",
+        "description": "Narrated demo film (5:19), every voice performed by Azure OpenAI GPT Realtime (MP4, hosted on a GitHub Release).",
+        "url": "https://github.com/anujb-msft/voice-ai-template-gallery/releases/download/demo-films/after-hours-sales-lead-capture.mp4"
       },
       {
         "path": "templates/after-hours-sales-lead-capture/video/poster.webp",
-        "status": "pending",
-        "description": "Poster image for the video player (WebP)."
+        "status": "ready",
+        "description": "Poster frame from the narrated demo film (WebP)."
       },
       {
         "path": "templates/after-hours-sales-lead-capture/slides/after-hours-sales-lead-capture.pptx",

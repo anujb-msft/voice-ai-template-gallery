@@ -16,7 +16,7 @@
     <meta property="og:type" content="website" />
     <title>Voice AI Agent Template Gallery</title>
     <link rel="icon" href="favicon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="assets/gallery.css?v=20260905-1" />
+    <link rel="stylesheet" href="assets/gallery.css?v=20261017-1" />
   </head>
   <body>
     <a class="skip-link" href="#catalogue">Skip to the catalogue</a>
@@ -212,8 +212,66 @@
 
     <p class="toast" id="toast" role="status" aria-live="polite" hidden></p>
 
+    <div class="film" id="film" hidden>
+      <div class="film-backdrop" data-close-film></div>
+      <section
+        class="film-sheet"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="filmTitle"
+        id="filmSheet"
+      >
+        <header class="film-head">
+          <div>
+            <p class="film-kicker">Narrated demo film</p>
+            <h2 class="film-title" id="filmTitle">Template</h2>
+          </div>
+          <button
+            class="rule-button"
+            type="button"
+            id="filmClose"
+            data-close-film
+            title="Close film (Esc)"
+          >
+            <span aria-hidden="true">&times;</span
+            ><span class="sr-only">Close film</span>
+          </button>
+        </header>
+        <video
+          class="film-video"
+          id="filmVideo"
+          controls
+          playsinline
+          preload="metadata"
+        ></video>
+        <p class="film-fallback" id="filmFallback" role="status" hidden>
+          This browser can't stream the film from GitHub. Download it instead.
+        </p>
+        <footer class="film-foot">
+          <p>
+            Every voice is synthetic, performed by Azure OpenAI GPT Realtime.
+            Callers and companies are fictional, and the console runs in
+            simulation mode.
+          </p>
+          <div class="film-links">
+            <a class="film-link" id="filmDownload" href="#" rel="noreferrer"
+              >Download MP4</a
+            >
+            <a
+              class="film-link"
+              id="filmNotes"
+              href="#"
+              target="_blank"
+              rel="noreferrer"
+              >Transcript &amp; notes</a
+            >
+          </div>
+        </footer>
+      </section>
+    </div>
+
     <!-- Generated folder-owned template data (window.VOICE_AI_TEMPLATES). -->
-    <script src="data/templates.js?v=20260905-1"></script>
-    <script src="assets/gallery.js?v=20260930-1"></script>
+    <script src="data/templates.js?v=20261018-2"></script>
+    <script src="assets/gallery.js?v=20261017-1"></script>
   </body>
 </html>

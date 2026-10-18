@@ -269,6 +269,14 @@ template, change its `name`.
   that adds the file. The generator fails on a `ready` asset that is missing and on a
   `pending` asset that is present, so placeholders can't be committed.
 - GitHub rejects files over 100 MB and warns above 50 MB. Compress video for the web.
+- Demo films are not committed. Each one is an asset (`<id>.mp4`) on the repository's
+  `demo-films` GitHub Release, and its `assets.expected` entry adds a `url` pointing at
+  that download, while `path` still names where the film belongs. The gallery's Video
+  button and the template page play the `url` in a video element, because GitHub serves
+  a release download as an attachment: opened as a link, it saves a file instead.
+  The generator requires a hosted asset to be `ready`, its `url` to be a GitHub Release
+  download of the same file type, and nothing to be committed at its `path`.
+  `scripts/video` uploads the film and writes the entry; see its README.
 
 ### Documentation
 

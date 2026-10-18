@@ -93,6 +93,16 @@ function isDocsRelative(value) {
 }
 
 /**
+ * Hosted assets may only point at a file attached to a GitHub Release, built
+ * from plain segments, so a manifest can never link the site somewhere else
+ * or inject markup through the URL.
+ */
+function isReleaseDownload(value) {
+  return typeof value === "string" &&
+    /^https:\/\/github\.com\/[A-Za-z0-9._-]+\/[A-Za-z0-9._-]+\/releases\/download\/[A-Za-z0-9._-]+\/[A-Za-z0-9._-]+$/.test(value);
+}
+
+/**
  * JSON is not a strict subset of JavaScript source, and this data is written
  * into a script file. Escaping `<` and the U+2028/U+2029 line separators keeps
  * the output safe to parse (and safe to inline) regardless of manifest copy.
@@ -146,7 +156,7 @@ function validateTemplate(template, file, folder) {
     if (!asset || Array.isArray(asset) || typeof asset !== "object") {
       fail(file, "every expected asset must be an object");
     }
-    requireExactKeys(asset, ["path", "status", "description"], file, "expected asset");
+    requireExactKeys(asset, ["path", "status", "description", "url"], file, "expected asset");
     if (!asset || !isNonEmptyString(asset.path) || !["ready", "pending"].includes(asset.status) || !isNonEmptyString(asset.description)) {
       fail(file, "every expected asset requires path, description, and a ready or pending status");
     }
@@ -154,11 +164,27 @@ function validateTemplate(template, file, folder) {
     if (!asset.path.startsWith(`templates/${folder}/`)) {
       fail(file, `expected asset must live in its own folder (got "${asset.path}")`);
     }
+    const onDisk = fs.existsSync(path.join(docsDir, asset.path));
+    // A deliverable too large to commit (a demo film) is hosted on a GitHub
+    // Release instead: `url` is where the site links it, and `path` still
+    // names where it belongs. It is ready by definition, and a committed copy
+    // beside it could drift from the hosted one, so both are rejected. The
+    // check stays offline; scripts/video verifies the upload when publishing.
+    if (asset.url !== undefined) {
+      if (!isReleaseDownload(asset.url)) {
+        fail(file, `asset url must be a GitHub Release download, https://github.com/OWNER/REPO/releases/download/TAG/FILE (got "${asset.url}")`);
+      }
+      if (path.extname(asset.url) !== path.extname(asset.path)) {
+        fail(file, `asset url must be the same file type as its path: ${asset.url}`);
+      }
+      if (asset.status !== "ready") fail(file, `a hosted asset must be marked ready: ${asset.path}`);
+      if (onDisk) fail(file, `asset is hosted at its url but also committed: ${asset.path}`);
+      continue;
+    }
     // The declared status is the site's only source of truth for whether a
     // deliverable renders as a real link or a "Pending" tag, so it has to
     // agree with what is actually committed. This also blocks placeholder
     // stand-ins (an empty demo.mp4, a fake poster) from shipping as pending.
-    const onDisk = fs.existsSync(path.join(docsDir, asset.path));
     if (asset.status === "ready" && !onDisk) fail(file, `asset is marked ready but missing: ${asset.path}`);
     if (asset.status === "pending" && onDisk) fail(file, `asset is marked pending but present on disk: ${asset.path}`);
   }

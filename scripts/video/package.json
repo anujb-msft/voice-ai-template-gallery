@@ -1,0 +1,23 @@
+{
+  "name": "voice-ai-template-gallery-films",
+  "private": true,
+  "description": "Builds the narrated demo film for each gallery template: GPT Realtime voices, a captured run of the template's demo console, and a HyperFrames composition.",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "check": "node src/check.mjs",
+    "capture": "node src/capture.mjs",
+    "compose": "node src/compose.mjs",
+    "publish": "node src/publish.mjs",
+    "stage": "node src/stage.mjs",
+    "voice": "node src/realtime.mjs"
+  },
+  "dependencies": {
+    "gsap": "^3.15.0",
+    "hyperframes": "0.8.145",
+    "puppeteer-core": "^25.10.0",
+    "ws": "^8.22.0"
+  }
+}

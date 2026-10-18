@@ -53,13 +53,14 @@ window.VOICE_AI_TEMPLATES = [
       "expected": [
         {
           "path": "templates/311-service-assistant/video/demo.mp4",
-          "status": "pending",
-          "description": "Narrated demonstration recording (MP4)."
+          "status": "ready",
+          "description": "Narrated demo film (5:44), every voice performed by Azure OpenAI GPT Realtime (MP4, hosted on a GitHub Release).",
+          "url": "https://github.com/anujb-msft/voice-ai-template-gallery/releases/download/demo-films/311-service-assistant.mp4"
         },
         {
           "path": "templates/311-service-assistant/video/poster.webp",
-          "status": "pending",
-          "description": "Poster image for the video player (WebP)."
+          "status": "ready",
+          "description": "Poster frame from the narrated demo film (WebP)."
         },
         {
           "path": "templates/311-service-assistant/slides/311-service-assistant.pptx",
@@ -143,13 +144,14 @@ window.VOICE_AI_TEMPLATES = [
       "expected": [
         {
           "path": "templates/after-hours-sales-lead-capture/video/demo.mp4",
-          "status": "pending",
-          "description": "Narrated demonstration recording (MP4)."
+          "status": "ready",
+          "description": "Narrated demo film (5:19), every voice performed by Azure OpenAI GPT Realtime (MP4, hosted on a GitHub Release).",
+          "url": "https://github.com/anujb-msft/voice-ai-template-gallery/releases/download/demo-films/after-hours-sales-lead-capture.mp4"
         },
         {
           "path": "templates/after-hours-sales-lead-capture/video/poster.webp",
-          "status": "pending",
-          "description": "Poster image for the video player (WebP)."
+          "status": "ready",
+          "description": "Poster frame from the narrated demo film (WebP)."
         },
         {
           "path": "templates/after-hours-sales-lead-capture/slides/after-hours-sales-lead-capture.pptx",
@@ -233,13 +235,14 @@ window.VOICE_AI_TEMPLATES = [
       "expected": [
         {
           "path": "templates/appointment-reminder-agent/video/demo.mp4",
-          "status": "pending",
-          "description": "Narrated demonstration recording (MP4)."
+          "status": "ready",
+          "description": "Narrated demo film (5:27), every voice performed by Azure OpenAI GPT Realtime (MP4, hosted on a GitHub Release).",
+          "url": "https://github.com/anujb-msft/voice-ai-template-gallery/releases/download/demo-films/appointment-reminder-agent.mp4"
         },
         {
           "path": "templates/appointment-reminder-agent/video/poster.webp",
-          "status": "pending",
-          "description": "Poster image for the video player (WebP)."
+          "status": "ready",
+          "description": "Poster frame from the narrated demo film (WebP)."
         },
         {
           "path": "templates/appointment-reminder-agent/slides/appointment-reminder-agent.pptx",
@@ -323,13 +326,14 @@ window.VOICE_AI_TEMPLATES = [
       "expected": [
         {
           "path": "templates/appointment-scheduling-agent/video/demo.mp4",
-          "status": "pending",
-          "description": "Narrated demonstration recording (MP4)."
+          "status": "ready",
+          "description": "Narrated demo film (5:32), every voice performed by Azure OpenAI GPT Realtime (MP4, hosted on a GitHub Release).",
+          "url": "https://github.com/anujb-msft/voice-ai-template-gallery/releases/download/demo-films/appointment-scheduling-agent.mp4"
         },
         {
           "path": "templates/appointment-scheduling-agent/video/poster.webp",
-          "status": "pending",
-          "description": "Poster image for the video player (WebP)."
+          "status": "ready",
+          "description": "Poster frame from the narrated demo film (WebP)."
         },
         {
           "path": "templates/appointment-scheduling-agent/slides/appointment-scheduling-agent.pptx",
@@ -413,13 +417,14 @@ window.VOICE_AI_TEMPLATES = [
       "expected": [
         {
           "path": "templates/bid-price-lookup-agent/video/demo.mp4",
-          "status": "pending",
-          "description": "Narrated demonstration recording (MP4)."
+          "status": "ready",
+          "description": "Narrated demo film (5:06), every voice performed by Azure OpenAI GPT Realtime (MP4, hosted on a GitHub Release).",
+          "url": "https://github.com/anujb-msft/voice-ai-template-gallery/releases/download/demo-films/bid-price-lookup-agent.mp4"
         },
         {
           "path": "templates/bid-price-lookup-agent/video/poster.webp",
-          "status": "pending",
-          "description": "Poster image for the video player (WebP)."
+          "status": "ready",
+          "description": "Poster frame from the narrated demo film (WebP)."
         },
         {
           "path": "templates/bid-price-lookup-agent/slides/bid-price-lookup-agent.pptx",
@@ -503,13 +508,14 @@ window.VOICE_AI_TEMPLATES = [
       "expected": [
         {
           "path": "templates/contextual-on-call-pager/video/demo.mp4",
-          "status": "pending",
-          "description": "Narrated demonstration recording (MP4)."
+          "status": "ready",
+          "description": "Narrated demo film (5:47), every voice performed by Azure OpenAI GPT Realtime (MP4, hosted on a GitHub Release).",
+          "url": "https://github.com/anujb-msft/voice-ai-template-gallery/releases/download/demo-films/contextual-on-call-pager.mp4"
         },
         {
           "path": "templates/contextual-on-call-pager/video/poster.webp",
-          "status": "pending",
-          "description": "Poster image for the video player (WebP)."
+          "status": "ready",
+          "description": "Poster frame from the narrated demo film (WebP)."
         },
         {
           "path": "templates/contextual-on-call-pager/slides/contextual-on-call-pager.pptx",
@@ -593,13 +599,14 @@ window.VOICE_AI_TEMPLATES = [
       "expected": [
         {
           "path": "templates/customer-record-lookup-update/video/demo.mp4",
-          "status": "pending",
-          "description": "Narrated demonstration recording (MP4)."
+          "status": "ready",
+          "description": "Narrated demo film (5:45), every voice performed by Azure OpenAI GPT Realtime (MP4, hosted on a GitHub Release).",
+          "url": "https://github.com/anujb-msft/voice-ai-template-gallery/releases/download/demo-films/customer-record-lookup-update.mp4"
         },
         {
           "path": "templates/customer-record-lookup-update/video/poster.webp",
-          "status": "pending",
-          "description": "Poster image for the video player (WebP)."
+          "status": "ready",
+          "description": "Poster frame from the narrated demo film (WebP)."
         },
         {
           "path": "templates/customer-record-lookup-update/slides/customer-record-lookup-update.pptx",
@@ -683,13 +690,14 @@ window.VOICE_AI_TEMPLATES = [
       "expected": [
         {
           "path": "templates/general-inquiry-agent/video/demo.mp4",
-          "status": "pending",
-          "description": "Narrated demonstration recording (MP4)."
+          "status": "ready",
+          "description": "Narrated demo film (5:15), every voice performed by Azure OpenAI GPT Realtime (MP4, hosted on a GitHub Release).",
+          "url": "https://github.com/anujb-msft/voice-ai-template-gallery/releases/download/demo-films/general-inquiry-agent.mp4"
         },
         {
           "path": "templates/general-inquiry-agent/video/poster.webp",
-          "status": "pending",
-          "description": "Poster image for the video player (WebP)."
+          "status": "ready",
+          "description": "Poster frame from the narrated demo film (WebP)."
         },
         {
           "path": "templates/general-inquiry-agent/slides/general-inquiry-agent.pptx",
@@ -773,13 +781,14 @@ window.VOICE_AI_TEMPLATES = [
       "expected": [
         {
           "path": "templates/intent-based-call-routing/video/demo.mp4",
-          "status": "pending",
-          "description": "Narrated demonstration recording (MP4)."
+          "status": "ready",
+          "description": "Narrated demo film (6:17), every voice performed by Azure OpenAI GPT Realtime (MP4, hosted on a GitHub Release).",
+          "url": "https://github.com/anujb-msft/voice-ai-template-gallery/releases/download/demo-films/intent-based-call-routing.mp4"
         },
         {
           "path": "templates/intent-based-call-routing/video/poster.webp",
-          "status": "pending",
-          "description": "Poster image for the video player (WebP)."
+          "status": "ready",
+          "description": "Poster frame from the narrated demo film (WebP)."
         },
         {
           "path": "templates/intent-based-call-routing/slides/intent-based-call-routing.pptx",
@@ -863,13 +872,14 @@ window.VOICE_AI_TEMPLATES = [
       "expected": [
         {
           "path": "templates/it-hr-help-desk-triage/video/demo.mp4",
-          "status": "pending",
-          "description": "Narrated demonstration recording (MP4)."
+          "status": "ready",
+          "description": "Narrated demo film (5:57), every voice performed by Azure OpenAI GPT Realtime (MP4, hosted on a GitHub Release).",
+          "url": "https://github.com/anujb-msft/voice-ai-template-gallery/releases/download/demo-films/it-hr-help-desk-triage.mp4"
         },
         {
           "path": "templates/it-hr-help-desk-triage/video/poster.webp",
-          "status": "pending",
-          "description": "Poster image for the video player (WebP)."
+          "status": "ready",
+          "description": "Poster frame from the narrated demo film (WebP)."
         },
         {
           "path": "templates/it-hr-help-desk-triage/slides/it-hr-help-desk-triage.pptx",
@@ -955,12 +965,13 @@ window.VOICE_AI_TEMPLATES = [
         {
           "path": "templates/it-helpdesk-password-reset/video/demo.mp4",
           "status": "ready",
-          "description": "Approved 3:30 Teams Phone Extensibility demonstration (MP4)."
+          "description": "Narrated demo film (5:13), every voice performed by Azure OpenAI GPT Realtime (MP4, hosted on a GitHub Release).",
+          "url": "https://github.com/anujb-msft/voice-ai-template-gallery/releases/download/demo-films/it-helpdesk-password-reset.mp4"
         },
         {
           "path": "templates/it-helpdesk-password-reset/video/poster.webp",
           "status": "ready",
-          "description": "Poster image from the approved demonstration (WebP)."
+          "description": "Poster frame from the narrated demo film (WebP)."
         },
         {
           "path": "templates/it-helpdesk-password-reset/slides/it-helpdesk-password-reset.pptx",

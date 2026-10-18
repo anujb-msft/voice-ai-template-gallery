@@ -451,7 +451,7 @@ the card and page.
 | `technical.systems` | Usually three systems the agent touches, joined by ` · `. | `Phone system · Employee directory · Routing rules` | Dialog, page |
 | `technical.build` | One sentence listing what to build. | `Intent classification, routing policy, business-hours logic, fallback, and warm transfer.` | Dialog, page, prompt |
 | `paths` | The reference's 11 keys, each relative to `docs/` and pointing at a file or folder that exists. | `"readme": "templates/intent-based-call-routing/README.md"` | Page links, prompt |
-| `assets.expected` | The reference's five deliverables, each with a `path` that starts with `templates/<id>/`, a `description`, and a `pending` or `ready` status. | `templates/<id>/` followed by `video/demo.mp4`, `video/poster.webp`, `slides/<id>.pptx`, `slides/<id>.pdf`, and `slides/preview.webp` | Page |
+| `assets.expected` | The reference's five deliverables, each with a `path` that starts with `templates/<id>/`, a `description`, and a `pending` or `ready` status. A demo film hosted on the `demo-films` GitHub Release also has a `url`. | `templates/<id>/` followed by `video/demo.mp4`, `video/poster.webp`, `slides/<id>.pptx`, `slides/<id>.pdf`, and `slides/preview.webp` | Page |
 
 Notes:
 
@@ -468,6 +468,12 @@ Notes:
   Paths use `/`, never start with `/`, and never contain `..`.
 - Change an asset's status from `pending` to `ready` in the commit that adds the file.
   The generator fails when a `ready` asset is missing or a `pending` one exists.
+- Demo films are too large to commit, so they live on the repository's `demo-films`
+  GitHub Release. A hosted film's entry keeps its `path`, is `ready`, and adds a `url`:
+  `https://github.com/<owner>/<repo>/releases/download/demo-films/<id>.mp4`. The gallery
+  and the template page stream the film from the `url`. Don't add the `url` by hand:
+  `scripts/video/src/publish.mjs` uploads the film, checks the download, and writes the
+  entry.
 
 ### Common generator errors
 
@@ -490,6 +496,10 @@ The generator stops at the first problem and prints
 | `expected asset must live in its own folder (got "…")` | Start the asset path with `templates/<id>/`. |
 | `asset is marked ready but missing: …` | Add the file, or set its status back to `pending`. |
 | `asset is marked pending but present on disk: …` | Set its status to `ready`. |
+| `asset url must be a GitHub Release download, …` | Point `url` at `https://github.com/<owner>/<repo>/releases/download/<tag>/<file>`, using only letters, digits, `.`, `_`, and `-` in each part. |
+| `asset url must be the same file type as its path: …` | Give the hosted file the same extension as `path`, such as `<id>.mp4` for `video/demo.mp4`. |
+| `a hosted asset must be marked ready: …` | Set its status to `ready`, or remove the `url` while the film is pending. |
+| `asset is hosted at its url but also committed: …` | Delete the committed file. The release holds the only copy. |
 | `invalid JSON (…)` | Fix the syntax. JSON allows no comments or trailing commas. |
 | `template ids must be unique` | Choose an id that no other template uses. |
 | CI step **Verify generated data is current** fails | Run the generator, and commit both files in `docs/data/`. |

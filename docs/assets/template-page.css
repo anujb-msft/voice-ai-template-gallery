@@ -265,6 +265,19 @@ button:focus-visible {
   border-bottom-color: var(--accent);
 }
 
+.tpl-film {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  margin: 8px 0 12px;
+  border-radius: 10px;
+  background: #000;
+}
+
+.tpl-deliverable .tpl-film-fallback {
+  color: #7a3020;
+}
+
 .tpl-actions {
   margin-top: 36px;
   display: flex;

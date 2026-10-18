@@ -98,8 +98,15 @@
             "properties": {
               "path": { "type": "string", "pattern": "^(?!/)(?!\\.\\.)" },
               "status": { "enum": ["ready", "pending"] },
-              "description": { "type": "string", "minLength": 1 }
-            }
+              "description": { "type": "string", "minLength": 1 },
+              "url": {
+                "description": "Where a deliverable too large to commit (a demo film) is hosted: a GitHub Release download of the same file type as path. A hosted asset is ready, and its path must not also be committed.",
+                "type": "string",
+                "pattern": "^https://github\\.com/[A-Za-z0-9._-]+/[A-Za-z0-9._-]+/releases/download/[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$"
+              }
+            },
+            "if": { "required": ["url"] },
+            "then": { "properties": { "status": { "const": "ready" } } }
           }
         }
       }
