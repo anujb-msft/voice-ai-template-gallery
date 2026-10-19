@@ -448,12 +448,23 @@ function splitLong(text, maxChars) {
   return [...splitLong(text.slice(0, best).trim(), maxChars), ...splitLong(text.slice(best).trim(), maxChars)];
 }
 
+/** Titles whose period doesn't end the sentence: "Dr. Patel". */
+export const ABBREVIATION = /\b(?:Dr|Mr|Mrs|Ms|St)$/;
+
 /** A line as caption-sized chunks: sentences, split at clauses when long. */
 export function chunkText(text, maxChars = 84) {
-  // A sentence ends at . ! ? … followed by a space, so "0.75" and "7:30" stay whole.
-  const sentences = String(text).match(/.+?(?:[.!?…]+["”’)]*(?=\s|$)|$)/gs) ?? [String(text)];
+  // A sentence ends at . ! ? … followed by a space, so "0.75" and "7:30" stay whole, and
+  // before a capital, so "Dr. Patel" and "8 a.m. on Thursday" stay whole too.
+  const parts = String(text).match(/.+?(?:[.!?…]+["”’)]*(?=\s|$)|$)/gs) ?? [String(text)];
+  const sentences = [];
+  for (const part of parts.map((x) => x.trim()).filter(Boolean)) {
+    const prev = sentences.at(-1);
+    const joined = prev && (ABBREVIATION.test(prev.replace(/[.!?…]+["”’)]*$/, "")) || !/^[\p{Lu}¿¡"“'‘]/u.test(part));
+    if (joined) sentences[sentences.length - 1] = `${prev} ${part}`;
+    else sentences.push(part);
+  }
   const chunks = [];
-  for (const s of sentences.map((x) => x.trim()).filter(Boolean)) {
+  for (const s of sentences) {
     const prev = chunks.at(-1);
     if (prev && prev.length + s.length + 1 <= maxChars && (prev.length < 26 || s.length < 26)) chunks[chunks.length - 1] = `${prev} ${s}`;
     else chunks.push(...splitLong(s, maxChars));

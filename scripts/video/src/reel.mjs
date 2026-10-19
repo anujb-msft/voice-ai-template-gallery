@@ -1,6 +1,9 @@
-// The overview reel (reel/<id>.mjs): one short film across the templates, cut from
-// the console footage their own films recorded. A product-film look: a black stage,
-// each console in a floating device, kinetic type, and an original score under the voices.
+// Reels (reel/<id>.mjs): short films cut from the console footage the templates' own
+// walkthroughs recorded, with a product-film look: a black stage, each console in a
+// floating device, kinetic type, and an original score under the voices. The overview
+// (reel/overview.mjs) runs across every template. A template's film is a reel named for
+// the template, with `film` set to it: that one template's story, and the film its
+// Video button plays (publish.mjs keeps the full walkthrough beside it).
 //
 //   1. loads each clip's composed film (films/<id>/film.json and its edited footage)
 //      and finds its segments' lines, trimmed at the pauses between sentences;
@@ -21,7 +24,7 @@ import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { GSAP, HYPERFRAMES, WORK, clock, planFilm, r3, sh, sha } from "./compose.mjs";
-import { chunkText, selectExpression, webvtt } from "./edit.mjs";
+import { ABBREVIATION, chunkText, selectExpression, webvtt } from "./edit.mjs";
 import { loadFilm } from "./film.mjs";
 import { API_VERSION, MODEL } from "./realtime.mjs";
 import { Ops, SITE, TEAMS, esc } from "./scenes.mjs";
@@ -31,6 +34,8 @@ import { VoiceBank } from "./voices.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(here, "..");
+// Display type: Segoe UI has no kerning pair for "r-", which leaves a hole before the hyphen at lockup sizes.
+const display = (text) => esc(text).replace(/r-/g, 'r<span class="rh">-</span>');
 
 const FPS = 30;
 const fr = (t) => Math.round(t * FPS) / FPS;
@@ -54,7 +59,32 @@ const OPEN_AT = 0.4;
 const BED = { lufs: -22, duck: { call: -12, vo: -10 }, merge: 1.2, attack: 0.15, release: 0.6 };
 /** CRF 26 (not the films' 28): the console is smaller in the frame, so its text needs the extra bits. */
 const ENCODE = { crf: 26, preset: "veryslow", x264: "aq-mode=3", audio: "192k" };
-const CLIP_VERSION = 1;
+const CLIP_VERSION = 2;
+/** "Make it yours": the prompt types at this many characters a second. */
+const TYPE_CPS = 30;
+
+/** What a reel script may leave out: the narrator and the lines every film in the series shares. */
+export const SERIES = {
+  narrator: {
+    voice: "cedar",
+    style:
+      "The voice of a premium product film: calm, warm, intimate and confident. Unhurried and understated, never salesy; short phrases with space around them, as if speaking to one person.",
+  },
+  stack: "Teams Phone extensibility · Azure AI Voice Live · Azure OpenAI GPT Realtime",
+  fine: "Simulation mode · Synthetic voices by Azure OpenAI GPT Realtime · Fictional callers · Calls shortened",
+  disclosure:
+    "Every voice is synthetic, performed by Azure OpenAI GPT Realtime through Azure AI Voice Live. Callers, companies and numbers are fictional. The console was recorded in simulation mode; its Teams panel is simulated.",
+};
+
+function withSeries(reel) {
+  return {
+    ...reel,
+    narrator: reel.narrator ?? SERIES.narrator,
+    fine: reel.fine ?? SERIES.fine,
+    disclosure: reel.disclosure ?? SERIES.disclosure,
+    end: { ...reel.end, stack: reel.end.stack ?? SERIES.stack },
+  };
+}
 
 /** The films' ops, with times floored like the element starts (see at3). */
 class ReelOps extends Ops {
@@ -80,18 +110,23 @@ function depart(ops, target, at, { dur = 0.4 } = {}) {
   ops.set(target, { filter: "none" }, at + dur);
 }
 
-/** Segoe UI Variable, bundled into the page when this machine has it (the films resolve it through fontconfig). */
+/**
+ * Segoe UI Variable, and Cascadia Mono for code, bundled into the page when this machine
+ * has them (the films resolve them through fontconfig). REEL_FONT and REEL_MONO_FONT
+ * point at the files elsewhere.
+ */
 const FONT = "SegUIVar.ttf";
-function findFont() {
+const MONO = "CascadiaMono.ttf";
+function findFont(name = FONT, env = process.env.REEL_FONT) {
   const home = homedir();
   return [
-    process.env.REEL_FONT,
-    join(home, ".local", "share", "fonts", "windows", FONT),
-    join(home, ".local", "share", "fonts", FONT),
-    join(home, "Library", "Fonts", FONT),
-    join("/Library", "Fonts", FONT),
-    join("/mnt", "c", "Windows", "Fonts", FONT),
-    process.env.WINDIR && join(process.env.WINDIR, "Fonts", FONT),
+    env,
+    join(home, ".local", "share", "fonts", "windows", name),
+    join(home, ".local", "share", "fonts", name),
+    join(home, "Library", "Fonts", name),
+    join("/Library", "Fonts", name),
+    join("/mnt", "c", "Windows", "Fonts", name),
+    process.env.WINDIR && join(process.env.WINDIR, "Fonts", name),
   ].find((p) => p && existsSync(p));
 }
 
@@ -132,6 +167,7 @@ async function loadSource(id, { films, captures, repo, bank }) {
     name: template.name,
     accent: template.colors.accent,
     bg: template.colors.bg,
+    walkthrough: saved.total,
     lines,
     calls: lines.filter((l) => l.role !== "narrator"),
     bank,
@@ -156,7 +192,6 @@ function findLine(src, opening, after, tag) {
   throw new Error(`${tag}: no line from #${after} of ${src.id}'s call starts "${opening}". Its lines:\n${near}`);
 }
 
-const ABBREVIATION = /\b(?:Dr|Mr|Mrs|Ms|St)$/;
 /** A line's sentences as character spans [{ text, from, to }]; "0.75", "a.m. on" and "Dr. Lee" stay whole. */
 function sentences(text) {
   const out = [];
@@ -244,16 +279,29 @@ function pick(src, lines) {
 /**
  * Cut a line in the pause between two sentences: `head` skips its first sentences,
  * `drop` keeps only its first. The pause chosen is the one nearest where the text
- * places the break (speech is assumed to run evenly through the characters).
+ * places the break (speech is assumed to run evenly through the characters), or the
+ * one `headAt` / `dropAt` pins (seconds into the line's recording): spelled-out codes
+ * and numbers take longer to say than to read, and can mislead the estimate.
  */
-function trimLine(line, { head = 0, drop = 0 }, tag, log) {
+function trimLine(line, { head = 0, drop = 0, headAt, dropAt }, tag, log) {
   const parts = sentences(line.text);
   const n = parts.length;
   if (head && head >= n) throw new Error(`${tag}: head ${head} leaves nothing of "${line.text}" (${n} sentence(s))`);
   if (drop && (drop <= head || drop >= n)) throw new Error(`${tag}: drop ${drop} must fall between ${head} and ${n} sentences of "${line.text}"`);
   const { map } = line;
-  const pause = (k) => {
+  const spans = () => map.pauses.map((p) => `${p.from.toFixed(2)}–${p.to.toFixed(2)}`).join(", ");
+  const pause = (k, at) => {
     if (!map.pauses.length) throw new Error(`${tag}: no pause in "${line.text.slice(0, 60)}" to cut at`);
+    const after = `cut after "…${parts[k - 1].text.slice(-36)}" in the pause at`;
+    if (at != null) {
+      if (!Number.isFinite(at)) throw new Error(`${tag}: a pinned cut needs a time in seconds, not ${at}`);
+      const off = (p) => Math.max(p.from - at, at - p.to, 0);
+      const best = map.pauses.reduce((a, b) => (off(b) < off(a) ? b : a));
+      if (off(best) > 0.25)
+        throw new Error(`${tag}: no pause near ${at} s of "${line.text.slice(0, 60)}" to pin the cut to; its pauses are at ${spans()} s`);
+      log(`  ${tag}: ${after} ${best.from.toFixed(2)}–${best.to.toFixed(2)} s (pinned at ${at} s)`);
+      return best;
+    }
     const mid = (parts[k - 1].to + parts[k].from) / 2;
     const est = map.from + (mid / line.text.length) * (map.to - map.from);
     let best = null;
@@ -262,19 +310,19 @@ function trimLine(line, { head = 0, drop = 0 }, tag, log) {
       if (!best || score < best.score) best = { ...p, score };
     }
     const miss = Math.abs((best.from + best.to) / 2 - est);
-    log(`  ${tag}: cut after "…${parts[k - 1].text.slice(-36)}" in the pause at ${best.from.toFixed(2)}–${best.to.toFixed(2)} s (text puts it near ${est.toFixed(2)} s)`);
+    log(`  ${tag}: ${after} ${best.from.toFixed(2)}–${best.to.toFixed(2)} s (text puts it near ${est.toFixed(2)} s)`);
     if (miss > 0.8) log(`  WARNING ${tag}: that pause is ${miss.toFixed(1)} s from where the text puts the break; check the cut`);
     return best;
   };
   const out = { ...line };
   if (head) {
-    const p = pause(head);
+    const p = pause(head, headAt);
     out.offset = Math.max(0, r3(p.to - 0.06));
     out.fadeIn = 0.02;
     out.speechFrom = r3(line.from + p.to);
   }
   if (drop) {
-    const p = pause(drop);
+    const p = pause(drop, dropAt);
     out.until = r3(Math.min(out.until ?? Infinity, p.from + 0.12, p.to));
     out.speechTo = r3(line.from + p.from);
   }
@@ -449,10 +497,12 @@ async function cutTake(take, dir) {
   if (crop.f < 1) vf.push(`scale=${crop.Wf}:${crop.Hf}:flags=lanczos`);
   if (w.hold > 0) vf.push(`tpad=start_mode=clone:start_duration=${w.hold}`);
   const tmp = file.replace(/\.mp4$/, ".tmp.mp4");
+  // A keyframe every second: HyperFrames warns about any gap over 2 s, because preview seeks stall on one.
   await sh("ffmpeg", [
     "-hide_banner", "-nostdin", "-y", "-v", "error", "-ss", String(Math.max(0, r3(w.e0 - 0.001))), "-i", src.video,
     "-t", String(r3(w.len + 0.25)), "-an", "-vf", vf.join(","),
-    "-c:v", "libx264", "-preset", "fast", "-crf", "14", "-tune", "animation", "-pix_fmt", "yuv420p", "-r", "30", "-movflags", "+faststart", tmp,
+    "-c:v", "libx264", "-preset", "fast", "-crf", "14", "-tune", "animation", "-g", "30", "-keyint_min", "30",
+    "-pix_fmt", "yuv420p", "-r", "30", "-movflags", "+faststart", tmp,
   ]);
   const dur = Number((await sh("ffprobe", ["-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", tmp])).out.trim());
   if (!(dur >= w.len - 1 / FPS)) throw new Error(`${take.tag}: cut ${dur} s of footage; the take needs ${w.len} s`);
@@ -488,22 +538,27 @@ async function resolveReel(reel, ctx, log) {
   const clips = [];
   let n = 0;
   for (const { def, chapter, first } of defs) {
-    const src = await source(def.film);
+    const film = def.film ?? reel.film;
+    if (!film) throw new Error(`the clip "${def.headline}" names no film: set its film, or the reel's`);
+    const src = await source(film);
     const takes = [];
     let after = 0;
     let settled = null;
     for (const [s, seg] of def.segments.entries()) {
-      const tag = `${def.film}#${s + 1}`;
-      const i = findLine(src, seg.from, after, tag);
+      const tag = `${film}#${s + 1}`;
+      const i = findLine(src, seg.from, seg.after ? findLine(src, seg.after, after, tag) + 1 : after, tag);
       const j = seg.to ? findLine(src, seg.to, i, tag) : i;
       after = j + 1;
+      if ((seg.headAt != null && !seg.head) || (seg.dropAt != null && !seg.drop))
+        throw new Error(`${tag}: headAt and dropAt pin the cuts head and drop make: set ${seg.headAt != null && !seg.head ? "head" : "drop"} too`);
       let lines = await pick(src, src.calls.slice(i, j + 1));
       if (lines.length === 1) {
         if (seg.head || seg.drop) lines = [trimLine(lines[0], seg, tag, log)];
       } else {
-        if (seg.head) lines[0] = trimLine(lines[0], { head: seg.head }, tag, log);
-        if (seg.drop) lines[lines.length - 1] = trimLine(lines.at(-1), { drop: seg.drop }, tag, log);
+        if (seg.head) lines[0] = trimLine(lines[0], { head: seg.head, headAt: seg.headAt }, tag, log);
+        if (seg.drop) lines[lines.length - 1] = trimLine(lines.at(-1), { drop: seg.drop, dropAt: seg.dropAt }, tag, log);
       }
+      for (const l of lines) l.caption = captionOf(def, l.text) ?? l.caption;
       const lead = seg.lead ?? (first && s === 0 ? LEAD.first : LEAD.other);
       const w = windowOf({ src, lines, lead, tail: seg.tail ?? TAIL, prev: src.calls[i - 1], next: src.calls[j + 1], tag, log });
       const cam = takeCamera(src, def, seg, w, settled, tag);
@@ -516,6 +571,8 @@ async function resolveReel(reel, ctx, log) {
           `${w.hold ? `, holds ${w.hold.toFixed(2)} s` : ""}, crop ${crop.w}×${crop.h} at ×${crop.f}${cam.focus ? `, focus ${cam.focus}` : ""}`,
       );
     }
+    const stray = Object.keys(def.captions ?? {}).filter((k) => !takes.some((t) => t.lines.some((l) => norm(l.text).startsWith(norm(k)))));
+    if (stray.length) throw new Error(`${film}: the clip "${def.headline}" re-captions no line of its starting "${stray.join('", "')}"`);
     clips.push({ def, chapter, first, src, takes });
   }
   return clips;
@@ -542,9 +599,9 @@ function appear(list, at) {
 }
 
 /**
- * The reel's clock: the cold open, then title, chapters, trust and end on a grid of
- * half bars from the title (so the score's sections start on its beat), and the
- * narrator's lines in each.
+ * The reel's clock: the cold open, then title, chapters, trust, "make it yours" (when the
+ * script has it) and end on a grid of half bars from the title (so the score's sections
+ * start on its beat), and the narrator's lines in each.
  */
 async function layout(reel, clips, bank, log) {
   const voice = (text) =>
@@ -552,7 +609,9 @@ async function layout(reel, clips, bank, log) {
       if (v.fidelity < 0.8) log(`  note: narration read at fidelity ${v.fidelity.toFixed(2)}: "${v.transcript}"`);
       return { text, file: v.file, key: v.key, dur: v.ms / 1000 };
     });
-  const [titleVO, trustVO, endVO] = await Promise.all([reel.title, reel.trust, reel.end].map((s) => Promise.all(s.narration.map(voice))));
+  const [titleVO, trustVO, endVO, yoursVO] = await Promise.all(
+    [reel.title, reel.trust, reel.end, reel.yours ?? { narration: [] }].map((s) => Promise.all(s.narration.map(voice))),
+  );
   const lay = (vos, at) => {
     let t = at;
     return vos.map((v) => {
@@ -580,7 +639,16 @@ async function layout(reel, clips, bank, log) {
   }
   const trustLines = lay(trustVO, C + 0.5);
   const trust = { at: C, end: snap(trustLines.at(-1).end + 2.4), lines: trustLines };
-  const E = trust.end;
+  // Make it yours (optional): the files to change, then the prompt typing into a coding agent.
+  let yours = null;
+  if (reel.yours) {
+    const Y = trust.end;
+    const lines = lay(yoursVO, Y + 0.5);
+    const typeFrom = fr(Y + 2.4);
+    const typeEnd = r3(typeFrom + [...reel.yours.prompt].length / TYPE_CPS);
+    yours = { at: Y, end: snap(Math.max((lines.at(-1)?.end ?? Y) + 1.4, typeEnd + 2.2)), lines, typeFrom, typeEnd };
+  }
+  const E = yours?.end ?? trust.end;
   const endLines = lay(endVO, E + 0.9);
   const chord = fr(E + Math.ceil((endLines.at(-1).end + 0.2 - E) / BAR - 1e-6) * BAR);
   const total = fr(chord + 6);
@@ -589,10 +657,11 @@ async function layout(reel, clips, bank, log) {
     { kind: "riser", at: r3(T0 - BAR), end: T0 },
     { kind: "intro", at: T0, end: chapters[0].at },
     ...chapters.map((ch, i) => ({ kind: "groove", at: ch.at, end: chapters[i + 1]?.at ?? trust.at, accents: [ch.at] })),
-    { kind: "breakdown", at: trust.at, end: E },
+    { kind: "breakdown", at: trust.at, end: trust.end },
+    ...(yours ? [{ kind: "groove", at: yours.at, end: E, accents: [yours.at] }] : []),
     { kind: "finale", at: E, end: total, groove: Math.round((chord - E) / BAR) },
   ];
-  return { open, T0, title, chapters, trust, end, total, sections };
+  return { open, T0, title, chapters, trust, yours, end, total, sections };
 }
 
 // -------------------------------------------------------------------- page
@@ -659,10 +728,12 @@ function reelCues(clips) {
   return cues;
 }
 
-function styles(font) {
+function styles(font, mono = null) {
   const src = [font && `url("fonts/${FONT}") format("truetype")`, `local("Segoe UI Variable")`].filter(Boolean).join(", ");
+  const monoSrc = [mono && `url("fonts/${MONO}") format("truetype")`, `local("Cascadia Mono")`].filter(Boolean).join(", ");
   return `
   @font-face { font-family: "Segoe UI Variable"; src: ${src}; font-weight: 300 700; font-style: normal; font-display: block; }
+  @font-face { font-family: "Cascadia Mono"; src: ${monoSrc}; font-weight: 200 700; font-style: normal; font-display: block; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html, body { margin: 0; background: #000; }
   #root { position: relative; width: 1920px; height: 1080px; overflow: hidden; background: #000; color: #f5f5f7;
@@ -686,9 +757,11 @@ function styles(font) {
   .sim { display: inline-flex; align-items: center; gap: 8px; margin-left: 16px; padding: 3px 12px 4px; border-radius: 999px; font-size: 16px;
     font-weight: 600; color: #c5c9ff; background: rgba(123,131,235,.16); border: 1px solid rgba(123,131,235,.42); vertical-align: 3px; }
   .sim i { width: 8px; height: 8px; border-radius: 50%; background: ${TEAMS}; }
+  .sim.solo { margin-left: 0; }
   .scene.clip { z-index: 4; display: flex; align-items: center; justify-content: center; text-align: center; }
   .scene .w { display: flex; flex-direction: column; align-items: center; }
   .k { font-size: 112px; font-weight: 700; letter-spacing: -0.035em; line-height: 1.06; opacity: 0; }
+  .rh { margin-left: -0.12em; }
   .card .k { font-size: 150px; letter-spacing: -0.04em; }
   .grad { background: linear-gradient(90deg, #4f8bff, #8a6cff 40%, #d16ce0 70%, #ff8a65); -webkit-background-clip: text; background-clip: text;
     color: transparent; padding-bottom: 0.12em; }
@@ -704,6 +777,25 @@ function styles(font) {
   .points div + div { border-left: 1px solid rgba(255,255,255,.18); }
   .stack { margin-top: 52px; font-size: 24px; color: #86868b; opacity: 0; }
   .url { margin-top: 14px; font-size: 28px; font-weight: 600; color: #2997ff; opacity: 0; }
+  .eyebrow { margin-bottom: 26px; font-size: 32px; font-weight: 600; letter-spacing: -0.005em; color: #86868b; opacity: 0; }
+  .mono { font-family: "Cascadia Mono", Consolas, "DejaVu Sans Mono", monospace; }
+  .run { margin-top: 46px; display: inline-flex; gap: 18px; padding: 16px 28px 17px; border-radius: 14px; font-size: 27px; color: #f5f5f7;
+    background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.12); opacity: 0; }
+  .run b { font-weight: 400; color: #2997ff; }
+  .run + .stack { margin-top: 40px; }
+  #yours .k { font-size: 96px; }
+  .files { margin-top: 38px; display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; max-width: 1600px; }
+  .file { padding: 8px 18px 9px; border-radius: 10px; font-size: 22px; color: #d2d2d7; background: rgba(255,255,255,.06);
+    border: 1px solid rgba(255,255,255,.1); opacity: 0; }
+  .agent { margin-top: 46px; width: 1280px; border-radius: 22px; overflow: hidden; text-align: left; opacity: 0; background: #111114;
+    border: 1px solid rgba(255,255,255,.12); box-shadow: 0 40px 120px rgba(0,0,0,.6); }
+  .agent .bar { display: flex; align-items: center; gap: 10px; padding: 15px 22px; background: #1c1c1f; border-bottom: 1px solid rgba(255,255,255,.08); }
+  .agent .bar i { width: 12px; height: 12px; border-radius: 50%; background: #3a3a3e; }
+  .agent .bar span { margin-left: 12px; font-size: 19px; font-weight: 600; letter-spacing: 0.02em; color: #86868b; }
+  .agent .prompt { display: flex; gap: 18px; min-height: 176px; padding: 28px 36px 34px; font-size: 36px; font-weight: 500; line-height: 1.4; color: #f5f5f7; }
+  .agent .caret { color: #2997ff; font-weight: 700; }
+  .agent .ch { display: none; }
+  .agent .cursor { display: inline-block; width: 3px; height: 40px; margin-left: 3px; vertical-align: -7px; background: #f5f5f7; }
   .disc { position: absolute; left: 260px; right: 260px; bottom: 60px; font-size: 19px; line-height: 1.45; color: #6e6e73; text-align: center; opacity: 0; }
   .fine.clip { inset: auto 0 20px 0; z-index: 5; text-align: center; font-size: 15px; letter-spacing: 0.01em; color: #6e6e73; opacity: 0; }
   .cap.clip { inset: auto 0 56px 0; z-index: 6; display: flex; justify-content: center; }
@@ -716,7 +808,7 @@ function styles(font) {
 }
 
 /** The reel as a HyperFrames composition: one paused GSAP timeline at absolute reel seconds. */
-function page(reel, clips, L, { font = null } = {}) {
+function page(reel, clips, L, { font = null, mono = null } = {}) {
   const ops = new ReelOps();
   const appearances = [L.open, ...L.chapters.map((ch) => ch.appearance)];
   const takesHtml = [];
@@ -774,27 +866,32 @@ function page(reel, clips, L, { font = null } = {}) {
     ops.fade(`#glow-${g}`, 1, 0, out, 0.6);
     const open = clip.chapter === -1;
     const leave = Math.min(clip.end - 0.7, a.to - 0.5);
-    const sim = clip.def.teams ? `<span class="sim"><i></i>Teams panel simulated</span>` : "";
+    // A template's own film doesn't repeat its name over every clip; a clip may set its own eyebrow.
+    const eyebrow = clip.def.eyebrow ?? (reel.film ? "" : clip.src.name);
+    const sim = clip.def.teams ? `<span class="sim${eyebrow ? "" : " solo"}"><i></i>Teams panel simulated</span>` : "";
     labels.push(
-      `<div class="label clip" id="label-${n}" style="--a:${accent}" ${timed(clip.R, leave + 0.4)}><div class="eb">${esc(clip.src.name)}${sim}</div><div class="hl">${esc(clip.def.headline)}</div></div>`,
+      `<div class="label clip" id="label-${n}" style="--a:${accent}" ${timed(clip.R, leave + 0.4)}><div class="eb">${esc(eyebrow)}${sim}</div><div class="hl">${display(clip.def.headline)}</div></div>`,
     );
     ops.fadeIn(`#label-${n} .eb`, open ? 1.2 : clip.R + 0.15, { dur: 0.6, y: 10 });
     arrive(ops, `#label-${n} .hl`, open ? 1.45 : clip.R + 0.3);
     depart(ops, `#label-${n}`, leave);
   }
 
-  // The title, after the cold open: the lockup lands on the score's downbeat; the templates follow.
+  // The title, after the cold open: the lockup lands on the score's downbeat; the overview's templates follow.
   const T = L.title;
   const tv = T.lines.at(-1);
-  const chips = clips.map((c, i) => `<div class="chip" id="chip-${i}" style="--a:${bright(c.src.accent)}"><i></i>${esc(c.src.name)}</div>`).join("");
+  const chipped = !reel.film;
+  const chips = chipped ? clips.map((c, i) => `<div class="chip" id="chip-${i}" style="--a:${bright(c.src.accent)}"><i></i>${esc(c.src.name)}</div>`).join("") : "";
   const titleHtml =
     `<section id="title" class="scene clip" ${timed(T.at, T.end)}><div class="w">` +
-    `<div class="k" id="title-1">${esc(reel.title.lines[0])}</div><div class="k" id="title-2"><span class="grad">${esc(reel.title.lines[1])}</span></div>` +
-    `<div class="sub" id="title-sub">${esc(reel.title.sub)}</div><div class="chips">${chips}</div></div></section>`;
+    (reel.title.eyebrow ? `<div class="eyebrow" id="title-eb">${esc(reel.title.eyebrow)}</div>` : "") +
+    `<div class="k" id="title-1">${display(reel.title.lines[0])}</div><div class="k" id="title-2"><span class="grad">${display(reel.title.lines[1])}</span></div>` +
+    `<div class="sub" id="title-sub">${esc(reel.title.sub)}</div>${chipped ? `<div class="chips">${chips}</div>` : ""}</div></section>`;
+  if (reel.title.eyebrow) ops.fadeIn("#title-eb", T.at, { dur: 0.7, y: 10 });
   arrive(ops, "#title-1", T.at + 0.1);
   arrive(ops, "#title-2", T.at + 0.35);
   ops.fadeIn("#title-sub", tv.at, { dur: 0.7, y: 14 });
-  clips.forEach((_, i) => ops.fadeIn(`#chip-${i}`, tv.at + 0.3 + i * 0.06, { dur: 0.5, y: 12 }));
+  if (chipped) clips.forEach((_, i) => ops.fadeIn(`#chip-${i}`, tv.at + 0.3 + i * 0.06, { dur: 0.5, y: 12 }));
   depart(ops, "#title .w", T.end - 0.45);
 
   // A card opens each chapter, on the score's accent, before the device rises.
@@ -802,7 +899,7 @@ function page(reel, clips, L, { font = null } = {}) {
     const [first, ...rest] = ch.card.split(" ");
     arrive(ops, `#card-${ch.k} .k`, ch.at, { dur: 0.6 });
     depart(ops, `#card-${ch.k} .w`, ch.at + 1.45);
-    return `<section id="card-${ch.k}" class="scene clip card" ${timed(ch.at, ch.at + 1.85)}><div class="w"><div class="k">${esc(first)} <span class="grad">${esc(rest.join(" "))}</span></div></div></section>`;
+    return `<section id="card-${ch.k}" class="scene clip card" ${timed(ch.at, ch.at + 1.85)}><div class="w"><div class="k">${display(first)} <span class="grad">${display(rest.join(" "))}</span></div></div></section>`;
   });
 
   // Trust: the line the templates are built on, and what it means.
@@ -810,12 +907,39 @@ function page(reel, clips, L, { font = null } = {}) {
   const points = reel.trust.points.map((p, i) => `<div id="point-${i}">${esc(p)}</div>`).join("");
   const trustHtml =
     `<section id="trust" class="scene clip" ${timed(Tr.at, Tr.end)}><div class="w">` +
-    `<div class="k" id="trust-1">${esc(reel.trust.lines[0])}</div><div class="k" id="trust-2"><span class="grad">${esc(reel.trust.lines[1])}</span></div>` +
+    `<div class="k" id="trust-1">${display(reel.trust.lines[0])}</div><div class="k" id="trust-2"><span class="grad">${display(reel.trust.lines[1])}</span></div>` +
     `<div class="points">${points}</div></div></section>`;
   arrive(ops, "#trust-1", Tr.at + 0.1);
   arrive(ops, "#trust-2", Tr.lines.at(-1).at - 0.1);
   reel.trust.points.forEach((_, i) => ops.fadeIn(`#point-${i}`, Tr.lines.at(-1).end + 0.2 + i * 0.25, { dur: 0.6, y: 12 }));
   depart(ops, "#trust .w", Tr.end - 0.45);
+
+  // Make it yours: what to change, then the change typed into a coding agent, a character at a time.
+  let yoursHtml = "";
+  if (L.yours) {
+    const Y = L.yours;
+    const s = reel.yours;
+    const words = s.title.split(" ");
+    const last = words.pop();
+    const chars = [...s.prompt];
+    const files = s.files.map((f, i) => `<div class="file mono" id="file-${i}">${esc(f)}</div>`).join("");
+    yoursHtml =
+      `<section id="yours" class="scene clip" ${timed(Y.at, Y.end)}><div class="w">` +
+      `<div class="k" id="yours-1">${display(words.join(" "))} <span class="grad">${display(last)}</span></div>` +
+      `<div class="files">${files}</div>` +
+      `<div class="agent" id="agent"><div class="bar"><i></i><i></i><i></i><span>${esc(s.agent ?? "Your coding agent")}</span></div>` +
+      `<div class="prompt"><span class="caret">›</span><span class="typed">${chars.map((c, i) => `<span class="ch" id="ch-${i}">${esc(c)}</span>`).join("")}<span class="cursor" id="cursor"></span></span></div></div>` +
+      `</div></section>`;
+    arrive(ops, "#yours-1", Y.at + 0.1);
+    s.files.forEach((_, i) => ops.fadeIn(`#file-${i}`, Y.at + 0.75 + i * 0.09, { dur: 0.5, y: 10 }));
+    ops.tween("#agent", { opacity: 0, y: 40, scale: 0.97 }, { opacity: 1, y: 0, scale: 1, duration: 0.8, ease: "power3.out" }, Y.typeFrom - 0.9);
+    const step = (Y.typeEnd - Y.typeFrom) / chars.length;
+    chars.forEach((_, i) => ops.set(`#ch-${i}`, { display: "inline" }, Y.typeFrom + i * step));
+    // The cursor holds while it types, then blinks.
+    const blinks = Math.max(1, Math.floor((Y.end - Y.typeEnd) / 0.5));
+    ops.tween("#cursor", { opacity: 1 }, { opacity: 0, duration: 0.5, ease: "steps(1)", repeat: blinks, yoyo: true }, Y.typeEnd + 0.3);
+    depart(ops, "#yours .w", Y.end - 0.45);
+  }
 
   // The end card: the lockup again, the call to action, where to find them, and the disclosure.
   const En = L.end;
@@ -824,8 +948,9 @@ function page(reel, clips, L, { font = null } = {}) {
   const sub = split ? subParts.map((p, i) => `<span id="end-sub-${i}">${esc(p.text)}</span>`).join(" ") : esc(reel.end.sub);
   const endHtml =
     `<section id="end" class="scene clip" ${timed(En.at, L.total)}><div class="w">` +
-    `<div class="k" id="end-1">${esc(reel.end.lines[0])}</div><div class="k" id="end-2"><span class="grad">${esc(reel.end.lines[1])}</span></div>` +
+    `<div class="k" id="end-1">${display(reel.end.lines[0])}</div><div class="k" id="end-2"><span class="grad">${display(reel.end.lines[1])}</span></div>` +
     `<div class="sub${split ? " split" : ""}" id="end-sub">${sub}</div>` +
+    (reel.end.run ? `<div class="run mono" id="end-run"><b>$</b><span>${esc(reel.end.run)}</span></div>` : "") +
     `<div class="stack" id="end-stack">${esc(reel.end.stack)}</div><div class="url" id="end-url">${esc(SITE)}</div></div>` +
     `<div class="disc" id="end-disc">${esc(reel.disclosure)}</div></section>`;
   arrive(ops, "#end-1", En.at + 0.2);
@@ -833,9 +958,11 @@ function page(reel, clips, L, { font = null } = {}) {
   if (split) En.lines.forEach((l, i) => ops.fadeIn(`#end-sub-${i}`, l.at - 0.05, { dur: 0.6, y: 12 }));
   else ops.fadeIn("#end-sub", En.lines[0].at, { dur: 0.7, y: 14 });
   const said = En.lines.at(-1).end;
-  ops.fadeIn("#end-stack", said + 0.6, { dur: 0.6, y: 10 });
-  ops.fadeIn("#end-url", said + 0.85, { dur: 0.6, y: 10 });
-  ops.fadeIn("#end-disc", said + 1.1, { dur: 0.8, y: 0 });
+  const ran = reel.end.run ? 0.35 : 0;
+  if (reel.end.run) ops.fadeIn("#end-run", said + 0.5, { dur: 0.6, y: 10 });
+  ops.fadeIn("#end-stack", said + 0.6 + ran, { dur: 0.6, y: 10 });
+  ops.fadeIn("#end-url", said + 0.85 + ran, { dur: 0.6, y: 10 });
+  ops.fadeIn("#end-disc", said + 1.1 + ran, { dur: 0.8, y: 0 });
 
   // Captions for the calls (the narrator's lines are on screen as type), and the fine print under each appearance.
   const cues = reelCues(clips);
@@ -859,8 +986,8 @@ function page(reel, clips, L, { font = null } = {}) {
 <html lang="en-US">
 <head>
 <meta charset="utf-8" />
-<title>${esc(reel.name)} · overview</title>
-<style>${styles(font)}</style>
+<title>${esc(reel.film ? reel.name : `${reel.name} · overview`)}</title>
+<style>${styles(font, mono)}</style>
 </head>
 <body>
 <div id="root" data-composition-id="root" data-width="1920" data-height="1080" data-start="0" data-duration="${r3(L.total)}">
@@ -873,6 +1000,7 @@ function page(reel, clips, L, { font = null } = {}) {
   ${titleHtml}
   ${cards.join("\n  ")}
   ${trustHtml}
+  ${yoursHtml}
   ${endHtml}
   ${caps.join("\n  ")}
   ${fine.join("\n  ")}
@@ -1047,8 +1175,10 @@ async function reelSoundtrack(clips, L, file, { music = true, log }) {
 // ------------------------------------------------------------ deliverables
 
 const pipe = (s) => String(s).replace(/\|/g, "\\|");
-const narrationOf = (L) => [...L.title.lines, ...L.trust.lines, ...L.end.lines];
+const narrationOf = (L) => [...L.title.lines, ...L.trust.lines, ...(L.yours?.lines ?? []), ...L.end.lines];
 const translationOf = (clip, text) => Object.entries(clip.def.translations ?? {}).find(([k]) => norm(text).startsWith(norm(k)))?.[1] ?? null;
+/** What a line's voice actually says, where its recording strayed from its text (a clip's `captions`). */
+const captionOf = (def, text) => Object.entries(def.captions ?? {}).find(([k]) => norm(text).startsWith(norm(k)))?.[1] ?? null;
 
 /** captions.vtt: the burned-in call captions (translations in brackets) and the narrator's lines. */
 function vttCues(cues, L) {
@@ -1059,6 +1189,7 @@ function vttCues(cues, L) {
 }
 
 function reelTranscript(reel, clips, L) {
+  const single = Boolean(reel.film);
   const rows = [];
   for (const clip of clips)
     for (const take of clip.takes)
@@ -1069,28 +1200,93 @@ function reelTranscript(reel, clips, L) {
       }
   for (const v of narrationOf(L)) rows.push({ at: v.at, template: "—", who: "Narrator", text: v.text });
   rows.sort((a, b) => a.at - b.at);
-  return `# Transcript — ${reel.name}: overview
+  const table = single
+    ? `| Timecode | Speaker | Line |
+|---|---|---|
+${rows.map((r) => `| ${clock(r.at)} | ${pipe(r.who)} | ${pipe(r.text)} |`).join("\n")}`
+    : `| Timecode | Template | Speaker | Line |
+|---|---|---|---|
+${rows.map((r) => `| ${clock(r.at)} | ${pipe(r.template)} | ${pipe(r.who)} | ${pipe(r.text)} |`).join("\n")}`;
+  return `# Transcript — ${reel.name}${single ? "" : ": overview"}
 
-**Runtime:** ${clock(L.total, false)} (${Math.round(L.total)} seconds)
+**Runtime:** ${clock(L.total, false)} (${L.total.toFixed(1)} seconds)
 
 **Production disclosure:** ${reel.disclosure} The calls are shortened: each clip is a
-moment from that template's own demo film.
+moment from ${single ? "the template's full walkthrough" : "that template's own demo film"}.
 
 This transcript matches [\`captions.vtt\`](./captions.vtt), which splits long lines into
-shorter cues. Timestamps are global (\`mm:ss.mmm\`) from the start of the reel.
+shorter cues. Timestamps are global (\`mm:ss.mmm\`) from the start of the ${single ? "film" : "reel"}.
 
-| Timecode | Template | Speaker | Line |
-|---|---|---|---|
-${rows.map((r) => `| ${clock(r.at)} | ${pipe(r.template)} | ${pipe(r.who)} | ${pipe(r.text)} |`).join("\n")}
+${table}
+`;
+}
+
+/** Each segment's span in the film it was cut from (the walkthrough's own clock). */
+const filmTimes = (clip) => clip.takes.map((t) => `${clock(clip.src.c.start + t.w.e0, false)}–${clock(clip.src.c.start + t.w.end, false)}`).join(", ");
+
+/** docs/templates/<id>/video/README.md for a template's film; publish.mjs points its MP4 lines at the release. */
+function filmReadme(reel, clips, L, loudness, music) {
+  const src = clips[0].src;
+  const voices = new Map([["Narrator", reel.narrator.voice]]);
+  for (const clip of clips) for (const t of clip.takes) for (const l of t.lines) if (!voices.has(l.speaker)) voices.set(l.speaker, l.voice);
+  const cast = [...voices].map(([who, v]) => `\`${v}\` (${who})`);
+  const lines = clips.reduce((n, clip) => n + clip.takes.reduce((m, t) => m + t.lines.length, 0), 0) + narrationOf(L).length;
+  const cards = reel.chapters.map((ch) => ch.card.replace(/\.$/, "")).join(", ");
+  const rows = clips.map((clip) => `| ${clock(clip.R, false)} | ${pipe(clip.def.headline)} | ${filmTimes(clip)} |`);
+  const teams = clips.some((c) => c.def.teams)
+    ? ` Clips labelled "Teams panel simulated" show the console's simulation of the Teams call
+  panel.`
+    : "";
+  return `# Video deliverables
+
+- [\`${reel.id}.mp4\`](./${reel.id}.mp4) — narrated demo film (${clock(L.total, false)})
+- [\`${reel.id}-walkthrough.mp4\`](./${reel.id}-walkthrough.mp4) — the full narrated walkthrough (${clock(src.walkthrough, false)})
+- [\`poster.webp\`](./poster.webp) — poster image
+- [\`captions.vtt\`](./captions.vtt) — captions for every spoken line
+- [\`transcript.md\`](./transcript.md) — transcript with timecodes
+- [\`walkthrough-transcript.md\`](./walkthrough-transcript.md) — the walkthrough's transcript
+
+A short film of the template at work. It opens cold on a call, then shows the template's
+own demo console at the moments that say what it does, in ${reel.chapters.length} chapters (${cards}),
+and closes on how it is built and how to make it yours. Every clip is cut from the full
+walkthrough, where each call plays out from start to finish. The calls' lines are burned in
+as subtitles; \`captions.vtt\` has every spoken line, the narrator's too.
+
+| Film time | Shows | Walkthrough time |
+|---|---|---|
+${rows.join("\n")}
+
+## Production details
+
+- **Runtime:** ${L.total.toFixed(1)} seconds (${clock(L.total, false)}), 1920×1080, 30 fps, H.264 High with
+  48 kHz stereo AAC-LC audio.
+- **Voices:** all ${lines} lines are performed by Azure OpenAI GPT Realtime
+  (\`${MODEL}\`) through Azure AI Voice Live (api-version \`${API_VERSION}\`): ${cast.join(", ")}.
+  The calls are the recordings the walkthrough was made with.
+- **Footage:** the template's demo console from [\`code/\`](../code/), running in
+  simulation mode, as the walkthrough recorded it.${teams}
+- **Motion graphics:** a HyperFrames composition generated by
+  [\`scripts/video\`](../../../../scripts/video/) (\`npm run reel -- ${reel.id}\`) from
+  [\`reel/${reel.id}.mjs\`](../../../../scripts/video/reel/${reel.id}.mjs).
+- **Music:** ${
+    music
+      ? `an original score synthesised in code by
+  [\`score.mjs\`](../../../../scripts/video/src/score.mjs), with no samples and no
+  licensed music. It ducks under every voice.`
+      : "none; voices only."
+  }
+- **Mix:** ${loudness.lufs.toFixed(1)} LUFS integrated (target ${LOUDNESS.film}), true peak ${loudness.truePeak.toFixed(1)} dBTP.
+
+${reel.disclosure}
+
+The film demonstrates a reference implementation in simulation mode; it is not a
+recording of a production deployment.
 `;
 }
 
 function reelReadme(reel, clips, L, loudness, music) {
-  const rows = clips.map((clip) => {
-    const { c } = clip.src;
-    const film = clip.takes.map((t) => `${clock(c.start + t.w.e0, false)}–${clock(c.start + t.w.end, false)}`).join(", ");
-    return `| ${clock(clip.R, false)} | [${pipe(clip.src.name)}](../templates/${clip.src.id}/) | ${pipe(clip.def.headline)} | ${film} |`;
-  });
+  if (reel.film) return filmReadme(reel, clips, L, loudness, music);
+  const rows = clips.map((clip) => `| ${clock(clip.R, false)} | [${pipe(clip.src.name)}](../templates/${clip.src.id}/) | ${pipe(clip.def.headline)} | ${filmTimes(clip)} |`);
   const lines = clips.reduce((n, clip) => n + clip.takes.reduce((m, t) => m + t.lines.length, 0), 0) + narrationOf(L).length;
   const cards = reel.chapters.map((ch) => ch.card.replace(/\.$/, "")).join(", ");
   return `# Overview reel
@@ -1153,7 +1349,9 @@ function summary(reel, clips, L, { ops, cues, loudness }) {
     title: { at: L.title.at, end: L.title.end },
     chapters: L.chapters.map((ch) => ({ card: ch.card, at: ch.at, from: ch.appearance.from, to: ch.appearance.to })),
     trust: { at: L.trust.at, end: L.trust.end },
+    ...(L.yours ? { yours: { at: L.yours.at, end: L.yours.end, typeFrom: L.yours.typeFrom, typeEnd: L.yours.typeEnd } } : {}),
     end: { at: L.end.at, chord: L.end.chord },
+    ...(reel.film ? { film: reel.film, walkthrough: clips[0].src.walkthrough } : {}),
     clips: clips.map((clip) => ({
       film: clip.src.id,
       headline: clip.def.headline,
@@ -1175,7 +1373,7 @@ function summary(reel, clips, L, { ops, cues, loudness }) {
   };
 }
 
-/** Review frames: the open, the title, every card and take, trust and the end. */
+/** Review frames: the open, the title, every card and take, trust, the agent typing and the end. */
 function autoSnaps(clips, L) {
   const first = clips[0].takes[0];
   const times = [
@@ -1187,6 +1385,7 @@ function autoSnaps(clips, L) {
     ...L.chapters.map((ch) => ch.at + 0.6),
     ...clips.flatMap((clip) => clip.takes.map((t) => t.R + t.w.len / 2)),
     L.trust.at + 3,
+    ...(L.yours ? [L.yours.at + 1.5, (L.yours.typeFrom + L.yours.typeEnd) / 2, L.yours.typeEnd + 0.8] : []),
     L.end.at + 3,
     L.total - 2,
   ];
@@ -1210,8 +1409,9 @@ export async function buildReel(id = "overview", opts = {}) {
     force = false,
     log = (line) => console.error(`[${id}] ${line}`),
   } = opts;
-  const reel = (await import(pathToFileURL(join(ROOT, "reel", `${id}.mjs`)).href)).default;
-  if (reel?.id !== id) throw new Error(`reel/${id}.mjs must export default { id: "${id}", … }`);
+  const script = (await import(pathToFileURL(join(ROOT, "reel", `${id}.mjs`)).href)).default;
+  if (script?.id !== id) throw new Error(`reel/${id}.mjs must export default { id: "${id}", … }`);
+  const reel = withSeries(script);
   const dir = join(out, id);
   const project = join(dir, "project");
   const clipsDir = join(project, "clips");
@@ -1223,7 +1423,7 @@ export async function buildReel(id = "overview", opts = {}) {
   log(`reel ${clock(L.total, false)} (${L.total} s): open ${L.open.from}–${L.open.to}, title ${L.title.at}–${L.title.end}`);
   for (const ch of L.chapters)
     log(`  "${ch.card}" at ${ch.at}: ${ch.appearance.clips.map((c) => `${c.src.id} ${c.R.toFixed(1)}–${c.end.toFixed(1)}`).join(", ")}`);
-  log(`  trust ${L.trust.at}–${L.trust.end}, end ${L.end.at} (chord ${L.end.chord}) → ${L.total}`);
+  log(`  trust ${L.trust.at}–${L.trust.end}${L.yours ? `, yours ${L.yours.at}–${L.yours.end} (typing ${L.yours.typeFrom}–${L.yours.typeEnd})` : ""}, end ${L.end.at} (chord ${L.end.chord}) → ${L.total}`);
 
   const takes = clips.flatMap((c) => c.takes);
   const cutAt = Date.now();
@@ -1233,13 +1433,21 @@ export async function buildReel(id = "overview", opts = {}) {
   log(`${takes.length} takes cut in ${((Date.now() - cutAt) / 1000).toFixed(0)} s`);
 
   const font = findFont();
-  if (font) {
-    const dest = join(project, "fonts", FONT);
-    await mkdir(dirname(dest), { recursive: true });
+  const mono = findFont(MONO, process.env.REEL_MONO_FONT);
+  for (const [file, name, fallback] of [
+    [font, FONT, "Segoe UI / system-ui"],
+    [mono, MONO, "Consolas / DejaVu Sans Mono"],
+  ]) {
+    const dest = join(project, "fonts", name);
     await rm(dest, { force: true });
-    await copyFile(font, dest);
-  } else log(`note: ${FONT} not found (set REEL_FONT); the page falls back to Segoe UI / system-ui`);
-  const { html, ops, cues } = page(reel, clips, L, { font });
+    if (!file) {
+      log(`note: ${name} not found (set ${name === FONT ? "REEL_FONT" : "REEL_MONO_FONT"}); the page falls back to ${fallback}`);
+      continue;
+    }
+    await mkdir(dirname(dest), { recursive: true });
+    await copyFile(file, dest);
+  }
+  const { html, ops, cues } = page(reel, clips, L, { font, mono });
   await writeFile(join(project, "index.html"), html);
   await copyFile(GSAP, join(project, "gsap.min.js"));
   log(`page: ${ops} animation ops, ${cues.length} caption cues`);
@@ -1289,7 +1497,7 @@ export async function buildReel(id = "overview", opts = {}) {
     "-hide_banner", "-nostdin", "-y", "-v", "error", "-i", silent, "-i", wav, "-map", "0:v:0", "-map", "1:a:0",
     "-c:v", "libx264", "-preset", ENCODE.preset, "-crf", String(crf), "-x264-params", ENCODE.x264, "-pix_fmt", "yuv420p", "-profile:v", "high",
     "-c:a", "aac", "-b:a", ENCODE.audio, "-ar", "48000",
-    "-metadata", `title=${reel.name} — overview`,
+    "-metadata", `title=${reel.film ? reel.name : `${reel.name} — overview`}`,
     "-metadata", `comment=Synthetic voices: Azure OpenAI GPT Realtime. Simulation mode.${music ? " Original score." : ""}`,
     "-movflags", "+faststart", "-shortest", mp4,
   ]);
@@ -1297,9 +1505,11 @@ export async function buildReel(id = "overview", opts = {}) {
   await sh("ffmpeg", ["-hide_banner", "-nostdin", "-y", "-v", "error", "-ss", String(posterAt), "-i", silent, "-frames:v", "1", "-c:v", "libwebp", "-quality", "86", join(dir, "poster.webp")]);
   // Link previews (Teams, Slack, LinkedIn) take a JPEG more reliably than WebP.
   await sh("ffmpeg", ["-hide_banner", "-nostdin", "-y", "-v", "error", "-ss", String(posterAt), "-i", silent, "-frames:v", "1", "-vf", "scale=1200:675:flags=lanczos", "-q:v", "3", join(dir, "share.jpg")]);
-  // The gallery's front page shows a console at work rather than the title card.
-  const heroAt = r3(frameDown(L.open.to - (reel.hero?.before ?? 1.8)));
-  await sh("ffmpeg", ["-hide_banner", "-nostdin", "-y", "-v", "error", "-ss", String(heroAt), "-i", silent, "-frames:v", "1", "-vf", "scale=1600:900:flags=lanczos", "-c:v", "libwebp", "-quality", "84", join(dir, "hero.webp")]);
+  // The gallery's front page shows a console at work rather than the title card (a template's film needs no hero unless it asks).
+  if (!reel.film || reel.hero) {
+    const heroAt = r3(frameDown(L.open.to - (reel.hero?.before ?? 1.8)));
+    await sh("ffmpeg", ["-hide_banner", "-nostdin", "-y", "-v", "error", "-ss", String(heroAt), "-i", silent, "-frames:v", "1", "-vf", "scale=1600:900:flags=lanczos", "-c:v", "libwebp", "-quality", "84", join(dir, "hero.webp")]);
+  }
   const size = (await stat(mp4)).size;
   log(`${id}.mp4 ${(size / 1e6).toFixed(1)} MB, ${clock(L.total, false)} → ${dir}`);
   return { dir, L, loudness, size };

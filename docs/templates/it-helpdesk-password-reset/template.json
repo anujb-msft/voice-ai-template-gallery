@@ -53,7 +53,7 @@
       {
         "path": "templates/it-helpdesk-password-reset/video/demo.mp4",
         "status": "ready",
-        "description": "Narrated demo film (5:13), every voice performed by Azure OpenAI GPT Realtime (MP4, hosted on a GitHub Release).",
+        "description": "Narrated demo film (2:19), every voice performed by Azure OpenAI GPT Realtime (MP4, hosted on a GitHub Release).",
         "url": "https://github.com/anujb-msft/voice-ai-template-gallery/releases/download/demo-films/it-helpdesk-password-reset.mp4"
       },
       {

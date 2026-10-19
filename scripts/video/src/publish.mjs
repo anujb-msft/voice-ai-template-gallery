@@ -1,25 +1,34 @@
-// Publish composed films into the gallery. A film is too large to commit, so its MP4 goes
-// to a GitHub Release (one asset per template, <id>.mp4); the Pages build copies it into
-// the site, and the gallery plays that copy first and the release second. Its poster,
-// captions, transcript and notes go to
-// docs/templates/<id>/video/. Then the template's video and poster are marked ready in
-// template.json, the catalogue is regenerated and the cache keys of the pages that read
-// it are bumped. With --reel, the ids name reels (src/reel.mjs) instead: each goes to the
-// same release as <id>.mp4, and its companions to docs/<id>/, where the gallery's front
-// page plays it. Either way, the site plays a new upload only after Pages deploys again.
+// Publish films into the gallery. A film is too large to commit, so its MP4 goes to a
+// GitHub Release (one asset per template, <id>.mp4); the Pages build copies it into the
+// site, and the gallery plays that copy first and the release second. Its poster,
+// captions, transcript and notes go to docs/templates/<id>/video/. Then the template's
+// video and poster are marked ready in template.json, the catalogue is regenerated and the
+// cache keys of the pages that read it are bumped.
 //
-//   node src/publish.mjs <template-id> [...more] [--from DIR] [--repo DIR]
+// A template's film is the short one src/reel.mjs cuts (reel/<id>/, with its reel.json)
+// when there is one, else the walkthrough compose made (films/<id>/demo.mp4). With a short
+// film, the walkthrough goes to the release too, as <id>-walkthrough.mp4, and its
+// transcript beside the film's as walkthrough-transcript.md; the film's notes link both.
+// With --reel, the ids name the gallery's own reels (the overview) instead: each goes to
+// the same release as <id>.mp4, and its companions to docs/<id>/, where the gallery's
+// front page plays it. Either way, the site plays a new upload only after Pages deploys
+// again. An upload is skipped when the release already holds the same bytes.
+//
+//   node src/publish.mjs <template-id> [...more] [--from DIR] [--films DIR] [--repo DIR]
 //        [--github OWNER/NAME] [--release TAG] [--no-upload]
 //   node src/publish.mjs --reel overview [--from DIR] [...]
 //
-// --from: compose's output (default ~/cvp-video-work/films; with --reel, ~/cvp-video-work/reel);
+// --from: where the films were built (default: ~/cvp-video-work/reel for a template with a
+//   short film, else ~/cvp-video-work/films; with --reel, ~/cvp-video-work/reel);
+// --films: compose's output, where the walkthroughs are (default ~/cvp-video-work/films);
 // --repo: this checkout;
 // --github: the repository that hosts the release (default: the checkout's origin remote);
 // --release: the release's tag (default demo-films, created on first use);
 // --no-upload: point the docs at films that are already on the release.
 // Uploading needs the GitHub CLI, signed in with write access to the repository.
 import { spawnSync } from "node:child_process";
-import { existsSync, readdirSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { createReadStream, existsSync, readdirSync } from "node:fs";
 import { copyFile, mkdir, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { homedir, tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
@@ -27,13 +36,14 @@ import { fileURLToPath } from "node:url";
 
 const here = dirname(fileURLToPath(import.meta.url));
 export const RELEASE = { tag: "demo-films", title: "Template demo films" };
+const WORK = join(homedir(), "cvp-video-work");
 /** Committed beside the template; the MP4 itself lives on the release. */
 export const COMPANIONS = ["poster.webp", "captions.vtt", "transcript.md", "README.md"];
-export const DELIVERABLES = ["demo.mp4", ...COMPANIONS];
 /** A reel's companions, committed in docs/<id>/; share.jpg is the page's link preview, hero.webp its front-page still. */
 export const REEL_COMPANIONS = ["poster.webp", "share.jpg", "hero.webp", "captions.vtt", "transcript.md", "README.md"];
 /** The generator only accepts release downloads built from plain segments like these. */
 const SEGMENT = /^[A-Za-z0-9._-]+$/;
+const literal = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 /** m:ss, truncated like compose's runtime, so the gallery and the film's notes agree. */
 const clock = (seconds) => {
@@ -41,6 +51,19 @@ const clock = (seconds) => {
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 };
 export const releaseUrl = (github, tag, id) => `https://github.com/${github}/releases/download/${tag}/${id}.mp4`;
+
+export const RELEASE_NOTES = [
+  "Demo films for the Voice AI template gallery. Each template has two:",
+  "",
+  "- `<template-id>.mp4`, a short narrated film of the template at work. The template's **Video** button in the gallery plays it.",
+  "- `<template-id>-walkthrough.mp4`, the template's full narrated walkthrough, where every scripted call plays out from start to finish.",
+  "",
+  "`overview.mp4` is the overview reel on the gallery's front page, cut from all of them.",
+  "",
+  "Every voice is synthetic, performed by Azure OpenAI GPT Realtime through Azure AI Voice Live. Callers, companies and phone numbers are fictional, and each template's console runs in simulation mode.",
+  "",
+  "The films are made with `scripts/video`. Each template's `video/` folder holds the poster, captions, transcripts and production notes; `docs/overview/` holds the reel's.",
+].join("\n");
 
 function gh(args) {
   const run = spawnSync("gh", args, { encoding: "utf8" });
@@ -56,32 +79,49 @@ function originRepo(repo) {
   return `${m[1]}/${m[2]}`;
 }
 
-/** Creates the release on first use; true when it did. */
+/** Creates the release on first use (true when it did) and keeps its notes current. */
 export function ensureRelease(github, tag) {
-  if (gh(["release", "view", tag, "-R", github, "--json", "tagName"]).status === 0) return false;
-  const notes = [
-    "Narrated demo films for the Voice AI template gallery, one per template (`<template-id>.mp4`). Each template's **Video** button in the gallery links its film here. `overview.mp4` is the overview reel on the gallery's front page, cut from all of them.",
-    "",
-    "Every voice is synthetic, performed by Azure OpenAI GPT Realtime through Azure AI Voice Live. Callers, companies and phone numbers are fictional, and each template's console runs in simulation mode.",
-    "",
-    "The films are made with `scripts/video`. Each template's `video/` folder holds the poster, captions, transcript and production notes; `docs/overview/` holds the reel's.",
-  ].join("\n");
-  const run = gh(["release", "create", tag, "-R", github, "--title", RELEASE.title, "--notes", notes, "--latest=false"]);
+  const view = gh(["release", "view", tag, "-R", github, "--json", "body", "-q", ".body"]);
+  if (view.status === 0) {
+    if (view.stdout.replace(/\r\n/g, "\n").trim() !== RELEASE_NOTES) {
+      const edit = gh(["release", "edit", tag, "-R", github, "--notes", RELEASE_NOTES]);
+      if (edit.status !== 0) throw new Error(`gh release edit ${tag}: ${edit.stderr.trim()}`);
+    }
+    return false;
+  }
+  const run = gh(["release", "create", tag, "-R", github, "--title", RELEASE.title, "--notes", RELEASE_NOTES, "--latest=false"]);
   if (run.status !== 0) throw new Error(`gh release create ${tag}: ${run.stderr.trim()}`);
   return true;
 }
 
-/** Uploads the film as <id>.mp4, replacing an earlier cut. */
-async function upload(github, tag, id, film) {
+/** The release's assets by name, with the SHA-256 GitHub computed for each. */
+export function releaseAssets(github, tag) {
+  const release = gh(["api", `repos/${github}/releases/tags/${tag}`, "-q", ".id"]);
+  if (release.status !== 0) throw new Error(`gh api releases/tags/${tag}: ${release.stderr.trim()}`);
+  const run = gh(["api", "--paginate", `repos/${github}/releases/${release.stdout.trim()}/assets?per_page=100`, "-q", '.[] | [.name, (.digest // "")] | @tsv']);
+  if (run.status !== 0) throw new Error(`gh api releases/${release.stdout.trim()}/assets: ${run.stderr.trim()}`);
+  return new Map(run.stdout.split("\n").filter(Boolean).map((row) => row.split("\t")));
+}
+
+async function sha256(file) {
+  const hash = createHash("sha256");
+  for await (const chunk of createReadStream(file)) hash.update(chunk);
+  return `sha256:${hash.digest("hex")}`;
+}
+
+/** Uploads the file as `name`, replacing an earlier cut; false when the release already holds these bytes. */
+async function upload(github, tag, name, file, assets) {
+  if (assets?.get(name) === (await sha256(file))) return false;
   const dir = await mkdtemp(join(tmpdir(), "film-"));
   try {
-    const named = join(dir, `${id}.mp4`);
-    await copyFile(film, named);
+    const named = join(dir, name);
+    await copyFile(file, named);
     const run = gh(["release", "upload", tag, named, "-R", github, "--clobber"]);
-    if (run.status !== 0) throw new Error(`gh release upload ${id}.mp4: ${run.stderr.trim()}`);
+    if (run.status !== 0) throw new Error(`gh release upload ${name}: ${run.stderr.trim()}`);
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
+  return true;
 }
 
 /** The public URL must serve exactly the uploaded film, with the range requests players seek with. */
@@ -102,28 +142,57 @@ async function verify(url, bytes) {
   throw new Error(`${url} does not serve the uploaded film (${last}; expected a 206 of ${bytes} bytes)`);
 }
 
-/** Uploads one film to the release, copies its companions into the template and marks both ready. */
-export async function publish(id, { from, repo, github, tag = RELEASE.tag, upload: send = true }) {
-  const src = join(from, id);
-  const missing = DELIVERABLES.filter((f) => !existsSync(join(src, f)));
-  if (missing.length) throw new Error(`${id}: ${src} is missing ${missing.join(", ")}; run compose first`);
-  const { total } = JSON.parse(await readFile(join(src, "film.json"), "utf8"));
+/** Points the README's ``[`<file>`](./<file>) — <what> (<runtime>)`` line at the release. */
+function pointAt(readme, { id, file, what, name, url, release }) {
+  const line = new RegExp(`\\[\`${literal(file)}\`\\]\\(\\./${literal(file)}\\) — ${literal(what)} \\(([^)]+)\\)`);
+  const linked = readme.replace(line, (_, runtime) => `[\`${name}\`](${url}) — ${what} (${runtime}), on the ${release}`);
+  if (linked === readme) throw new Error(`${id}: README.md has no ${file} line to point at the release`);
+  return linked;
+}
+
+/** The walkthrough's transcript, retitled; its subtitles are burned into the walkthrough, so no captions file comes with it. */
+function walkthroughTranscript(md, id) {
+  const titled = md.replace(/^# Transcript — (.+)$/m, "# Transcript — $1: full walkthrough");
+  const noted = titled.replace(
+    /This transcript matches \[`captions\.vtt`\]\(\.\/captions\.vtt\), which splits long lines into\s+shorter cues\. Timestamps are global \(`mm:ss\.mmm`\) from the start of the film\./,
+    "The walkthrough's subtitles are burned in. Timestamps are global (`mm:ss.mmm`) from the\nstart of the walkthrough.",
+  );
+  if (titled === md || noted === titled) throw new Error(`${id}: the walkthrough's transcript.md has no title or captions note to rewrite`);
+  return noted;
+}
+
+/**
+ * Uploads one template's film to the release, copies its companions into the template and
+ * marks both ready. With a short film (from src/reel.mjs), the walkthrough goes up beside it.
+ */
+export async function publish(id, { from, films = join(WORK, "films"), repo, github, tag = RELEASE.tag, upload: send = true, assets }) {
+  const src = join(from ?? join(WORK, existsSync(join(WORK, "reel", id, "reel.json")) ? "reel" : "films"), id);
+  const short = existsSync(join(src, "reel.json"));
+  const film = join(src, short ? `${id}.mp4` : "demo.mp4");
+  const walk = short ? { film: join(films, id, "demo.mp4"), transcript: join(films, id, "transcript.md") } : null;
+  const missing = [film, ...COMPANIONS.map((f) => join(src, f)), ...(walk ? [walk.film, walk.transcript] : [])].filter((f) => !existsSync(f));
+  if (missing.length) throw new Error(`${id}: missing ${missing.join(", ")}; run ${short ? `compose, then npm run reel -- ${id}` : "compose"} first`);
+  const { total } = JSON.parse(await readFile(join(src, short ? "reel.json" : "film.json"), "utf8"));
   const url = releaseUrl(github, tag, id);
+  const walkUrl = releaseUrl(github, tag, `${id}-walkthrough`);
+  const sent = [];
   if (send) {
-    const film = join(src, "demo.mp4");
-    await upload(github, tag, id, film);
-    await verify(url, (await stat(film)).size);
+    // The walkthrough first: on a first publish it is still the release's only copy, as <id>.mp4.
+    for (const [name, file, at] of [...(walk ? [[`${id}-walkthrough.mp4`, walk.film, walkUrl]] : []), [`${id}.mp4`, film, url]]) {
+      if (await upload(github, tag, name, file, assets)) sent.push(name);
+      await verify(at, (await stat(file)).size);
+    }
   }
 
   const video = join(repo, "docs", "templates", id, "video");
   for (const f of ["poster.webp", "captions.vtt", "transcript.md"]) await copyFile(join(src, f), join(video, f));
-  const readme = await readFile(join(src, "README.md"), "utf8");
-  const linked = readme.replace(
-    /\[`demo\.mp4`\]\(\.\/demo\.mp4\) — narrated demo film \(([^)]+)\)/,
-    (_, runtime) => `[\`${id}.mp4\`](${url}) — narrated demo film (${runtime}), on the [\`${tag}\`](https://github.com/${github}/releases/tag/${tag}) release`,
-  );
-  if (linked === readme) throw new Error(`${id}: README.md has no demo.mp4 line to point at the release`);
-  await writeFile(join(video, "README.md"), linked);
+  const release = `[\`${tag}\`](https://github.com/${github}/releases/tag/${tag}) release`;
+  let readme = await readFile(join(src, "README.md"), "utf8");
+  readme = pointAt(readme, { id, file: short ? `${id}.mp4` : "demo.mp4", what: "narrated demo film", name: `${id}.mp4`, url, release });
+  if (walk) readme = pointAt(readme, { id, file: `${id}-walkthrough.mp4`, what: "the full narrated walkthrough", name: `${id}-walkthrough.mp4`, url: walkUrl, release: "same release" });
+  await writeFile(join(video, "README.md"), readme);
+  if (walk) await writeFile(join(video, "walkthrough-transcript.md"), walkthroughTranscript(await readFile(walk.transcript, "utf8"), id));
+  else await rm(join(video, "walkthrough-transcript.md"), { force: true });
   // The release holds the only copy: a committed one would go stale, and the generator rejects it.
   await rm(join(video, "demo.mp4"), { force: true });
 
@@ -140,7 +209,7 @@ export async function publish(id, { from, repo, github, tag = RELEASE.tag, uploa
     }
   }
   await writeFile(file, `${JSON.stringify(template, null, 2)}\n`);
-  return { id, total, url };
+  return { id, total, url, walkthrough: walk ? walkUrl : null, sent };
 }
 
 /**
@@ -148,15 +217,16 @@ export async function publish(id, { from, repo, github, tag = RELEASE.tag, uploa
  * No manifest names the reel: the gallery's front page (docs/index.html) and the Pages
  * mirror (scripts/mirror-hosted-films.js) point at it directly.
  */
-export async function publishReel(id, { from, repo, github, tag = RELEASE.tag, upload: send = true }) {
+export async function publishReel(id, { from, repo, github, tag = RELEASE.tag, upload: send = true, assets }) {
   const src = join(from, id);
   const missing = [`${id}.mp4`, "reel.json", ...REEL_COMPANIONS].filter((f) => !existsSync(join(src, f)));
   if (missing.length) throw new Error(`${id}: ${src} is missing ${missing.join(", ")}; run npm run reel -- ${id} first`);
   const { total } = JSON.parse(await readFile(join(src, "reel.json"), "utf8"));
   const url = releaseUrl(github, tag, id);
+  const sent = [];
   if (send) {
     const film = join(src, `${id}.mp4`);
-    await upload(github, tag, id, film);
+    if (await upload(github, tag, `${id}.mp4`, film, assets)) sent.push(`${id}.mp4`);
     await verify(url, (await stat(film)).size);
   }
 
@@ -164,13 +234,9 @@ export async function publishReel(id, { from, repo, github, tag = RELEASE.tag, u
   await mkdir(docs, { recursive: true });
   for (const f of REEL_COMPANIONS.filter((f) => f !== "README.md")) await copyFile(join(src, f), join(docs, f));
   const readme = await readFile(join(src, "README.md"), "utf8");
-  const linked = readme.replace(
-    new RegExp(`\\[\`${id}\\.mp4\`\\]\\(\\./${id}\\.mp4\\) — the overview reel \\(([^)]+)\\)`),
-    (_, runtime) => `[\`${id}.mp4\`](${url}) — the overview reel (${runtime}), on the [\`${tag}\`](https://github.com/${github}/releases/tag/${tag}) release`,
-  );
-  if (linked === readme) throw new Error(`${id}: README.md has no ${id}.mp4 line to point at the release`);
-  await writeFile(join(docs, "README.md"), linked);
-  return { id, total, url };
+  const release = `[\`${tag}\`](https://github.com/${github}/releases/tag/${tag}) release`;
+  await writeFile(join(docs, "README.md"), pointAt(readme, { id, file: `${id}.mp4`, what: "the overview reel", name: `${id}.mp4`, url, release }));
+  return { id, total, url, sent };
 }
 
 /** A fresh `?v=` key for every page that loads data/templates.js. */
@@ -204,14 +270,15 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     const i = process.argv.indexOf(`--${name}`);
     return i > 0 ? process.argv[i + 1] : fallback;
   };
-  const flags = new Set(["--from", "--repo", "--github", "--release"]);
+  const flags = new Set(["--from", "--films", "--repo", "--github", "--release"]);
   const ids = process.argv.slice(2).filter((a, i, all) => !a.startsWith("--") && !flags.has(all[i - 1]));
   const reel = process.argv.includes("--reel");
   if (!ids.length) {
-    console.error("usage: node src/publish.mjs [--reel] <id> [...more] [--from DIR] [--repo DIR] [--github OWNER/NAME] [--release TAG] [--no-upload]");
+    console.error("usage: node src/publish.mjs [--reel] <id> [...more] [--from DIR] [--films DIR] [--repo DIR] [--github OWNER/NAME] [--release TAG] [--no-upload]");
     process.exit(2);
   }
-  const from = opt("from", join(homedir(), "cvp-video-work", reel ? "reel" : "films"));
+  const from = opt("from", reel ? join(WORK, "reel") : undefined);
+  const films = opt("films", join(WORK, "films"));
   const repo = opt("repo", resolve(here, "..", "..", ".."));
   const github = opt("github", null) ?? originRepo(repo);
   const tag = opt("release", RELEASE.tag);
@@ -221,17 +288,19 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     process.exit(2);
   }
   if (send && ensureRelease(github, tag)) console.log(`created the ${tag} release on ${github}`);
+  const assets = send ? releaseAssets(github, tag) : null;
+  const uploaded = (sent) => (sent.length ? `uploaded ${sent.join(", ")}` : send ? "already on the release" : "not uploaded");
   if (reel) {
     for (const id of ids) {
-      const { total, url } = await publishReel(id, { from, repo, github, tag, upload: send });
-      console.log(`${id}: reel published (${clock(total)}) → ${url}; companions in docs/${id}/`);
+      const { total, url, sent } = await publishReel(id, { from, repo, github, tag, upload: send, assets });
+      console.log(`${id}: reel published (${clock(total)}, ${uploaded(sent)}) → ${url}; companions in docs/${id}/`);
     }
     if (send) console.log(redeployNote(github));
     process.exit(0);
   }
   for (const id of ids) {
-    const { total, url } = await publish(id, { from, repo, github, tag, upload: send });
-    console.log(`${id}: published (${clock(total)}) → ${url}`);
+    const { total, url, walkthrough, sent } = await publish(id, { from, films, repo, github, tag, upload: send, assets });
+    console.log(`${id}: published (${clock(total)}, ${uploaded(sent)}) → ${url}${walkthrough ? `; walkthrough → ${walkthrough}` : ""}`);
   }
   const index = spawnSync(process.execPath, [join(repo, "scripts", "generate-template-index.js")], { cwd: repo, stdio: "inherit" });
   if (index.status !== 0) process.exit(index.status ?? 1);

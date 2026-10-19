@@ -52,7 +52,7 @@
       {
         "path": "templates/intent-based-call-routing/video/demo.mp4",
         "status": "ready",
-        "description": "Narrated demo film (6:17), every voice performed by Azure OpenAI GPT Realtime (MP4, hosted on a GitHub Release).",
+        "description": "Narrated demo film (2:18), every voice performed by Azure OpenAI GPT Realtime (MP4, hosted on a GitHub Release).",
         "url": "https://github.com/anujb-msft/voice-ai-template-gallery/releases/download/demo-films/intent-based-call-routing.mp4"
       },
       {

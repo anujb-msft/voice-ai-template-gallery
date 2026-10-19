@@ -283,6 +283,11 @@ template, change its `name`.
   The generator requires a hosted asset to be `ready`, its `url` to be a GitHub Release
   download of the same file type, and nothing to be committed at its `path`.
   `scripts/video` uploads the film and writes the entry; see its README.
+- A template's film is the short one its Video button plays, cut from the template's
+  full narrated walkthrough. The walkthrough is on the same release as
+  `<id>-walkthrough.mp4`, linked from `video/README.md`, with its transcript committed
+  beside the film's as `video/walkthrough-transcript.md`. It is not an expected
+  asset, so the Pages build doesn't copy it.
 - The overview film at the top of the gallery belongs to no template. It follows the
   same pattern: `overview.mp4` on the same release, mirrored to `overview/overview.mp4`,
   with its poster, link-preview image, captions, and transcript committed in

@@ -1,421 +1,149 @@
 WEBVTT
 
 1
-00:00:03.000 --> 00:00:06.780
-<v Narrator>Every call to a main line starts with a reason.
+00:00:03.869 --> 00:00:07.276
+<v AI agent>Hi Dana, you've reached Contoso — I'm the automated assistant.
 
 2
-00:00:07.230 --> 00:00:11.820
-<v Narrator>A phone menu makes the caller translate that reason into a number.
+00:00:07.356 --> 00:00:09.299
+<v AI agent>What can I help you with today?
 
 3
-00:00:11.900 --> 00:00:13.730
-<v Narrator>This agent just asks.
-
-4
-00:00:20.430 --> 00:00:24.440
-<v Narrator>Calls arrive on a Teams phone number, through Teams Phone extensibility.
-
-5
-00:00:24.890 --> 00:00:29.677
-<v Narrator>Azure Communication Services Call Automation bridges the audio to Voice Live,
-
-6
-00:00:29.757 --> 00:00:32.620
-<v Narrator>where GPT Realtime holds the conversation.
-
-7
-00:00:33.070 --> 00:00:37.330
-<v Narrator>Your server decides where the call goes, and Teams receives it with context.
-
-8
-00:00:39.734 --> 00:00:42.406
-<v Narrator>Dana calls Contoso's main line. There's no menu.
-
-9
-00:00:42.486 --> 00:00:44.304
-<v Narrator>She just says what she needs.
-
-10
-00:00:45.189 --> 00:00:48.660
-<v Agent>Hi Dana, you've reached Contoso — I'm the automated assistant.
-
-11
-00:00:48.740 --> 00:00:50.719
-<v Agent>What can I help you with today?
-
-12
-00:00:52.053 --> 00:00:54.633
+00:00:10.723 --> 00:00:13.213
 <v Dana>I was charged twice on my invoice
 
-13
-00:00:54.937 --> 00:00:58.277
-<v Agent>It sounds like Billing is the right team for that — shall I put you through?
+4
+00:00:13.667 --> 00:00:15.598
+<v AI agent>It sounds like Billing is the right team for that
 
-14
-00:00:59.621 --> 00:01:03.082
-<v Narrator>The model proposes Billing, with a confidence score.
+5
+00:00:15.678 --> 00:00:16.877
+<v AI agent>— shall I put you through?
 
-15
-00:01:03.162 --> 00:01:06.821
-<v Narrator>The server, not the model, checks it against the gate.
-
-16
-00:01:07.573 --> 00:01:12.373
-<v Narrator>Even above the gate, the agent confirms before it transfers. Watch the Teams panel.
-
-17
-00:01:13.215 --> 00:01:14.645
+6
+00:00:17.765 --> 00:00:18.995
 <v Dana>yes please
 
-18
-00:01:14.942 --> 00:01:16.892
-<v Agent>Connecting you now to Billing.
-
-19
-00:01:18.252 --> 00:01:21.395
-<v Narrator>Billing's Teams client rings with the reason for the call
-
-20
-00:01:21.475 --> 00:01:23.825
-<v Narrator>and who's calling, flagged as unverified.
-
-21
-00:01:23.905 --> 00:01:26.682
-<v Narrator>That context travels in the call's VoIP headers.
-
-22
-00:01:28.738 --> 00:01:31.074
-<v Narrator>Some requests really are ambiguous.
-
-23
-00:01:31.154 --> 00:01:34.277
-<v Narrator>Priya was charged for a renewal she didn't order.
-
-24
-00:01:34.357 --> 00:01:36.268
-<v Narrator>Is that Sales, or Billing?
-
-25
-00:01:37.131 --> 00:01:40.569
-<v Agent>Hi Priya, you've reached Contoso — I'm the automated assistant.
-
-26
-00:01:40.649 --> 00:01:42.581
-<v Agent>What can I help you with today?
-
-27
-00:01:43.913 --> 00:01:47.043
-<v Priya>I was charged for a renewal I did not order
-
-28
-00:01:47.335 --> 00:01:49.990
-<v Agent>Sorry, I want to make sure I get you to the right place.
-
-29
-00:01:50.070 --> 00:01:52.505
-<v Agent>Could you tell me a bit more about what you need?
-
-30
-00:01:53.860 --> 00:01:57.195
-<v Narrator>Sales scored 0.6, under the 0.75 gate.
-
-31
-00:01:57.275 --> 00:02:01.730
-<v Narrator>So instead of guessing, the agent asks one question.
-
-32
-00:02:02.535 --> 00:02:04.855
-<v Priya>the charge on my card is wrong
-
-33
-00:02:05.142 --> 00:02:08.482
-<v Agent>It sounds like Billing is the right team for that — shall I put you through?
-
-34
-00:02:09.808 --> 00:02:11.318
-<v Priya>yes
-
-35
-00:02:11.619 --> 00:02:13.569
-<v Agent>Connecting you now to Billing.
-
-36
-00:02:14.921 --> 00:02:18.585
-<v Narrator>A wrong transfer costs far more than one clarifying question.
-
-37
-00:02:18.665 --> 00:02:22.301
-<v Narrator>And the gate is a number in config, not a line in a prompt.
-
-38
-00:02:24.368 --> 00:02:28.128
-<v Narrator>The quickest way to lose a caller is to make them argue with a bot.
-
-39
-00:02:28.978 --> 00:02:31.886
-<v Agent>Thanks for calling Contoso — I'm the automated assistant.
-
-40
-00:02:31.966 --> 00:02:33.758
-<v Agent>What can I help you with today?
-
-41
-00:02:35.097 --> 00:02:37.227
-<v Caller>can I just talk to a person
-
-42
-00:02:37.530 --> 00:02:39.430
-<v Agent>Connecting you now to Reception.
-
-43
-00:02:40.764 --> 00:02:43.662
-<v Narrator>Asking for a person goes straight to Reception.
-
-44
-00:02:43.742 --> 00:02:45.854
-<v Narrator>No gate, and no “are you sure?”
-
-45
-00:02:47.920 --> 00:02:50.328
-<v Narrator>Callers change their minds.
-
-46
-00:02:50.408 --> 00:02:53.820
-<v Narrator>Marcus has a question about his invoice.
-
-47
-00:02:54.734 --> 00:02:58.072
-<v Agent>Hi Marcus, you've reached Contoso — I'm the automated assistant.
-
-48
-00:02:58.152 --> 00:03:00.004
-<v Agent>What can I help you with today?
-
-49
-00:03:01.313 --> 00:03:03.903
-<v Marcus>I have a question about my invoice
-
-50
-00:03:04.195 --> 00:03:07.535
-<v Agent>It sounds like Billing is the right team for that — shall I put you through?
-
-51
-00:03:08.892 --> 00:03:10.550
-<v Narrator>Watch the bar under the gauge.
-
-52
-00:03:10.630 --> 00:03:13.432
-<v Narrator>The transfer waits about a second before it dispatches,
-
-53
-00:03:13.512 --> 00:03:15.662
-<v Narrator>and Marcus is about to change his mind.
-
-54
-00:03:16.477 --> 00:03:18.417
-<v Marcus>yes please
-
-55
-00:03:18.726 --> 00:03:20.676
-<v Agent>Connecting you now to Billing.
-
-56
-00:03:21.018 --> 00:03:23.248
-<v Marcus>no wait, the portal is down
-
-57
-00:03:23.512 --> 00:03:26.942
-<v Agent>It sounds like Support is the right team for that — shall I put you through?
-
-58
-00:03:28.286 --> 00:03:30.951
-<v Narrator>The transfer to Billing was cancelled before it left,
-
-59
-00:03:31.031 --> 00:03:32.786
-<v Narrator>and Support is offered instead.
-
-60
-00:03:33.621 --> 00:03:34.464
-<v Marcus>yes
-
-61
-00:03:34.544 --> 00:03:36.224
-<v Agent>Connecting you now to Support.
-
-62
-00:03:37.578 --> 00:03:41.364
-<v Narrator>Cancelled inside the window, re-proposed, and re-confirmed.
-
-63
-00:03:41.444 --> 00:03:44.098
-<v Narrator>The trail shows billing, then support.
-
-64
-00:03:46.141 --> 00:03:48.354
-<v Narrator>Same server, 7:30 in the evening.
-
-65
-00:03:48.434 --> 00:03:50.391
-<v Narrator>Billing keeps office hours.
-
-66
-00:03:51.268 --> 00:03:54.739
-<v Agent>Hi Dana, you've reached Contoso — I'm the automated assistant.
-
-67
-00:03:54.819 --> 00:03:56.798
-<v Agent>What can I help you with today?
-
-68
-00:03:58.110 --> 00:04:00.390
-<v Dana>I have a question about my invoice
-
-69
-00:04:00.670 --> 00:04:04.010
-<v Agent>It sounds like Billing is the right team for that — shall I put you through?
-
-70
-00:04:05.351 --> 00:04:08.183
-<v Narrator>Billing is still the right team, but it's closed.
-
-71
-00:04:08.263 --> 00:04:12.811
-<v Narrator>The server checks the hours, and Billing's after-hours rule is to take a message.
-
-72
-00:04:13.645 --> 00:04:14.406
-<v Dana>yes
-
-73
-00:04:14.486 --> 00:04:16.041
-<v Agent>Billing is closed at the moment.
-
-74
-00:04:16.121 --> 00:04:18.657
-<v Agent>I can take a short message and make sure it reaches them
-
-75
-00:04:18.737 --> 00:04:20.536
-<v Agent>— what would you like me to pass on?
-
-76
-00:04:21.832 --> 00:04:24.302
-<v Dana>please call me back about the duplicate charge
-
-77
-00:04:24.585 --> 00:04:27.961
-<v Agent>Thanks — I've passed that on to Billing, and they'll see it when they're back.
-
-78
-00:04:28.041 --> 00:04:29.005
-<v Agent>Goodbye for now.
-
-79
-00:04:30.362 --> 00:04:32.228
-<v Narrator>No transfer into an empty queue.
-
-80
-00:04:32.308 --> 00:04:36.542
-<v Narrator>The message waits in the audit log, with its topic, for Billing in the morning.
-
-81
-00:04:38.588 --> 00:04:41.831
-<v Narrator>And when speech doesn't work at all, a bad line,
-
-82
-00:04:41.911 --> 00:04:44.818
-<v Narrator>a noisy room, the keypad is always there.
-
-83
-00:04:45.705 --> 00:04:48.613
-<v Agent>Thanks for calling Contoso — I'm the automated assistant.
-
-84
-00:04:48.693 --> 00:04:50.485
-<v Agent>What can I help you with today?
-
-85
-00:04:51.854 --> 00:04:54.509
-<v Agent>Sorry, I want to make sure I get you to the right place.
-
-86
-00:04:54.589 --> 00:04:57.024
-<v Agent>Could you tell me a bit more about what you need?
-
-87
-00:04:58.363 --> 00:05:00.986
-<v Agent>Sorry — I want to get this right.
-
-88
-00:05:01.066 --> 00:05:03.424
-<v Agent>Could you tell me a bit more?
-
-89
-00:05:03.504 --> 00:05:09.173
-<v Agent>Or use the keypad: 1 for Sales, 2 for Support, 3 for Billing, 4 for Reception.
-
-90
-00:05:10.504 --> 00:05:14.364
-<v Narrator>A keypress is unambiguous, so it routes without asking again.
-
-91
-00:05:15.242 --> 00:05:16.922
-<v Agent>Connecting you now to Support.
-
-92
-00:05:18.271 --> 00:05:22.015
-<v Narrator>And every call is audited: transfers, clarifying questions,
-
-93
-00:05:22.095 --> 00:05:25.291
-<v Narrator>people requested, and how long it took to route.
-
-94
-00:05:27.963 --> 00:05:32.773
-<v Narrator>Under the hood, the model's only power is to propose a route from a fixed list.
-
-95
-00:05:33.223 --> 00:05:37.665
-<v Narrator>The server applies the confidence gate, the office hours, and the confirmation.
-
-96
-00:05:37.745 --> 00:05:42.163
-<v Narrator>Then Call Automation transfers the call to the Teams queue, with its context.
-
-97
-00:05:42.613 --> 00:05:46.333
-<v Narrator>Every failure path ends with a person, never a loop.
-
-98
-00:05:48.533 --> 00:05:51.061
-<v Narrator>Making it yours is mostly configuration.
-
-99
-00:05:51.141 --> 00:05:53.996
-<v Narrator>Your teams, how they're described, their hours
-
-100
-00:05:54.076 --> 00:05:56.930
-<v Narrator>and after-hours rules all live in routes.json,
-
-101
-00:05:57.010 --> 00:05:59.673
-<v Narrator>and the gate is one environment variable.
-
-102
-00:06:00.123 --> 00:06:01.388
-<v Narrator>The spec, the tests
-
-103
-00:06:01.468 --> 00:06:05.603
-<v Narrator>and this demo script give your coding agent the context to change the rest.
-
-104
-00:06:08.203 --> 00:06:09.815
+7
+00:00:19.472 --> 00:00:21.242
+<v AI agent>Connecting you now to Billing.
+
+8
+00:00:25.533 --> 00:00:27.573
 <v Narrator>Intent-based call routing.
 
-105
-00:06:09.895 --> 00:06:14.173
-<v Narrator>Run it in simulation in two minutes, then connect it to your own Teams number.
+9
+00:00:28.033 --> 00:00:33.783
+<v Narrator>Callers say what they need. The right Teams queue answers, already knowing why.
+
+10
+00:00:38.216 --> 00:00:41.236
+<v Priya>I was charged for a renewal I did not order
+
+11
+00:00:41.658 --> 00:00:44.249
+<v AI agent>Sorry, I want to make sure I get you to the right place.
+
+12
+00:00:44.329 --> 00:00:46.708
+<v AI agent>Could you tell me a bit more about what you need?
+
+13
+00:00:47.598 --> 00:00:49.788
+<v Priya>the charge on my card is wrong
+
+14
+00:00:50.205 --> 00:00:52.136
+<v AI agent>It sounds like Billing is the right team for that
+
+15
+00:00:52.216 --> 00:00:53.415
+<v AI agent>— shall I put you through?
+
+16
+00:00:57.404 --> 00:00:59.364
+<v Caller>can I just talk to a person
+
+17
+00:00:59.777 --> 00:01:01.577
+<v AI agent>Connecting you now to Reception.
+
+18
+00:01:04.734 --> 00:01:06.554
+<v Marcus>yes please
+
+19
+00:01:07.023 --> 00:01:08.793
+<v AI agent>Connecting you now to Billing.
+
+20
+00:01:09.275 --> 00:01:11.355
+<v Marcus>no wait, the portal is down
+
+21
+00:01:11.759 --> 00:01:13.777
+<v AI agent>It sounds like Support is the right team for that
+
+22
+00:01:13.857 --> 00:01:15.109
+<v AI agent>— shall I put you through?
+
+23
+00:01:19.043 --> 00:01:20.568
+<v AI agent>Billing is closed at the moment.
+
+24
+00:01:20.648 --> 00:01:23.137
+<v AI agent>I can take a short message and make sure it reaches them
+
+25
+00:01:23.217 --> 00:01:24.983
+<v AI agent>— what would you like me to pass on?
+
+26
+00:01:26.369 --> 00:01:28.759
+<v Dana>please call me back about the duplicate charge
+
+27
+00:01:29.142 --> 00:01:30.749
+<v AI agent>Thanks — I've passed that on to Billing,
+
+28
+00:01:30.829 --> 00:01:32.412
+<v AI agent>and they'll see it when they're back.
+
+29
+00:01:33.176 --> 00:01:36.063
+<v AI agent>Or use the keypad: 1 for Sales, 2 for Support,
+
+30
+00:01:36.143 --> 00:01:38.286
+<v AI agent>3 for Billing, 4 for Reception.
+
+31
+00:01:41.155 --> 00:01:42.755
+<v AI agent>Connecting you now to Support.
+
+32
+00:01:45.833 --> 00:01:47.293
+<v Narrator>The model proposes.
+
+33
+00:01:47.733 --> 00:01:49.343
+<v Narrator>The server decides.
+
+34
+00:01:53.033 --> 00:01:54.093
+<v Narrator>Make it yours.
+
+35
+00:01:54.533 --> 00:02:01.083
+<v Narrator>Your teams and their hours are configuration. Your coding agent can change the rest.
+
+36
+00:02:04.233 --> 00:02:06.963
+<v Narrator>Run it in simulation in two minutes.
+
+37
+00:02:07.400 --> 00:02:10.390
+<v Narrator>Then connect your own Teams number.

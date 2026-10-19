@@ -52,7 +52,7 @@
       {
         "path": "templates/311-service-assistant/video/demo.mp4",
         "status": "ready",
-        "description": "Narrated demo film (5:44), every voice performed by Azure OpenAI GPT Realtime (MP4, hosted on a GitHub Release).",
+        "description": "Narrated demo film (2:13), every voice performed by Azure OpenAI GPT Realtime (MP4, hosted on a GitHub Release).",
         "url": "https://github.com/anujb-msft/voice-ai-template-gallery/releases/download/demo-films/311-service-assistant.mp4"
       },
       {

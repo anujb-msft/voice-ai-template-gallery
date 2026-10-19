@@ -1,9 +1,11 @@
 # Film scripts
 
 One file per template, `films/<template-id>.mjs`, default-exporting a plain
-object. It says who speaks with which GPT Realtime voice, what the narrator
-says around each beat of the template's own demo script (`code/public/beats.js`),
-and what the HyperFrames scenes before and after the console show.
+object. It scripts the template's walkthrough: who speaks with which GPT Realtime
+voice, what the narrator says around each beat of the template's own demo script
+(`code/public/beats.js`), and what the HyperFrames scenes before and after the
+console show. The short film the **Video** button plays is cut from the walkthrough
+by `../reel/<template-id>.mjs`; see [Short films](../README.md#short-films).
 
 `films/intent-based-call-routing.mjs` is the reference. Check a script before
 capturing it:
@@ -148,7 +150,9 @@ person on a phone call, not an actor.
   Voice Live, with GPT Realtime, holds the conversation.
 - **Succinct.** About five minutes; up to six and a half for the more
   sophisticated templates. Choose beats with `edit.beats`, cut any beat that
-  repeats an earlier lesson, and `skip` the steps within a beat that do.
+  repeats an earlier lesson, and `skip` the steps within a beat that do. This is
+  the walkthrough; the **Video** button plays the two-to-three-minute film cut from
+  it ([`../reel/`](../reel/), see [Short films](../README.md#short-films)).
 - **True to the template.** Claim only what the code does. Name the policy the
   server enforces, and say plainly where the model's job ends.
 - **Plain voice-over.** Warm, confident, specific. No "seamless", "leverage",

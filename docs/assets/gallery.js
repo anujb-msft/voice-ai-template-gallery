@@ -457,7 +457,7 @@
     var labels = { repo: "GitHub", video: "Video", deck: "PPTX" };
     var titles = {
       repo: "Open the GitHub repository folder for ",
-      video: "Watch the video walkthrough for ",
+      video: "Watch the demo film for ",
       deck: "Open the presentation slides for ",
     };
     if (ref && ref.pending) {

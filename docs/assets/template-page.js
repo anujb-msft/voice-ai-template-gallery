@@ -153,7 +153,7 @@
     var hosted = hostedAsset(isFilm);
     if (pending === false && hosted) return filmDeliverable(hosted, isFilm);
     return deliverableRow({
-      title: "Video walkthrough",
+      title: "Demo film",
       pending: pending !== false,
       planHref: relativeToPage(template.paths.videoReadme),
       href: relativeToPage(template.paths.page) + "video/demo.mp4",
@@ -182,7 +182,7 @@
     var sources = (film ? [relativeToPage(film.path)] : []).concat(url);
     return (
       '<li class="tpl-deliverable">' +
-      '<div class="tpl-deliverable-head"><strong>Video walkthrough</strong>' +
+      '<div class="tpl-deliverable-head"><strong>Demo film</strong>' +
       '<span class="tpl-deliverable-status tpl-deliverable-status--ready">Available</span></div>' +
       '<video class="tpl-film" controls playsinline preload="none"' +
       (poster ? ' poster="' + escapeHtml(relativeToPage(poster.path)) + '"' : "") +

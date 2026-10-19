@@ -1,365 +1,125 @@
 WEBVTT
 
 1
-00:00:03.000 --> 00:00:08.230
-<v Narrator>It's 11:42 at night, and Contoso is paging its on-call technician.
+00:00:03.912 --> 00:00:06.155
+<v Alice>Water is pouring through my kitchen ceiling
 
 2
-00:00:08.680 --> 00:00:11.010
-<v Narrator>Most pages are a number to call back.
+00:00:06.235 --> 00:00:07.692
+<v Alice>and it's spreading fast.
 
 3
-00:00:11.090 --> 00:00:13.340
-<v Narrator>This one arrives with the answers.
+00:00:08.302 --> 00:00:12.456
+<v AI agent>Urgent: active leak at Maple Court, unit 4B, reported 11:42 PM.
 
 4
-00:00:20.040 --> 00:00:22.933
-<v Narrator>Tenants call the maintenance line's Teams number.
+00:00:12.536 --> 00:00:16.273
+<v AI agent>Tenant said: Water is pouring through my kitchen ceiling
 
 5
-00:00:23.013 --> 00:00:25.830
-<v Narrator>Call Automation answers, and places each page.
+00:00:16.353 --> 00:00:18.262
+<v AI agent>and it's spreading fast.
 
 6
-00:00:26.280 --> 00:00:29.233
-<v Narrator>Voice Live, with GPT Realtime, talks to both.
+00:00:19.105 --> 00:00:20.785
+<v Morgan>I've got it — on my way.
 
 7
-00:00:29.313 --> 00:00:32.860
-<v Narrator>Your server decides who to wake, and writes the brief.
+00:00:21.245 --> 00:00:22.145
+<v AI agent>Thanks, Morgan.
 
 8
-00:00:35.277 --> 00:00:37.464
-<v Narrator>Here's where that page starts.
+00:00:24.733 --> 00:00:26.823
+<v Narrator>Contextual on-call pager.
 
 9
-00:00:37.544 --> 00:00:42.017
-<v Narrator>Wednesday, 11:42 at night, Alice Rivera calls the after-hours line.
+00:00:27.267 --> 00:00:32.987
+<v Narrator>When it's urgent, it pages the on-call tech with the context already attached.
 
 10
-00:00:42.960 --> 00:00:45.923
-<v Agent>Contoso Property Management maintenance line.
+00:00:37.442 --> 00:00:40.218
+<v Dee>The heat is out in unit 11 at Pine Terrace
 
 11
-00:00:46.003 --> 00:00:47.933
-<v Agent>I'm an automated assistant.
+00:00:40.298 --> 00:00:43.782
+<v Dee>and it's 52 degrees in here. You can let yourself in.
 
 12
-00:00:48.013 --> 00:00:52.928
-<v Agent>If anyone is in danger, or you smell gas or see fire, hang up and call 911 now.
+00:00:44.316 --> 00:00:45.826
+<v AI agent>Understood — no heat.
 
 13
-00:00:53.008 --> 00:00:55.190
-<v Agent>Otherwise, what's the problem?
+00:00:48.608 --> 00:00:53.168
+<v Grace>The heat is out in my bedroom, but it's about 64 degrees inside.
 
 14
-00:00:56.519 --> 00:01:00.429
-<v Alice>Water is pouring through my kitchen ceiling and it's spreading fast.
+00:00:53.810 --> 00:00:56.577
+<v AI agent>This isn't urgent enough to page the on-call technician,
 
 15
-00:01:00.750 --> 00:01:02.963
-<v Agent>Understood — an active leak.
+00:00:56.657 --> 00:00:58.846
+<v AI agent>so I've logged a work order for the office.
 
 16
-00:01:03.043 --> 00:01:05.910
-<v Agent>Is this about unit 4B at Maple Court?
+00:00:58.926 --> 00:01:00.750
+<v AI agent>They'll follow up Monday morning.
 
 17
-00:01:07.264 --> 00:01:09.062
-<v Narrator>The agent fills in fields.
+00:01:05.025 --> 00:01:07.838
+<v AI agent>Please avoid unsafe heating sources such as ovens
 
 18
-00:01:09.142 --> 00:01:12.430
-<v Narrator>The server's triage rules call an active leak urgent;
+00:01:07.918 --> 00:01:09.695
+<v AI agent>or outdoor heaters indoors.
 
 19
-00:01:12.510 --> 00:01:14.774
-<v Narrator>the model never picks a severity.
+00:01:15.165 --> 00:01:16.065
+<v Priya>I've got it.
 
 20
-00:01:15.645 --> 00:01:21.455
-<v Alice>Yes, 4B. You can go in — the spare key is in the lockbox by the back door.
+00:01:16.235 --> 00:01:17.135
+<v AI agent>Thanks, Priya.
 
 21
-00:01:21.767 --> 00:01:25.737
-<v Agent>Is the number ending 0101 the best one to call you back on?
+00:01:23.017 --> 00:01:26.907
+<v AI agent>Is the number ending 0101 the best one to call you back on?
 
 22
-00:01:27.053 --> 00:01:29.063
+00:01:28.353 --> 00:01:30.163
 <v Alice>Yes, that's my cell.
 
 23
-00:01:29.420 --> 00:01:31.744
-<v Agent>I'm contacting the on-call technician now.
+00:01:30.670 --> 00:01:32.940
+<v AI agent>I'm contacting the on-call technician now.
 
 24
-00:01:31.824 --> 00:01:34.101
-<v Agent>You'll get a call back when they have it.
+00:01:35.632 --> 00:01:38.819
+<v AI agent>Contoso maintenance has an urgent page for you.
 
 25
-00:01:34.181 --> 00:01:37.226
-<v Agent>If you can do so safely, shut off the nearest water valve
+00:01:38.899 --> 00:01:42.462
+<v AI agent>Please call the maintenance line. Reference 2 4 6 0.
 
 26
-00:01:37.306 --> 00:01:39.230
-<v Agent>while we contact the technician.
+00:01:45.033 --> 00:01:46.743
+<v Narrator>The model listens.
 
 27
-00:01:40.591 --> 00:01:42.240
-<v Narrator>The rotation says Morgan.
+00:01:47.200 --> 00:01:49.600
+<v Narrator>The server decides who wakes up.
 
 28
-00:01:42.320 --> 00:01:45.174
-<v Narrator>The Teams card already has the unit, the problem
+00:01:53.433 --> 00:01:54.493
+<v Narrator>Make it yours.
 
 29
-00:01:45.254 --> 00:01:47.611
-<v Narrator>and the way in, and no phone numbers.
+00:01:54.933 --> 00:02:02.743
+<v Narrator>Triage rules, rotations and timers are configuration. Your coding agent can change the rest.
 
 30
-00:01:48.364 --> 00:01:49.797
-<v Narrator>Listen for the brief.
+00:02:05.833 --> 00:02:08.563
+<v Narrator>Run it in simulation in two minutes.
 
 31
-00:01:49.877 --> 00:01:53.634
-<v Narrator>The server writes it from those fields; the model only reads it.
-
-32
-00:01:54.492 --> 00:01:55.852
-<v Morgan>Morgan Lee here.
-
-33
-00:01:56.169 --> 00:01:58.731
-<v Agent>This is the Contoso Property Management pager,
-
-34
-00:01:58.811 --> 00:02:02.089
-<v Agent>an automated assistant, with an urgent page for Morgan Lee.
-
-35
-00:02:02.475 --> 00:02:06.749
-<v Agent>Urgent: active leak at Maple Court, unit 4B, reported 11:42 PM.
-
-36
-00:02:06.829 --> 00:02:12.207
-<v Agent>Tenant said: Water is pouring through my kitchen ceiling and it's spreading fast.
-
-37
-00:02:12.287 --> 00:02:17.113
-<v Agent>You may enter. Access: The spare key is in the lockbox by the back door.
-
-38
-00:02:17.193 --> 00:02:20.075
-<v Agent>Press 1 or say 'I've got it' to accept.
-
-39
-00:02:21.388 --> 00:02:23.168
-<v Morgan>I've got it — on my way.
-
-40
-00:02:23.518 --> 00:02:26.517
-<v Agent>Thanks, Morgan. I'll tell the tenant you have it.
-
-41
-00:02:26.597 --> 00:02:29.298
-<v Agent>The access details are on your Teams card.
-
-42
-00:02:29.640 --> 00:02:32.670
-<v Agent>A technician has your request and will call you shortly.
-
-43
-00:02:34.709 --> 00:02:38.394
-<v Narrator>Same night, at Pine Terrace, where Omar Diaz is on call.
-
-44
-00:02:38.474 --> 00:02:41.769
-<v Narrator>Dee Nguyen's heat is out, and it's getting cold.
-
-45
-00:02:42.779 --> 00:02:47.411
-<v Dee>The heat is out in unit 11 at Pine Terrace and it's 52 degrees in here.
-
-46
-00:02:47.491 --> 00:02:49.399
-<v Dee>You can let yourself in.
-
-47
-00:02:49.733 --> 00:02:55.443
-<v Agent>Understood — no heat. Is the number ending 0103 the best one to call you back on?
-
-48
-00:02:56.782 --> 00:03:01.622
-<v Narrator>52 degrees is under the 55-degree no-heat line in config, so it's urgent.
-
-49
-00:03:02.403 --> 00:03:03.303
-<v Dee>Yes.
-
-50
-00:03:03.405 --> 00:03:05.950
-<v Agent>I'm contacting the on-call technician now.
-
-51
-00:03:06.030 --> 00:03:08.522
-<v Agent>You'll get a call back when they have it.
-
-52
-00:03:08.603 --> 00:03:13.065
-<v Agent>Please avoid unsafe heating sources such as ovens or outdoor heaters indoors.
-
-53
-00:03:15.973 --> 00:03:20.555
-<v Narrator>No answer. The server's timer allows two tries per level, three minutes apart.
-
-54
-00:03:20.635 --> 00:03:22.533
-<v Narrator>The demo clock skips ahead.
-
-55
-00:03:28.232 --> 00:03:29.132
-<v Priya>I've got it.
-
-56
-00:03:29.342 --> 00:03:31.956
-<v Agent>Thanks, Priya. I'll tell the tenant you have it.
-
-57
-00:03:32.036 --> 00:03:34.442
-<v Agent>The access details are on your Teams card.
-
-58
-00:03:34.792 --> 00:03:37.822
-<v Agent>A technician has your request and will call you shortly.
-
-59
-00:03:39.165 --> 00:03:41.119
-<v Narrator>Two misses, then the secondary.
-
-60
-00:03:41.199 --> 00:03:44.955
-<v Narrator>Priya's acknowledgement canceled the 20-minute operations alert.
-
-61
-00:03:47.044 --> 00:03:48.005
-<v Narrator>Thursday night.
-
-62
-00:03:48.085 --> 00:03:49.862
-<v Narrator>Priya swapped shifts with Morgan,
-
-63
-00:03:49.942 --> 00:03:53.474
-<v Narrator>so when Ben Carter is locked out at Maple Court, the page goes to her.
-
-64
-00:03:54.439 --> 00:03:57.669
-<v Agent>Contoso maintenance has an urgent page for you.
-
-65
-00:03:57.749 --> 00:04:01.359
-<v Agent>Please call the maintenance line. Reference 2 4 6 0.
-
-66
-00:04:02.701 --> 00:04:05.280
-<v Narrator>Anyone near the phone could hear that.
-
-67
-00:04:05.360 --> 00:04:10.041
-<v Narrator>So the server keeps the building, the unit and the problem off voicemail.
-
-68
-00:04:12.102 --> 00:04:16.316
-<v Narrator>Saturday, 10:15 at night, and Grace Kim's bedroom heat is out.
-
-69
-00:04:16.396 --> 00:04:18.972
-<v Narrator>Is that worth waking a technician?
-
-70
-00:04:19.948 --> 00:04:24.668
-<v Grace>The heat is out in my bedroom, but it's about 64 degrees inside.
-
-71
-00:04:24.963 --> 00:04:28.703
-<v Agent>Understood — no heat. Is this about unit 7 at Pine Terrace?
-
-72
-00:04:30.033 --> 00:04:34.312
-<v Narrator>64 degrees is above the 55-degree line, so the server calls it routine.
-
-73
-00:04:34.392 --> 00:04:36.433
-<v Narrator>The model doesn't get a vote.
-
-74
-00:04:37.314 --> 00:04:41.594
-<v Grace>Yes, unit 7. You can go in, I'm home all weekend.
-
-75
-00:04:41.892 --> 00:04:46.122
-<v Agent>Is the number ending 0104 the best one to call you back on?
-
-76
-00:04:47.465 --> 00:04:48.365
-<v Grace>Yes.
-
-77
-00:04:48.483 --> 00:04:51.673
-<v Agent>This isn't urgent enough to page the on-call technician,
-
-78
-00:04:51.753 --> 00:04:54.279
-<v Agent>so I've logged a work order for the office.
-
-79
-00:04:54.359 --> 00:04:56.374
-<v Agent>They'll follow up Monday morning.
-
-80
-00:04:56.454 --> 00:04:58.928
-<v Agent>If it drops to 55 degrees or below inside,
-
-81
-00:04:59.008 --> 00:05:02.023
-<v Agent>call us back and we'll page the on-call technician.
-
-82
-00:05:03.377 --> 00:05:06.977
-<v Narrator>Nobody woke up, and the work order keeps every detail.
-
-83
-00:05:08.627 --> 00:05:12.877
-<v Narrator>The model listens, fills in fields, and reads the brief it's handed.
-
-84
-00:05:12.957 --> 00:05:15.577
-<v Narrator>It never picks a severity or a person.
-
-85
-00:05:16.027 --> 00:05:18.908
-<v Narrator>Your server classifies, picks the on-call chain,
-
-86
-00:05:18.988 --> 00:05:21.367
-<v Narrator>writes the brief and runs the timers.
-
-87
-00:05:23.567 --> 00:05:26.586
-<v Narrator>Most changes are configuration: triage rules,
-
-88
-00:05:26.666 --> 00:05:30.057
-<v Narrator>rotations and swaps, escalation timers, buildings.
-
-89
-00:05:30.507 --> 00:05:35.147
-<v Narrator>The spec and this demo script give your coding agent the context for the rest.
-
-90
-00:05:37.747 --> 00:05:39.295
-<v Narrator>Contextual on-call pager.
-
-91
-00:05:39.375 --> 00:05:43.617
-<v Narrator>Run it in simulation in two minutes, then connect it to your own Teams number.
+00:02:09.000 --> 00:02:11.780
+<v Narrator>Then add your technicians and your Teams number.

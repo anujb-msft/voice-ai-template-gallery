@@ -1,329 +1,161 @@
 WEBVTT
 
 1
-00:00:03.000 --> 00:00:07.730
-<v Narrator>Two days before a visit, Contoso Health calls each patient with a reminder.
-
-2
-00:00:08.180 --> 00:00:12.733
-<v Narrator>A recording reads the visit to whoever picks up, and any change means calling back.
-
-3
-00:00:12.813 --> 00:00:16.530
-<v Narrator>This agent checks it's Jordan first, then settles it on the call.
-
-4
-00:00:23.230 --> 00:00:25.880
-<v Narrator>Your server decides who to call, and when.
-
-5
-00:00:25.960 --> 00:00:30.820
-<v Narrator>Then Azure Communication Services Call Automation dials from the clinic's number.
-
-6
-00:00:31.270 --> 00:00:34.613
-<v Narrator>Voice Live, with GPT Realtime, holds the conversation,
-
-7
-00:00:34.693 --> 00:00:39.110
-<v Narrator>while your reminder policy decides what may be said and what may change.
-
-8
-00:00:39.560 --> 00:00:43.095
-<v Narrator>New times go to the scheduling desk in Teams, with context.
-
-9
-00:00:43.175 --> 00:00:47.870
-<v Narrator>Patients who call back on the clinic's Teams Phone number reach the same agent.
-
-10
-00:00:50.282 --> 00:00:54.132
-<v Narrator>Ten in the morning, two days before Jordan's imaging visit.
-
-11
-00:00:54.212 --> 00:00:59.432
-<v Narrator>Before dialing, the server checks consent, calling hours and the reminder window.
-
-12
-00:01:00.455 --> 00:01:01.205
-<v Jordan>Hello?
-
-13
-00:01:01.285 --> 00:01:04.327
-<v Agent>Hi, this is Contoso Health's automated assistant,
-
-14
-00:01:04.407 --> 00:01:06.793
-<v Agent>calling with an appointment reminder.
-
-15
-00:01:06.873 --> 00:01:08.735
-<v Agent>Am I speaking with Jordan?
-
-16
-00:01:10.053 --> 00:01:11.753
-<v Jordan>Yes, this is Jordan.
-
-17
-00:01:12.102 --> 00:01:16.582
-<v Agent>Thanks, Jordan. To protect your privacy, please tell me your date of birth.
-
-18
-00:01:17.907 --> 00:01:19.877
-<v Narrator>A name is a claim, not proof.
-
-19
-00:01:19.957 --> 00:01:23.754
-<v Narrator>Until the date of birth matches a record the model never sees,
-
-20
-00:01:23.834 --> 00:01:26.327
-<v Narrator>every appointment tool stays blocked.
-
-21
-00:01:27.164 --> 00:01:29.664
-<v Jordan>March 12th, 1984.
-
-22
-00:01:29.977 --> 00:01:32.834
-<v Agent>You have an imaging appointment with Dr.
-
-23
-00:01:32.914 --> 00:01:36.994
-<v Agent>Lee on Thursday, May 21 at 9:30 AM, at the Northgate clinic.
-
-24
-00:01:37.074 --> 00:01:39.277
-<v Agent>Will you be able to make it?
-
-25
-00:01:40.632 --> 00:01:43.522
-<v Narrator>It matched, so only now does the visit come up.
-
-26
-00:01:43.602 --> 00:01:48.192
-<v Narrator>Only an explicit yes confirms it, and the server writes that to the schedule.
-
-27
-00:01:49.058 --> 00:01:50.658
-<v Jordan>Yes, I'll be there.
-
-28
-00:01:50.972 --> 00:01:52.305
-<v Agent>You're confirmed.
-
-29
-00:01:52.385 --> 00:01:53.718
-<v Agent>Please do not eat
-
-30
-00:01:53.798 --> 00:01:57.958
-<v Agent>or drink anything except water for 8 hours before your appointment,
-
-31
-00:01:58.038 --> 00:02:01.712
-<v Agent>and arrive 15 minutes early. We'll see you then. Goodbye.
-
-32
-00:02:03.046 --> 00:02:06.300
-<v Narrator>The prep instructions come from config, not the model.
-
-33
-00:02:06.380 --> 00:02:11.166
-<v Narrator>And the trail shows the order: identity verified, details shared, then confirmed.
-
-34
-00:02:13.218 --> 00:02:16.626
-<v Narrator>Every missed visit is a slot another patient could have had.
-
-35
-00:02:16.706 --> 00:02:18.758
-<v Narrator>Avery Stone can't make this one.
-
-36
-00:02:19.782 --> 00:02:21.012
+00:00:03.405 --> 00:00:04.425
 <v Avery>I need to cancel.
 
-37
-00:02:21.322 --> 00:02:26.599
-<v Agent>I can cancel your primary care appointment on Thursday, May 21 at 10:15 AM.
+2
+00:00:04.895 --> 00:00:08.824
+<v AI agent>I can cancel your primary care appointment on Thursday,
 
-38
-00:02:26.679 --> 00:02:28.422
-<v Agent>Should I cancel it?
+3
+00:00:08.904 --> 00:00:11.895
+<v AI agent>May 21 at 10:15 AM. Should I cancel it?
 
-39
-00:02:29.784 --> 00:02:32.232
-<v Narrator>That's a proposal, not a cancellation.
-
-40
-00:02:32.312 --> 00:02:37.094
-<v Narrator>It's read back, and the schedule stays as it was until Avery gives a clear yes.
-
-41
-00:02:37.936 --> 00:02:39.986
+4
+00:00:12.459 --> 00:00:14.279
 <v Avery>Yes, please cancel it.
 
-42
-00:02:40.289 --> 00:02:47.119
-<v Agent>Your appointment is cancelled, and the time is now open for another patient.
+5
+00:00:14.772 --> 00:00:17.540
+<v AI agent>Your appointment is cancelled,
 
-43
-00:02:47.199 --> 00:02:52.299
-<v Agent>To book a new visit, call us at 206-555-0100. Goodbye.
+6
+00:00:17.620 --> 00:00:21.511
+<v AI agent>and the time is now open for another patient.
 
-44
-00:02:53.666 --> 00:02:58.106
-<v Narrator>Dr. Patel's ten-fifteen is open again, with two days left to fill it.
+7
+00:00:21.591 --> 00:00:25.562
+<v AI agent>To book a new visit, call us at 206-555-0100.
 
-45
-00:03:00.154 --> 00:03:01.958
-<v Narrator>Riley wants a different time.
+8
+00:00:27.033 --> 00:00:29.113
+<v Narrator>Appointment reminder agent.
 
-46
-00:03:02.038 --> 00:03:04.403
-<v Narrator>The agent has no tool that can book one.
+9
+00:00:29.567 --> 00:00:36.017
+<v Narrator>It calls before the visit. Confirm, change or cancel, before the slot is lost.
 
-47
-00:03:04.483 --> 00:03:06.214
-<v Narrator>That's a job for a person.
+10
+00:00:39.722 --> 00:00:40.412
+<v Jordan>Hello?
 
-48
-00:03:07.168 --> 00:03:08.855
-<v Narrator>Because Riley is verified,
+11
+00:00:40.492 --> 00:00:43.459
+<v AI agent>Hi, this is Contoso Health's automated assistant,
 
-49
-00:03:08.935 --> 00:03:13.198
-<v Narrator>the server may hand the call to a person at the scheduling desk, in Teams.
+12
+00:00:43.539 --> 00:00:45.864
+<v AI agent>calling with an appointment reminder.
 
-50
-00:03:14.062 --> 00:03:15.652
+13
+00:00:45.944 --> 00:00:47.762
+<v AI agent>Am I speaking with Jordan?
+
+14
+00:00:49.310 --> 00:00:50.850
+<v Jordan>Yes, this is Jordan.
+
+15
+00:00:51.362 --> 00:00:52.391
+<v AI agent>Thanks, Jordan.
+
+16
+00:00:52.471 --> 00:00:55.702
+<v AI agent>To protect your privacy, please tell me your date of birth.
+
+17
+00:00:56.281 --> 00:00:58.671
+<v Jordan>March 12th, 1984.
+
+18
+00:00:59.104 --> 00:01:03.209
+<v AI agent>You have an imaging appointment with Dr. Lee on Thursday,
+
+19
+00:01:03.289 --> 00:01:06.574
+<v AI agent>May 21 at 9:30 AM, at the Northgate clinic.
+
+20
+00:01:10.908 --> 00:01:12.388
+<v Jordan>Yes, I'll be there.
+
+21
+00:01:12.822 --> 00:01:13.973
+<v AI agent>You're confirmed.
+
+22
+00:01:14.053 --> 00:01:15.203
+<v AI agent>Please do not eat
+
+23
+00:01:15.283 --> 00:01:17.271
+<v AI agent>or drink anything except water for
+
+24
+00:01:17.351 --> 00:01:19.240
+<v AI agent>8 hours before your appointment,
+
+25
+00:01:19.320 --> 00:01:21.092
+<v AI agent>and arrive 15 minutes early.
+
+26
+00:01:25.319 --> 00:01:26.769
 <v Riley>Can I come next week instead?
 
-51
-00:03:15.972 --> 00:03:19.338
-<v Agent>I'll connect you with our scheduling team to find a new time.
+27
+00:01:27.189 --> 00:01:30.350
+<v AI agent>I'll connect you with our scheduling team to find a new time.
 
-52
-00:03:19.418 --> 00:03:23.712
-<v Agent>Your current appointment stays booked until you choose a new one. Please hold.
+28
+00:01:30.430 --> 00:01:33.779
+<v AI agent>Your current appointment stays booked until you choose a new one.
 
-53
-00:03:25.059 --> 00:03:29.097
-<v Narrator>Before anyone picks up, the scheduler sees who's calling and why.
+29
+00:01:33.859 --> 00:01:34.799
+<v AI agent>Please hold.
 
-54
-00:03:29.177 --> 00:03:31.523
-<v Narrator>That context rides in VoIP headers,
-
-55
-00:03:31.603 --> 00:03:36.059
-<v Narrator>with a single-use patient reference: no date of birth, no phone number.
-
-56
-00:03:38.158 --> 00:03:40.857
-<v Narrator>Anyone in the house can play back a voicemail.
-
-57
-00:03:40.937 --> 00:03:43.768
-<v Narrator>This is the third and last try to reach Camila.
-
-58
-00:03:44.520 --> 00:03:47.615
-<v Narrator>Call Automation has no answering-machine detection,
-
-59
-00:03:47.695 --> 00:03:52.000
-<v Narrator>so the server judges the greeting itself: its words, its length, a beep.
-
-60
-00:03:52.956 --> 00:03:54.419
+30
+00:01:36.363 --> 00:01:37.791
 <v Camila's voicemail>Hi, you've reached Camila.
 
-61
-00:03:54.499 --> 00:03:56.586
+31
+00:01:37.871 --> 00:01:39.913
 <v Camila's voicemail>Please leave a message after the tone.
 
-62
-00:03:56.849 --> 00:04:02.346
-<v Agent>This is Contoso Health calling for Camila with an appointment reminder.
+32
+00:01:40.266 --> 00:01:43.210
+<v AI agent>This is Contoso Health calling for
 
-63
-00:04:02.426 --> 00:04:06.309
-<v Agent>Please call us back at 602-555-0100. Thank you.
+33
+00:01:43.290 --> 00:01:46.378
+<v AI agent>Camila with an appointment reminder.
 
-64
-00:04:07.652 --> 00:04:11.031
-<v Narrator>A first name and a callback number, nothing about the visit.
+34
+00:01:46.458 --> 00:01:49.626
+<v AI agent>Please call us back at 602-555-0100.
 
-65
-00:04:11.111 --> 00:04:13.552
-<v Narrator>Earlier tries hang up without a message.
+35
+00:01:50.933 --> 00:01:52.393
+<v Narrator>The agent asks.
 
-66
-00:04:15.624 --> 00:04:20.434
-<v Narrator>Now it's eight-thirty in the evening, and Noah Martin is still due a reminder.
+36
+00:01:52.833 --> 00:01:54.353
+<v Narrator>The server checks.
 
-67
-00:04:22.984 --> 00:04:26.076
-<v Narrator>The server checks calling hours in Noah's own time zone.
+37
+00:01:58.133 --> 00:01:59.193
+<v Narrator>Make it yours.
 
-68
-00:04:26.156 --> 00:04:29.874
-<v Narrator>Too late, so nothing is dialed, and the model never hears about it.
+38
+00:01:59.633 --> 00:02:07.553
+<v Narrator>Your calling hours, reminder window and scripts are configuration. Your coding agent can change the rest.
 
-69
-00:04:32.281 --> 00:04:35.422
-<v Narrator>Every call is audited, even the ones never placed,
+39
+00:02:10.533 --> 00:02:13.263
+<v Narrator>Run it in simulation in two minutes.
 
-70
-00:04:35.502 --> 00:04:38.001
-<v Narrator>and the same log feeds these numbers.
-
-71
-00:04:39.637 --> 00:04:43.533
-<v Narrator>A date of birth is a knowledge check, not strong authentication.
-
-72
-00:04:43.613 --> 00:04:46.846
-<v Narrator>So it grants very little: one appointment's details,
-
-73
-00:04:46.926 --> 00:04:49.797
-<v Narrator>and a confirm or a cancel after a clear yes.
-
-74
-00:04:50.247 --> 00:04:53.330
-<v Narrator>And the model cannot dial, transfer or book.
-
-75
-00:04:53.410 --> 00:04:57.607
-<v Narrator>Phone numbers, Teams IDs and times all come from your server.
-
-76
-00:04:59.807 --> 00:05:03.755
-<v Narrator>Making it yours starts in config: the reminder window, calling hours,
-
-77
-00:05:03.835 --> 00:05:07.497
-<v Narrator>every line the server says, and each clinic's callback number.
-
-78
-00:05:07.947 --> 00:05:10.181
-<v Narrator>Then point the desk at your Teams user,
-
-79
-00:05:10.261 --> 00:05:13.707
-<v Narrator>and have your coding agent connect your own scheduling system.
-
-80
-00:05:16.307 --> 00:05:17.827
-<v Narrator>Appointment Reminder Agent.
-
-81
-00:05:17.907 --> 00:05:19.839
-<v Narrator>Run it in simulation in two minutes,
-
-82
-00:05:19.919 --> 00:05:23.257
-<v Narrator>then connect your clinic's number and your Teams scheduling desk.
+40
+00:02:13.700 --> 00:02:17.500
+<v Narrator>Then connect your clinic's number and Teams.

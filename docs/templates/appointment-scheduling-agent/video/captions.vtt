@@ -1,345 +1,129 @@
 WEBVTT
 
 1
-00:00:03.000 --> 00:00:05.424
-<v Narrator>Jordan Rivera has had a cough for a week.
-
-2
-00:00:05.504 --> 00:00:08.110
-<v Narrator>He wants to see his usual doctor, and soon.
-
-3
-00:00:08.560 --> 00:00:12.745
-<v Narrator>Too often, that means a phone menu, a queue, and a callback later.
-
-4
-00:00:12.825 --> 00:00:15.130
-<v Narrator>This agent books it on the call.
-
-5
-00:00:21.830 --> 00:00:24.210
-<v Narrator>Patients call the clinic's Teams Phone number.
-
-6
-00:00:24.660 --> 00:00:27.931
-<v Narrator>Azure Communication Services Call Automation answers
-
-7
-00:00:28.011 --> 00:00:32.870
-<v Narrator>and bridges the audio to Voice Live, where GPT Realtime holds the conversation.
-
-8
-00:00:33.320 --> 00:00:38.047
-<v Narrator>Your scheduling policy decides what's bookable and writes only on the caller's yes.
-
-9
-00:00:38.127 --> 00:00:41.350
-<v Narrator>Otherwise, a person in a Teams call queue takes over.
-
-10
-00:00:43.744 --> 00:00:47.097
-<v Narrator>Tuesday morning. Jordan calls Contoso Health about a cough.
-
-11
-00:00:47.177 --> 00:00:50.814
-<v Narrator>The model can find him a time, but only the server can book it.
-
-12
-00:00:51.775 --> 00:00:54.147
-<v Agent>Thanks for calling Contoso Health.
-
-13
-00:00:54.227 --> 00:00:56.833
-<v Agent>I'm an automated scheduling assistant.
-
-14
-00:00:56.913 --> 00:01:01.175
-<v Agent>To get started, what's the patient's full name and date of birth?
-
-15
-00:01:02.535 --> 00:01:07.275
-<v Jordan>Jordan Rivera, 03/12/1984
-
-16
-00:01:07.601 --> 00:01:11.261
-<v Agent>Thanks, Jordan. What kind of visit do you need, and what's it for?
-
-17
-00:01:12.606 --> 00:01:15.849
-<v Narrator>Four checks stand between this call and the schedule.
-
-18
-00:01:15.929 --> 00:01:20.286
-<v Narrator>Identity is first: a name and date of birth that match, never caller ID.
-
-19
-00:01:21.099 --> 00:01:23.095
+00:00:03.592 --> 00:00:05.546
 <v Jordan>I've had a cough for a week
 
-20
-00:01:23.175 --> 00:01:27.089
+2
+00:00:05.626 --> 00:00:09.462
 <v Jordan>and I'd like to see my usual doctor, mornings if possible.
 
-21
-00:01:27.431 --> 00:01:32.499
-<v Agent>Dr. Patel has today at 11 a.m., or Thursday, May 21st, at 8:30 a.m.
-
-22
-00:01:32.579 --> 00:01:34.981
-<v Agent>Would either of those work?
-
-23
-00:01:36.319 --> 00:01:37.419
-<v Jordan>The first one.
-
-24
-00:01:37.722 --> 00:01:40.925
-<v Agent>To confirm: a new-problem visit with Dr.
-
-25
-00:01:41.005 --> 00:01:47.092
-<v Agent>Patel on Tuesday, May 19th, at 11 a.m., at the Northgate clinic. Shall I book it?
-
-26
-00:01:48.439 --> 00:01:53.772
-<v Narrator>That time is now held for five minutes and read back: the active proposal, P1.
-
-27
-00:01:53.852 --> 00:01:56.559
-<v Narrator>Only Jordan's own yes can write it.
-
-28
-00:01:57.396 --> 00:01:59.086
+3
+00:00:10.599 --> 00:00:12.189
 <v Jordan>Yes, please.
 
-29
-00:01:59.394 --> 00:02:04.225
-<v Agent>You're booked with Dr. Patel today at 11 a.m., at the Northgate clinic.
+4
+00:00:12.597 --> 00:00:15.142
+<v AI agent>You're booked with Dr. Patel today at 11 a.m.,
 
-30
-00:02:04.305 --> 00:02:08.949
-<v Agent>Please arrive 15 minutes early and bring a list of your medications.
+5
+00:00:15.222 --> 00:00:16.777
+<v AI agent>at the Northgate clinic.
 
-31
-00:02:09.029 --> 00:02:11.933
-<v Agent>Your confirmation number is A-2-0-4-4-0.
+6
+00:00:18.067 --> 00:00:20.527
+<v Narrator>Appointment scheduling agent.
 
-32
-00:02:12.013 --> 00:02:14.624
-<v Agent>Thanks for calling Contoso Health.
+7
+00:00:20.967 --> 00:00:27.247
+<v Narrator>Patients say what they need. Their yes books the visit, on the call.
 
-33
-00:02:15.961 --> 00:02:18.957
-<v Narrator>Four green checks, and the server wrote the booking.
+8
+00:00:30.758 --> 00:00:35.328
+<v Jordan>Jordan Rivera, 03/12/1984
 
-34
-00:02:19.037 --> 00:02:22.471
-<v Narrator>The model never called a booking tool. It doesn't have one.
+9
+00:00:35.834 --> 00:00:39.344
+<v AI agent>Thanks, Jordan. What kind of visit do you need, and what's it for?
 
-35
-00:02:24.531 --> 00:02:30.551
-<v Narrator>Two people, one time. Avery Stone is on the phone; the front desk is at a keyboard.
+10
+00:00:40.122 --> 00:00:41.092
+<v Jordan>The first one.
 
-36
-00:02:31.513 --> 00:02:33.843
-<v Avery>A follow-up with Dr. Patel, please.
+11
+00:00:41.515 --> 00:00:45.896
+<v AI agent>To confirm: a new-problem visit with Dr. Patel on Tuesday,
 
-37
-00:02:34.157 --> 00:02:38.182
-<v Agent>Dr. Patel has today at 11:30 a.m., or tomorrow at 1 p.m.
+12
+00:00:45.976 --> 00:00:50.775
+<v AI agent>May 19th, at 11 a.m., at the Northgate clinic. Shall I book it?
 
-38
-00:02:38.262 --> 00:02:40.507
-<v Agent>Would either of those work?
-
-39
-00:02:41.816 --> 00:02:42.716
-<v Avery>The first one.
-
-40
-00:02:42.919 --> 00:02:45.989
-<v Agent>To confirm: a follow-up visit with Dr.
-
-41
-00:02:46.069 --> 00:02:52.369
-<v Agent>Patel on Tuesday, May 19th, at 11:30 a.m., at the Northgate clinic. Shall I book it?
-
-42
-00:02:53.737 --> 00:02:57.524
-<v Narrator>Before Avery can say yes, the front desk books that same time.
-
-43
-00:02:57.604 --> 00:02:59.537
-<v Narrator>Watch its cell in the grid.
-
-44
-00:03:01.930 --> 00:03:03.240
+13
+00:00:56.250 --> 00:00:57.390
 <v Avery>Yes, book it.
 
-45
-00:03:03.593 --> 00:03:07.966
-<v Agent>Sorry, that time was just taken, so I haven't booked anything. Dr.
+14
+00:00:57.923 --> 00:01:01.483
+<v AI agent>Sorry, that time was just taken, so I haven't booked anything.
 
-46
-00:03:08.046 --> 00:03:11.937
-<v Agent>Patel still has today at 11:45 a.m., or tomorrow at 1 p.m.
+15
+00:01:02.243 --> 00:01:06.863
+<v AI agent>Dr. Patel still has today at 11:45 a.m., or tomorrow at 1 p.m.
 
-47
-00:03:12.017 --> 00:03:14.123
-<v Agent>Would either of those work?
-
-48
-00:03:15.457 --> 00:03:18.146
-<v Narrator>The server refused the write and voided P1.
-
-49
-00:03:18.226 --> 00:03:20.777
-<v Narrator>It never moves a yes onto another time.
-
-50
-00:03:21.611 --> 00:03:22.511
+16
+00:01:07.731 --> 00:01:08.631
 <v Avery>The first one.
 
-51
-00:03:22.719 --> 00:03:25.526
-<v Agent>To confirm: a follow-up visit with Dr.
+17
+00:01:08.949 --> 00:01:10.039
+<v AI agent>Shall I book it?
 
-52
-00:03:25.606 --> 00:03:31.379
-<v Agent>Patel on Tuesday, May 19th, at 11:45 a.m., at the Northgate clinic. Shall I book it?
-
-53
-00:03:32.714 --> 00:03:33.614
+18
+00:01:11.524 --> 00:01:12.420
 <v Avery>Yes.
 
-54
-00:03:33.730 --> 00:03:39.386
-<v Agent>You're booked with Dr. Patel today at 11:45 a.m., at the Northgate clinic.
+19
+00:01:12.500 --> 00:01:15.520
+<v AI agent>You're booked with Dr. Patel today at 11:45 a.m.,
 
-55
-00:03:39.466 --> 00:03:42.114
-<v Agent>Please arrive 15 minutes early.
+20
+00:01:15.600 --> 00:01:17.340
+<v AI agent>at the Northgate clinic.
 
-56
-00:03:42.194 --> 00:03:45.472
-<v Agent>Your confirmation number is A-2-0-4-4-2.
-
-57
-00:03:45.552 --> 00:03:48.490
-<v Agent>Thanks for calling Contoso Health.
-
-58
-00:03:49.846 --> 00:03:53.363
-<v Narrator>Booked after a race: a fresh pick and a fresh yes.
-
-59
-00:03:53.443 --> 00:03:56.296
-<v Narrator>No double booking, and no silent swap.
-
-60
-00:03:58.324 --> 00:04:00.121
-<v Narrator>Jordan calls back about a mole.
-
-61
-00:04:00.201 --> 00:04:04.244
-<v Narrator>Whether that's bookable by voice is a config rule, not the model's judgment.
-
-62
-00:04:05.276 --> 00:04:07.626
+21
+00:01:21.159 --> 00:01:23.379
 <v Jordan>I'd like a skin check for a mole.
 
-63
-00:04:07.916 --> 00:04:11.394
-<v Agent>Dermatology visits need a referral from your primary care provider,
+22
+00:01:23.819 --> 00:01:25.574
+<v AI agent>Dermatology visits need a referral
 
-64
-00:04:11.474 --> 00:04:13.576
-<v Agent>and I don't see an active one on file.
+23
+00:01:25.654 --> 00:01:27.320
+<v AI agent>from your primary care provider,
 
-65
-00:04:13.656 --> 00:04:15.426
-<v Agent>I can book you a visit with Dr.
+24
+00:01:27.400 --> 00:01:29.409
+<v AI agent>and I don't see an active one on file.
 
-66
-00:04:15.506 --> 00:04:19.505
-<v Agent>Patel, your primary care doctor, or connect you with our referral coordinator.
-
-67
-00:04:19.585 --> 00:04:21.056
-<v Agent>Which would you prefer?
-
-68
-00:04:22.384 --> 00:04:26.132
-<v Narrator>Eligibility is red on the referral rule, so the server offers no times.
-
-69
-00:04:26.212 --> 00:04:28.054
-<v Narrator>There's nothing to say yes to.
-
-70
-00:04:28.899 --> 00:04:31.129
+25
+00:01:30.192 --> 00:01:32.292
 <v Jordan>Connect me with the referral coordinator.
 
-71
-00:04:31.462 --> 00:04:34.192
-<v Agent>I'm connecting you with our referral coordinator now.
+26
+00:01:32.755 --> 00:01:35.385
+<v AI agent>I'm connecting you with our referral coordinator now.
 
-72
-00:04:35.555 --> 00:04:38.396
-<v Narrator>The coordinator's Teams client rings with the topic
+27
+00:01:40.767 --> 00:01:42.387
+<v Narrator>The model can't book.
 
-73
-00:04:38.476 --> 00:04:41.595
-<v Narrator>and what's already checked, so Jordan won't start over.
+28
+00:01:42.833 --> 00:01:45.913
+<v Narrator>Only the caller's yes can.
 
-74
-00:04:42.349 --> 00:04:45.588
-<v Narrator>The VoIP headers carry only the fields this queue may see.
+29
+00:01:49.167 --> 00:01:50.227
+<v Narrator>Make it yours.
 
-75
-00:04:45.668 --> 00:04:47.729
-<v Narrator>Jordan's date of birth isn't one.
+30
+00:01:50.667 --> 00:01:58.287
+<v Narrator>Visit types, eligibility rules and Teams queues are configuration. Your coding agent can change the rest.
 
-76
-00:04:49.350 --> 00:04:53.615
-<v Narrator>The model can verify a caller, search the schedule and hold a time.
+31
+00:02:01.567 --> 00:02:05.237
+<v Narrator>Run it in simulation, with no Azure subscription.
 
-77
-00:04:53.695 --> 00:04:56.940
-<v Narrator>Booking, moving and cancelling aren't its tools.
-
-78
-00:04:57.390 --> 00:04:59.580
-<v Narrator>One code path writes to the schedule,
-
-79
-00:04:59.660 --> 00:05:03.090
-<v Narrator>and only on the caller's own yes to the time just read back.
-
-80
-00:05:05.290 --> 00:05:09.070
-<v Narrator>Making it yours starts in config: visit types, eligibility rules,
-
-81
-00:05:09.150 --> 00:05:13.010
-<v Narrator>providers and their hours, and the Teams queues for each handoff.
-
-82
-00:05:13.460 --> 00:05:16.578
-<v Narrator>Then have your coding agent connect your own scheduling system,
-
-83
-00:05:16.658 --> 00:05:18.100
-<v Narrator>behind the same adapter.
-
-84
-00:05:20.700 --> 00:05:22.448
-<v Narrator>Appointment Scheduling Agent.
-
-85
-00:05:22.528 --> 00:05:25.214
-<v Narrator>Run it in simulation with no Azure subscription,
-
-86
-00:05:25.294 --> 00:05:28.850
-<v Narrator>then connect your Teams Phone number and your scheduling queues.
+32
+00:02:05.700 --> 00:02:08.370
+<v Narrator>Then connect your clinic's Teams number.

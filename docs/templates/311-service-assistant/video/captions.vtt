@@ -1,337 +1,121 @@
 WEBVTT
 
 1
-00:00:03.000 --> 00:00:06.213
-<v Narrator>One number for everything a city does: potholes,
+00:00:03.888 --> 00:00:06.286
+<v Alex>Hi, there's a big pothole on Oak Avenue,
 
 2
-00:00:06.293 --> 00:00:09.410
-<v Narrator>trash, questions, and sometimes an emergency.
+00:00:06.366 --> 00:00:08.638
+<v Alex>right at the corner of Fifth Street.
 
 3
-00:00:09.860 --> 00:00:13.403
-<v Narrator>A phone tree makes residents pick a branch, and a language.
+00:00:09.122 --> 00:00:12.862
+<v AI agent>I have the pothole at Oak Avenue and 5th Street. Is that right?
 
 4
-00:00:13.483 --> 00:00:15.430
-<v Narrator>This assistant just listens.
-
-5
-00:00:22.130 --> 00:00:26.020
-<v Narrator>Residents call a Teams phone number, through Teams Phone extensibility.
-
-6
-00:00:26.470 --> 00:00:31.257
-<v Narrator>Azure Communication Services Call Automation bridges the audio to Voice Live,
-
-7
-00:00:31.337 --> 00:00:34.200
-<v Narrator>where GPT Realtime holds the conversation.
-
-8
-00:00:34.650 --> 00:00:39.260
-<v Narrator>The city's server decides, and hands off to a Teams call queue with context.
-
-9
-00:00:41.683 --> 00:00:46.133
-<v Narrator>First, Alex Chen reports a pothole the way people actually talk.
-
-10
-00:00:47.090 --> 00:00:50.866
-<v Agent>City of Contoso 311. I'm an automated assistant.
-
-11
-00:00:50.946 --> 00:00:55.135
-<v Agent>For emergencies, hang up and dial 911. How can I help?
-
-12
-00:00:55.215 --> 00:00:57.900
-<v Agent>Para español, hable en español.
-
-13
-00:00:59.211 --> 00:01:04.141
-<v Alex>Hi, there's a big pothole on Oak Avenue, right at the corner of Fifth Street.
-
-14
-00:01:04.505 --> 00:01:08.325
-<v Agent>I have the pothole at Oak Avenue and 5th Street. Is that right?
-
-15
-00:01:09.666 --> 00:01:13.944
-<v Narrator>The server, not the model, found that corner on the city's map.
-
-16
-00:01:14.024 --> 00:01:16.786
-<v Narrator>Nothing is filed until Alex confirms.
-
-17
-00:01:17.653 --> 00:01:19.033
+00:00:13.713 --> 00:00:14.983
 <v Alex>Yes, that's right.
 
-18
-00:01:19.369 --> 00:01:27.198
-<v Agent>I've filed a pothole report at Oak Avenue and 5th Street with Public Works.
+5
+00:00:15.586 --> 00:00:20.426
+<v AI agent>Your case number is S R, 2 6, 0 1 9 3.
 
-19
-00:01:27.278 --> 00:01:34.139
-<v Agent>Your case number is S R, 2 6, 0 1 9 3. Again, S R, 2 6, 0 1 9 3.
+6
+00:00:21.700 --> 00:00:25.010
+<v Narrator>Three-one-one service assistant.
 
-20
-00:01:34.483 --> 00:01:38.083
-<v Agent>Would you like text updates on this case, or is there anything else?
+7
+00:00:25.467 --> 00:00:32.337
+<v Narrator>One number for the whole city. Residents just talk, in English or Spanish.
 
-21
-00:01:39.425 --> 00:01:42.235
-<v Alex>Yes, text me updates please.
+8
+00:00:36.800 --> 00:00:40.740
+<v Lucía>Hola, necesito que recojan un colchón y un sofá viejo. [Hi, I need a mattress and an old sofa picked up.]
 
-22
-00:01:42.571 --> 00:01:45.962
-<v Agent>Done. I've texted your case number to the number you're calling from.
+9
+00:00:41.165 --> 00:00:44.302
+<v AI agent>Puedo programar la recogida de un colchón y un sofá. [I can schedule the pickup of a mattress and a sofa.]
 
-23
-00:01:46.042 --> 00:01:48.341
-<v Agent>Is there anything else I can help you with?
+10
+00:00:44.382 --> 00:00:46.635
+<v AI agent>¿Cuál es la dirección de recogida? [What's the pickup address?]
 
-24
-00:01:49.664 --> 00:01:52.025
-<v Narrator>A text goes out only with consent.
+11
+00:00:47.423 --> 00:00:49.753
+<v Lucía>En el 1200 de Maple Street. [At 1200 Maple Street.]
 
-25
-00:01:52.105 --> 00:01:54.604
-<v Narrator>The model never sees Alex's number.
+12
+00:00:50.221 --> 00:00:52.819
+<v AI agent>La recogida está programada para el [The pickup is scheduled for Saturday, October 3, at 1200 Maple Street.]
 
-26
-00:01:55.469 --> 00:01:58.089
-<v Alex>No, that's all, thanks.
+13
+00:00:52.899 --> 00:00:55.951
+<v AI agent>sábado 3 de octubre en 1200 Maple Street. [The pickup is scheduled for Saturday, October 3, at 1200 Maple Street.]
 
-27
-00:01:58.425 --> 00:02:02.405
-<v Agent>Thank you for calling City of Contoso 311. Goodbye.
-
-28
-00:02:04.460 --> 00:02:07.466
-<v Narrator>Some calls must never become a service request.
-
-29
-00:02:07.546 --> 00:02:11.250
-<v Narrator>Sam Rivera smells gas in his kitchen, and he's called 311.
-
-30
-00:02:12.201 --> 00:02:16.421
+14
+00:00:59.611 --> 00:01:03.681
 <v Sam>Hi, I smell gas in my kitchen and I'm not sure what to do.
 
-31
-00:02:16.730 --> 00:02:19.313
-<v Agent>This sounds like a gas emergency.
+15
+00:01:04.100 --> 00:01:05.945
+<v AI agent>This sounds like a gas emergency.
 
-32
-00:02:19.393 --> 00:02:24.119
-<v Agent>Please leave the building now and don't switch anything on or off.
+16
+00:01:06.025 --> 00:01:09.500
+<v AI agent>Please leave the building now and don't switch anything on or off.
 
-33
-00:02:24.199 --> 00:02:29.070
-<v Agent>Once you're outside, call the gas utility at 555-0109, or dial 911.
-
-34
-00:02:30.414 --> 00:02:33.650
-<v Narrator>That was the server's rule, not the model's judgment.
-
-35
-00:02:33.730 --> 00:02:37.264
-<v Narrator>It checks every caller turn first: no questions, no case.
-
-36
-00:02:39.302 --> 00:02:42.742
-<v Narrator>Lucía Ortega calls the same number, in Spanish.
-
-37
-00:02:43.670 --> 00:02:47.446
-<v Agent>City of Contoso 311. I'm an automated assistant.
-
-38
-00:02:47.526 --> 00:02:51.715
-<v Agent>For emergencies, hang up and dial 911. How can I help?
-
-39
-00:02:51.795 --> 00:02:54.480
-<v Agent>Para español, hable en español.
-
-40
-00:02:55.783 --> 00:02:59.813
-<v Lucía>Hola, necesito que recojan un colchón y un sofá viejo.
-
-41
-00:03:00.128 --> 00:03:03.330
-<v Agent>Puedo programar la recogida de un colchón y un sofá.
-
-42
-00:03:03.410 --> 00:03:05.708
-<v Agent>¿Cuál es la dirección de recogida?
-
-43
-00:03:07.051 --> 00:03:08.293
-<v Narrator>Nobody pressed 2.
-
-44
-00:03:08.373 --> 00:03:12.046
-<v Narrator>The server heard Spanish and switched the same agent's language
-
-45
-00:03:12.126 --> 00:03:14.241
-<v Narrator>and voice, under the same rules.
-
-46
-00:03:15.073 --> 00:03:17.553
-<v Lucía>En el 1200 de Maple Street.
-
-47
-00:03:17.861 --> 00:03:26.783
-<v Agent>La recogida está programada para el sábado 3 de octubre en 1200 Maple Street.
-
-48
-00:03:26.863 --> 00:03:31.760
-<v Agent>Su número de caso es S R, 2 6, 0 1 9 4.
-
-49
-00:03:31.840 --> 00:03:35.441
-<v Agent>Repito, S R, 2 6, 0 1 9 4.
-
-50
-00:03:35.786 --> 00:03:39.656
-<v Agent>¿Quiere recibir actualizaciones por mensaje de texto sobre este caso,
-
-51
-00:03:39.736 --> 00:03:40.916
-<v Agent>o hay algo más?
-
-52
-00:03:43.396 --> 00:03:45.536
-<v Narrator>Later, Sam calls back with questions.
-
-53
-00:03:45.616 --> 00:03:49.316
-<v Narrator>The model may answer them only from articles the city has approved.
-
-54
-00:03:50.251 --> 00:03:52.571
+17
+00:01:12.784 --> 00:01:14.944
 <v Sam>And what are the counter hours at City Hall?
 
-55
-00:03:52.880 --> 00:03:55.981
-<v Agent>I don't have approved information on that, so I won't guess.
+18
+00:01:15.363 --> 00:01:18.404
+<v AI agent>I don't have approved information on that, so I won't guess.
 
-56
-00:03:56.061 --> 00:03:58.680
-<v Agent>Would you like me to connect you with 311 staff?
+19
+00:01:18.484 --> 00:01:21.053
+<v AI agent>Would you like me to connect you with 311 staff?
 
-57
-00:04:00.057 --> 00:04:03.877
-<v Narrator>The only match was an expired notice, so the server withheld it.
-
-58
-00:04:04.730 --> 00:04:06.100
-<v Sam>No, that's all.
-
-59
-00:04:06.403 --> 00:04:10.383
-<v Agent>Thank you for calling City of Contoso 311. Goodbye.
-
-60
-00:04:12.433 --> 00:04:13.899
-<v Narrator>Next, a complaint.
-
-61
-00:04:13.979 --> 00:04:16.514
-<v Narrator>The server's policy is to apologize,
-
-62
-00:04:16.594 --> 00:04:19.923
-<v Narrator>promise nothing, and offer a report or a person.
-
-63
-00:04:20.921 --> 00:04:22.648
+20
+00:01:21.828 --> 00:01:23.522
 <v Resident>I want to make a complaint.
 
-64
-00:04:22.728 --> 00:04:26.159
+21
+00:01:23.602 --> 00:01:26.971
 <v Resident>The trash trucks have skipped my street three weeks in a row
 
-65
-00:04:26.239 --> 00:04:28.201
+22
+00:01:27.051 --> 00:01:28.978
 <v Resident>and nobody has called me back.
 
-66
-00:04:28.515 --> 00:04:31.619
-<v Agent>I'm sorry about that. I can hear how frustrating it is.
-
-67
-00:04:31.699 --> 00:04:33.945
-<v Agent>I can file a missed-pickup report now,
-
-68
-00:04:34.025 --> 00:04:38.675
-<v Agent>or connect you with a 311 staff member who can look into it. Which would you prefer?
-
-69
-00:04:39.997 --> 00:04:42.587
+23
+00:01:29.597 --> 00:01:32.057
 <v Resident>I'd like to talk to a person, please.
 
-70
-00:04:42.920 --> 00:04:45.580
-<v Agent>I'm connecting you with 311 staff now.
+24
+00:01:32.470 --> 00:01:35.040
+<v AI agent>I'm connecting you with 311 staff now.
 
-71
-00:04:46.956 --> 00:04:50.291
-<v Narrator>The server checked the hours and picked the Teams queue.
+25
+00:01:39.600 --> 00:01:41.210
+<v Narrator>The model talks.
 
-72
-00:04:50.371 --> 00:04:53.626
-<v Narrator>Staff see the topic, a summary and the caller's mood.
+26
+00:01:41.667 --> 00:01:43.787
+<v Narrator>The city's server decides.
 
-73
-00:04:56.083 --> 00:04:57.735
-<v Narrator>Five calls, one number.
+27
+00:01:46.800 --> 00:01:47.860
+<v Narrator>Make it yours.
 
-74
-00:04:57.815 --> 00:05:00.027
-<v Narrator>The model held each conversation;
+28
+00:01:48.300 --> 00:01:56.680
+<v Narrator>Departments, request rules and approved answers are configuration. Your coding agent can change the rest.
 
-75
-00:05:00.107 --> 00:05:03.683
-<v Narrator>the city's server decided every outcome, and audited it.
+29
+00:01:59.200 --> 00:02:02.870
+<v Narrator>Run it in simulation, with no Azure subscription.
 
-76
-00:05:05.360 --> 00:05:07.962
-<v Narrator>The model converses and calls tools.
-
-77
-00:05:08.042 --> 00:05:11.760
-<v Narrator>Every line the caller hears is written by the server.
-
-78
-00:05:12.210 --> 00:05:14.678
-<v Narrator>The server checks the place, the rules
-
-79
-00:05:14.758 --> 00:05:17.970
-<v Narrator>and the hours before it files, texts or transfers.
-
-80
-00:05:20.170 --> 00:05:23.445
-<v Narrator>Making it yours is mostly configuration: request rules,
-
-81
-00:05:23.525 --> 00:05:27.360
-<v Narrator>departments and hours, emergency phrases, and approved articles.
-
-82
-00:05:27.810 --> 00:05:32.450
-<v Narrator>The spec and this demo script give your coding agent the context for the rest.
-
-83
-00:05:35.050 --> 00:05:36.597
-<v Narrator>311 Service Assistant.
-
-84
-00:05:36.677 --> 00:05:40.690
-<v Narrator>Run it in simulation, then connect it to your city's Teams number.
+30
+00:02:03.333 --> 00:02:06.233
+<v Narrator>Then connect your city's Teams number.

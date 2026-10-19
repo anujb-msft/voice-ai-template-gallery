@@ -52,7 +52,7 @@
       {
         "path": "templates/general-inquiry-agent/video/demo.mp4",
         "status": "ready",
-        "description": "Narrated demo film (5:15), every voice performed by Azure OpenAI GPT Realtime (MP4, hosted on a GitHub Release).",
+        "description": "Narrated demo film (2:13), every voice performed by Azure OpenAI GPT Realtime (MP4, hosted on a GitHub Release).",
         "url": "https://github.com/anujb-msft/voice-ai-template-gallery/releases/download/demo-films/general-inquiry-agent.mp4"
       },
       {

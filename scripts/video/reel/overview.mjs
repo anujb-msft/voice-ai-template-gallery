@@ -1,19 +1,37 @@
 // The overview reel: one short film across all eleven templates, cut from the
 // console footage each template's own film recorded (see films/*.mjs). Built by
-// `npm run reel` (src/reel.mjs) after every film has been composed.
+// `npm run reel` (src/reel.mjs) after every film has been composed. Each template's
+// own short film (reel/<template-id>.mjs, `npm run reel -- <template-id>`) uses the
+// same fields, documented here.
 //
 // Each clip names a composed film and one or more segments of its call. A segment
 // runs from the heard line starting with `from` to the heard line starting with
 // `to` (or just the `from` line), inclusive:
+//   after search from just past the heard line starting with `after`, to reach a
+//         line whose opening the call repeats (searches otherwise start where the
+//         clip's last segment ended, or at the call's first line)
 //   head  skip the first `head` sentences of the segment's first line
 //   drop  keep only the first `drop` sentences of the segment's last line
 //   lead  seconds of footage before the first line (default 0.5; 1.0 on a chapter's
 //         first clip, to cover the device rising)
 //   tail  seconds of footage after the last line (default 0.6)
-// Trims cut in the pause between sentences, so the picture never jumps mid-line.
+// Trims cut in the pause between sentences, so the picture never jumps mid-line. The
+// build log names each cut's pause: the one nearest where the text places the break,
+// which a line spelling out a code or number (slower to say than to read) can
+// mislead. `headAt` and `dropAt` pin those cuts instead: seconds into the line's
+// recording, in or beside the pause to cut in.
 // `teams: true` marks clips whose frame shows the Teams panel, which the console
 // simulates; the reel labels them. `translations` subtitle non-English lines, keyed
-// by the line's opening words.
+// by the line's opening words; `captions`, keyed the same way, re-caption a line with
+// what its voice actually said, where the recording strayed from its text. A clip's
+// label shows its template's name over the headline; `eyebrow` replaces it.
+//
+// A template's film sets `film` once for every clip, and leaves the template's name
+// off its clips (an `eyebrow` still shows). It may add `title.eyebrow` (a line over
+// the title), `yours` ({ title, files, prompt, narration, agent? }: what to change,
+// then the prompt typing into a coding agent, after trust) and `end.run` (the
+// command that starts it). `narrator`, `end.stack`, `fine` and `disclosure` default
+// to the series' (SERIES in src/reel.mjs).
 //
 // The camera: `focus` (on a clip, or a segment to override it) names one of the
 // film's shots, or an explicit { x, y, w } region of the console in CSS px (the

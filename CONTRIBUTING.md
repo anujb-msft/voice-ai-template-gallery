@@ -475,7 +475,8 @@ Notes:
   page play that copy first and the `url` second, so a new cut appears on the site after
   the next Pages deploy. Don't add the `url` by hand:
   `scripts/video/src/publish.mjs` uploads the film, checks the download, and writes the
-  entry.
+  entry. It also uploads the template's full walkthrough as `<id>-walkthrough.mp4`,
+  which `video/README.md` links; the walkthrough has no `assets.expected` entry.
 
 ### Common generator errors
 

@@ -1,6 +1,6 @@
 # Transcript — Voice AI templates for Teams Phone: overview
 
-**Runtime:** 2:52 (173 seconds)
+**Runtime:** 2:52 (172.5 seconds)
 
 **Production disclosure:** Every voice is synthetic, performed by Azure OpenAI GPT Realtime through Azure AI Voice Live. Callers, companies and numbers are fictional. Each template's console was recorded in simulation mode; its Teams panel is simulated. The calls are shortened: each clip is a
 moment from that template's own demo film.
