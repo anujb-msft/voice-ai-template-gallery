@@ -8,7 +8,7 @@
 // template's template.json (name, tags, colours); timing comes from compose.mjs.
 
 const r3 = (n) => Math.round(n * 1000) / 1000;
-const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+export const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 const firstName = (name) => String(name ?? "").split(/\s+/)[0];
 const initials = (name) =>
   String(name ?? "?")
@@ -21,8 +21,8 @@ const initials = (name) =>
 export const SITE = "anujb-msft.github.io/voice-ai-template-gallery";
 export const DISCLOSURE =
   "Voices are synthetic, performed by Azure OpenAI GPT Realtime. Callers, companies and numbers are fictional. Console recorded in simulation mode.";
-const TEAMS = "#7b83eb";
-const EASE = { in: "power3.out", move: "power2.inOut", soft: "sine.inOut" };
+export const TEAMS = "#7b83eb";
+export const EASE = { in: "power3.out", move: "power2.inOut", soft: "sine.inOut" };
 
 function luminance(hex) {
   const [r, g, b] = String(hex)
@@ -34,7 +34,7 @@ function luminance(hex) {
 }
 
 /** Animation ops, replayed into a GSAP timeline in the page. */
-class Ops {
+export class Ops {
   list = [];
   set(target, vars, at) {
     this.list.push(["set", target, vars, null, r3(at)]);

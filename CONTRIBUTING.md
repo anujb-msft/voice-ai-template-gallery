@@ -470,8 +470,10 @@ Notes:
   The generator fails when a `ready` asset is missing or a `pending` one exists.
 - Demo films are too large to commit, so they live on the repository's `demo-films`
   GitHub Release. A hosted film's entry keeps its `path`, is `ready`, and adds a `url`:
-  `https://github.com/<owner>/<repo>/releases/download/demo-films/<id>.mp4`. The gallery
-  and the template page stream the film from the `url`. Don't add the `url` by hand:
+  `https://github.com/<owner>/<repo>/releases/download/demo-films/<id>.mp4`. The Pages
+  build copies the film into the site at its `path`, and the gallery and the template
+  page play that copy first and the `url` second, so a new cut appears on the site after
+  the next Pages deploy. Don't add the `url` by hand:
   `scripts/video/src/publish.mjs` uploads the film, checks the download, and writes the
   entry.
 
@@ -499,7 +501,7 @@ The generator stops at the first problem and prints
 | `asset url must be a GitHub Release download, …` | Point `url` at `https://github.com/<owner>/<repo>/releases/download/<tag>/<file>`, using only letters, digits, `.`, `_`, and `-` in each part. |
 | `asset url must be the same file type as its path: …` | Give the hosted file the same extension as `path`, such as `<id>.mp4` for `video/demo.mp4`. |
 | `a hosted asset must be marked ready: …` | Set its status to `ready`, or remove the `url` while the film is pending. |
-| `asset is hosted at its url but also committed: …` | Delete the committed file. The release holds the only copy. |
+| `asset is hosted at its url but also committed: …` | Delete the committed file. The release holds the only copy. If you ran `scripts/mirror-hosted-films.js` locally, it put the copies there. |
 | `invalid JSON (…)` | Fix the syntax. JSON allows no comments or trailing commas. |
 | `template ids must be unique` | Choose an id that no other template uses. |
 | CI step **Verify generated data is current** fails | Run the generator, and commit both files in `docs/data/`. |

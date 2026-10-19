@@ -137,16 +137,18 @@
   }
 
   /**
-   * Where a ready asset matching `test` is hosted off-site (its manifest
-   * `url`, a GitHub Release download the generator has validated); null when
-   * it is committed beside the template instead.
+   * The manifest entry of a ready asset matching `test` that is hosted
+   * off-site: its `url` is a GitHub Release download the generator has
+   * validated, and the Pages build mirrors that file onto this site at its
+   * `path` (scripts/mirror-hosted-films.js). Null when the asset is committed
+   * beside the template instead.
    */
   function hostedAsset(template, test) {
     var expected = template.assets && Array.isArray(template.assets.expected) ? template.assets.expected : [];
     var hosted = expected.filter(function (asset) {
       return test(asset) && asset.status === "ready" && typeof asset.url === "string";
     });
-    return hosted.length ? hosted[0].url : null;
+    return hosted.length ? hosted[0] : null;
   }
 
   function isFilm(asset) {
@@ -181,7 +183,7 @@
     if (pending === null) return { href: discoverySearchLinks(template).video };
     if (pending) return { pending: true };
     var hosted = hostedAsset(template, isFilm);
-    if (hosted) return { href: hosted, film: template.id };
+    if (hosted) return { href: hosted.url, film: template.id };
     return { href: (template.paths && template.paths.page ? template.paths.page : "") + "video/demo.mp4" };
   }
 
@@ -424,6 +426,10 @@
   var filmSheetEl = $("#filmSheet");
   var filmVideoEl = $("#filmVideo");
   var filmFallbackEl = $("#filmFallback");
+  var filmKickerEl = $("#filmKicker");
+  var filmDisclosureEl = $("#filmDisclosure");
+  var FILM_KICKER = filmKickerEl.textContent;
+  var FILM_DISCLOSURE = filmDisclosureEl.textContent;
 
   function referenceIconMarkup(kind) {
     if (kind === "repo") {
@@ -1100,34 +1106,25 @@
   }
 
   /**
-   * Plays a template's hosted film in place. A GitHub Release download is
-   * served as an attachment, so opening it directly saves a file; a video
-   * element streams the same URL with range requests instead. The click that
-   * opens the player lets it start with sound.
+   * Plays a film in place, from the first source that loads: the copy the
+   * Pages build mirrors onto this site, then the GitHub Release download.
+   * GitHub serves a release download as an attachment, so opening it directly
+   * saves a file, and Safari on iPhone may refuse to play it; the same-origin
+   * copy is served as video/mp4. The click that opens the player lets it start
+   * with sound.
    */
-  function openFilm(id, opener) {
-    var template = CATALOG.filter(function (item) {
-      return item.id === id;
-    })[0];
-    var url = template && hostedAsset(template, isFilm);
-    if (!url) return;
-    var expected = template.assets && Array.isArray(template.assets.expected) ? template.assets.expected : [];
-    var poster = expected.filter(function (asset) {
-      return /\/poster\.webp$/i.test(asset.path) && asset.status === "ready";
-    })[0];
-    var page = template.paths && template.paths.page ? template.paths.page : "";
-    var notes = REPO
-      ? "https://github.com/" + REPO.owner + "/" + REPO.name + "/tree/" + (REPO.branch || "main") + "/docs/" + page + "video"
-      : page + "video/transcript.md";
+  function playFilm(film, opener) {
     filmOpener = opener || document.activeElement;
-    $("#filmTitle").textContent = template.name;
-    $("#filmDownload").setAttribute("href", url);
-    $("#filmNotes").setAttribute("href", notes);
+    filmKickerEl.textContent = film.kicker || FILM_KICKER;
+    filmDisclosureEl.textContent = film.disclosure || FILM_DISCLOSURE;
+    $("#filmTitle").textContent = film.title;
+    $("#filmDownload").setAttribute("href", film.download);
+    $("#filmNotes").setAttribute("href", film.notes);
     filmFallbackEl.hidden = true;
-    if (poster) filmVideoEl.setAttribute("poster", poster.path);
+    if (film.poster) filmVideoEl.setAttribute("poster", film.poster);
     else filmVideoEl.removeAttribute("poster");
-    filmVideoEl.setAttribute("aria-label", "Narrated demo film: " + template.name);
-    filmVideoEl.setAttribute("src", url);
+    filmVideoEl.setAttribute("aria-label", film.label);
+    setFilmSources(film.sources);
     filmEl.hidden = false;
     document.body.style.overflow = "hidden";
     $("#filmClose").focus();
@@ -1136,21 +1133,95 @@
     if (playing && typeof playing.catch === "function") playing.catch(function () {});
   }
 
+  /** An empty list stops the player and its download without raising an error. */
+  function setFilmSources(sources) {
+    filmVideoEl.removeAttribute("src");
+    while (filmVideoEl.firstChild) filmVideoEl.removeChild(filmVideoEl.firstChild);
+    sources.filter(Boolean).forEach(function (src) {
+      var source = document.createElement("source");
+      source.setAttribute("src", src);
+      source.setAttribute("type", "video/mp4");
+      filmVideoEl.appendChild(source);
+    });
+    filmVideoEl.load();
+  }
+
+  function openFilm(id, opener) {
+    var template = CATALOG.filter(function (item) {
+      return item.id === id;
+    })[0];
+    var film = template && hostedAsset(template, isFilm);
+    if (!film) return;
+    var poster = template.assets.expected.filter(function (asset) {
+      return /\/poster\.webp$/i.test(asset.path) && asset.status === "ready";
+    })[0];
+    var page = template.paths && template.paths.page ? template.paths.page : "";
+    playFilm(
+      {
+        title: template.name,
+        label: "Narrated demo film: " + template.name,
+        sources: [film.path, film.url],
+        download: film.url,
+        notes: REPO
+          ? "https://github.com/" + REPO.owner + "/" + REPO.name + "/tree/" + (REPO.branch || "main") + "/docs/" + page + "video"
+          : page + "video/transcript.md",
+        poster: poster ? poster.path : null,
+      },
+      opener
+    );
+  }
+
+  /**
+   * The overview reel in the front page's hero. Its link points at the
+   * same-origin copy; the section carries the release download and the rest.
+   */
+  function openReel() {
+    var reel = $("#reel");
+    if (!reel) return;
+    var play = $("#reelPlay");
+    var copy = play.getAttribute("href");
+    var folder = copy.replace(/\/[^/]*$/, "");
+    var release = reel.getAttribute("data-film-release");
+    var title = reel.getAttribute("data-film-title");
+    playFilm(
+      {
+        kicker: "Overview film",
+        title: title,
+        label: "Overview film: " + title,
+        sources: [copy, release],
+        download: release,
+        notes: REPO
+          ? "https://github.com/" + REPO.owner + "/" + REPO.name + "/tree/" + (REPO.branch || "main") + "/docs/" + folder
+          : folder + "/transcript.md",
+        poster: reel.getAttribute("data-film-poster"),
+        disclosure: reel.getAttribute("data-film-disclosure"),
+      },
+      // The poster link is hidden from assistive tech, so focus returns to the button.
+      play
+    );
+  }
+
   function closeFilm() {
     if (filmEl.hidden) return;
     filmVideoEl.pause();
-    // Dropping the source stops the download; an empty src would raise an error instead.
-    filmVideoEl.removeAttribute("src");
-    filmVideoEl.load();
+    setFilmSources([]);
     filmEl.hidden = true;
     if (viewerEl.hidden) document.body.style.overflow = "";
     if (filmOpener && typeof filmOpener.focus === "function") filmOpener.focus();
     filmOpener = null;
   }
 
-  filmVideoEl.addEventListener("error", function () {
-    if (!filmEl.hidden && filmVideoEl.getAttribute("src")) filmFallbackEl.hidden = false;
-  });
+  // A source that fails to load fires its error at itself, without bubbling,
+  // and the player moves on to the next one. Nothing plays only when the last
+  // source fails, or the film itself can't be decoded.
+  filmVideoEl.addEventListener(
+    "error",
+    function (event) {
+      if (filmEl.hidden) return;
+      if (event.target === filmVideoEl || event.target === filmVideoEl.lastElementChild) filmFallbackEl.hidden = false;
+    },
+    true
+  );
 
   function stepPlate(delta) {
     if (!active) return;
@@ -1192,11 +1263,17 @@
   }
 
   document.addEventListener("click", function (event) {
-    // Modified clicks keep the link's own behavior: the raw release download.
+    // Modified clicks keep the link's own behavior: the film file itself.
+    var modified = event.metaKey || event.ctrlKey || event.shiftKey || event.altKey;
     var filmLink = event.target.closest("a[data-film]");
-    if (filmLink && !(event.metaKey || event.ctrlKey || event.shiftKey || event.altKey)) {
+    if (filmLink && !modified) {
       event.preventDefault();
       openFilm(filmLink.getAttribute("data-film"), filmLink);
+      return;
+    }
+    if (event.target.closest("a[data-reel]") && !modified) {
+      event.preventDefault();
+      openReel();
       return;
     }
     if (event.target.closest("a[href]")) return;

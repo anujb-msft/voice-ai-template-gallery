@@ -14,9 +14,19 @@
       content="Illustrative voice AI agent templates organized around business outcomes, system touchpoints, and implementation complexity."
     />
     <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://anujb-msft.github.io/voice-ai-template-gallery/" />
+    <!-- Link previews need an absolute image URL, and JPEG unfurls where WebP may not. -->
+    <meta property="og:image" content="https://anujb-msft.github.io/voice-ai-template-gallery/overview/share.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="675" />
+    <meta
+      property="og:image:alt"
+      content="Voice AI templates for Teams Phone. Eleven of them. Each one ready to run."
+    />
+    <meta name="twitter:card" content="summary_large_image" />
     <title>Voice AI Agent Template Gallery</title>
     <link rel="icon" href="favicon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="assets/gallery.css?v=20261017-1" />
+    <link rel="stylesheet" href="assets/gallery.css?v=20261019-1" />
   </head>
   <body>
     <a class="skip-link" href="#catalogue">Skip to the catalogue</a>
@@ -24,6 +34,56 @@
     <header class="masthead">
       <h1 class="masthead-title">Voice AI<br />Agent Templates</h1>
     </header>
+
+    <!-- The overview reel (docs/overview/). The Pages build mirrors the film
+         from the release to overview/overview.mp4; see scripts/mirror-hosted-films.js. -->
+    <section
+      class="reel"
+      id="reel"
+      aria-labelledby="reelTitle"
+      data-film-title="Voice AI templates for Teams Phone"
+      data-film-release="https://github.com/anujb-msft/voice-ai-template-gallery/releases/download/demo-films/overview.mp4"
+      data-film-poster="overview/poster.webp"
+      data-film-disclosure="Every voice is synthetic, performed by Azure OpenAI GPT Realtime. Callers and companies are fictional, each console runs in simulation mode, and its Teams panel is simulated."
+    >
+      <div class="reel-copy">
+        <p class="reel-kicker">The film</p>
+        <h2 class="reel-title" id="reelTitle">
+          Eleven agents.<br /><span class="reel-gradient">Under three minutes.</span>
+        </h2>
+        <p class="reel-sub">
+          Watch each one answer, act and hand off, right in the console it
+          ships with.
+        </p>
+        <a class="reel-play" id="reelPlay" href="overview/overview.mp4" data-reel>
+          <span class="reel-play-icon" aria-hidden="true"></span>
+          <span>Play the film</span>
+          <span class="reel-runtime" aria-hidden="true">2:52</span>
+          <span class="sr-only">(2 minutes 52 seconds)</span>
+        </a>
+        <p class="reel-fine">
+          Simulation mode · Synthetic voices · Fictional callers · Teams panel
+          simulated
+        </p>
+      </div>
+      <a
+        class="reel-poster"
+        href="overview/overview.mp4"
+        data-reel
+        tabindex="-1"
+        aria-hidden="true"
+      >
+        <img
+          src="overview/hero.webp"
+          width="1600"
+          height="900"
+          alt=""
+          decoding="async"
+          fetchpriority="high"
+        />
+        <span class="reel-poster-play"></span>
+      </a>
+    </section>
 
     <nav class="index-bar" aria-label="Catalogue filters">
       <label class="search-field">
@@ -223,7 +283,7 @@
       >
         <header class="film-head">
           <div>
-            <p class="film-kicker">Narrated demo film</p>
+            <p class="film-kicker" id="filmKicker">Narrated demo film</p>
             <h2 class="film-title" id="filmTitle">Template</h2>
           </div>
           <button
@@ -245,10 +305,10 @@
           preload="metadata"
         ></video>
         <p class="film-fallback" id="filmFallback" role="status" hidden>
-          This browser can't stream the film from GitHub. Download it instead.
+          This browser can't play the film here. Download it instead.
         </p>
         <footer class="film-foot">
-          <p>
+          <p id="filmDisclosure">
             Every voice is synthetic, performed by Azure OpenAI GPT Realtime.
             Callers and companies are fictional, and the console runs in
             simulation mode.
@@ -272,6 +332,6 @@
 
     <!-- Generated folder-owned template data (window.VOICE_AI_TEMPLATES). -->
     <script src="data/templates.js?v=20261018-2"></script>
-    <script src="assets/gallery.js?v=20261017-1"></script>
+    <script src="assets/gallery.js?v=20261019-1"></script>
   </body>
 </html>

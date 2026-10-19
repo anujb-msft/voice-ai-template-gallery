@@ -49,14 +49,16 @@ flowchart LR
   workflows/validate.yml       Catalogue check and per-template test jobs
   workflows/pages.yml          Regenerates the catalogue and deploys docs/ to Pages
 docs/
-  index.html                   Gallery
+  index.html                   Gallery, with the overview film at the top
   404.html, favicon.svg
   assets/                      gallery.js/.css and template-page.js/.css
   data/                        Generated catalogue: committed, never edited by hand
+  overview/                    The overview film's poster, captions, and transcript
   schemas/template.schema.json Manifest schema for editors
   templates/<id>/              One self-contained package per template
 scripts/
   generate-template-index.js   Catalogue validator and generator
+  mirror-hosted-films.js       Copies the hosted demo films into the Pages build
 ARCHITECTURE.md                This document
 CONTRIBUTING.md                Contribution workflow
 ```
@@ -271,12 +273,20 @@ template, change its `name`.
 - GitHub rejects files over 100 MB and warns above 50 MB. Compress video for the web.
 - Demo films are not committed. Each one is an asset (`<id>.mp4`) on the repository's
   `demo-films` GitHub Release, and its `assets.expected` entry adds a `url` pointing at
-  that download, while `path` still names where the film belongs. The gallery's Video
-  button and the template page play the `url` in a video element, because GitHub serves
-  a release download as an attachment: opened as a link, it saves a file instead.
+  that download, while `path` still names where the film belongs. GitHub serves a
+  release download as an `application/octet-stream` attachment: opened as a link, it
+  saves a file instead, and Safari on iPhone may refuse to play it. So the Pages build
+  copies every hosted film to its `path` in the site (`scripts/mirror-hosted-films.js`),
+  and the gallery's Video button and the template page play that same-origin copy first
+  and the `url` second, in a video element. The copy refreshes only when Pages deploys,
+  so a re-published film reaches the site at the next deploy.
   The generator requires a hosted asset to be `ready`, its `url` to be a GitHub Release
   download of the same file type, and nothing to be committed at its `path`.
   `scripts/video` uploads the film and writes the entry; see its README.
+- The overview film at the top of the gallery belongs to no template. It follows the
+  same pattern: `overview.mp4` on the same release, mirrored to `overview/overview.mp4`,
+  with its poster, link-preview image, captions, and transcript committed in
+  `docs/overview/`. `scripts/video` builds it with `npm run reel -- overview`.
 
 ### Documentation
 
@@ -733,7 +743,10 @@ A new template MUST add its id to the `sample` matrix and its `code/` directory 
 `npm` entry's `directories` list in `.github/dependabot.yml`.
 
 `.github/workflows/pages.yml` runs on pushes to `main`. It regenerates the catalogue
-with repository metadata and deploys `docs/` to GitHub Pages.
+with repository metadata, copies the hosted demo films into `docs/`
+(`scripts/mirror-hosted-films.js`), and deploys `docs/` to GitHub Pages. GitHub Pages
+refuses a site over 1 GB, and the films are most of this one; the mirror warns above
+900 MB.
 
 ## 7. Known deviations
 

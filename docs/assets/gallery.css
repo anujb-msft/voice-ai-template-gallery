@@ -2989,11 +2989,218 @@ body {
 }
 
 /* -------------------------------------------------------------------------- */
+/* Overview film */
+/* -------------------------------------------------------------------------- */
+/* The front page's hero: the overview reel, set on the film's own black stage
+   with its display type and gradient, ahead of the catalogue. Both links play
+   it in the film player below. */
+.reel {
+  --reel-display: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif;
+  --reel-gradient: linear-gradient(90deg, #4f8bff, #8a6cff 40%, #d16ce0 70%, #ff8a65);
+  display: grid;
+  grid-template-columns: minmax(0, 0.82fr) minmax(0, 1.18fr);
+  align-items: center;
+  gap: clamp(28px, 4vw, 56px);
+  max-width: var(--measure);
+  margin: 18px auto 0;
+  padding: clamp(30px, 4.4vw, 56px);
+  border-radius: 34px;
+  background:
+    radial-gradient(55% 75% at 76% 52%, rgba(138, 108, 255, 0.2), transparent 72%),
+    radial-gradient(38% 55% at 100% 100%, rgba(255, 138, 101, 0.12), transparent 70%),
+    #000;
+  color: #f5f5f7;
+  font-family: var(--reel-display);
+  box-shadow: 0 24px 70px rgba(20, 14, 10, 0.2);
+}
+
+.reel-kicker {
+  margin: 0 0 12px;
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: #ff8a65;
+}
+
+.reel-title {
+  margin: 0;
+  font-size: clamp(38px, 4.8vw, 62px);
+  font-weight: 650;
+  line-height: 1.04;
+  letter-spacing: -0.035em;
+}
+
+@supports ((-webkit-background-clip: text) or (background-clip: text)) {
+  .reel-gradient {
+    background: var(--reel-gradient);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+}
+
+.reel-sub {
+  max-width: 30ch;
+  margin: 18px 0 0;
+  font-size: clamp(17px, 1.6vw, 21px);
+  font-weight: 500;
+  line-height: 1.38;
+  letter-spacing: -0.012em;
+  color: #a1a1a6;
+  text-wrap: balance;
+}
+
+.reel-play {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 28px;
+  padding: 9px 20px 9px 9px;
+  border-radius: 999px;
+  background: #f5f5f7;
+  color: #000;
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  text-decoration: none;
+  transition: background-color 0.2s ease, transform 0.2s ease;
+}
+
+.reel-play:hover {
+  background: #fff;
+  transform: scale(1.03);
+}
+
+.reel-play:focus-visible,
+.reel-poster:focus-visible {
+  outline: 2px solid #f5f5f7;
+  outline-offset: 4px;
+}
+
+.reel-play-icon,
+.reel-poster-play {
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+}
+
+.reel-play-icon {
+  width: 32px;
+  height: 32px;
+  background: #000;
+}
+
+.reel-play-icon::before,
+.reel-poster-play::before {
+  content: "";
+  margin-left: 3px;
+  border-style: solid;
+  border-width: 6px 0 6px 10px;
+  border-color: transparent transparent transparent #fff;
+}
+
+.reel-runtime {
+  color: #6e6e73;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+.reel-fine {
+  margin: 18px 0 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: #86868b;
+  text-wrap: balance;
+}
+
+.reel-poster {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  border-radius: 20px;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1), 0 30px 80px rgba(0, 0, 0, 0.55);
+}
+
+.reel-poster img {
+  display: block;
+  width: 100%;
+  height: auto;
+  transition: transform 0.7s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.reel-poster:hover img {
+  transform: scale(1.03);
+}
+
+.reel-poster-play {
+  position: absolute;
+  right: 16px;
+  bottom: 16px;
+  width: 52px;
+  height: 52px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.14);
+  -webkit-backdrop-filter: blur(14px) saturate(1.6);
+  backdrop-filter: blur(14px) saturate(1.6);
+  transition: background-color 0.2s ease;
+}
+
+.reel-poster-play::before {
+  margin-left: 4px;
+  border-width: 8px 0 8px 13px;
+}
+
+.reel-poster:hover .reel-poster-play {
+  background: rgba(255, 255, 255, 0.26);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reel-play:hover,
+  .reel-poster:hover img {
+    transform: none;
+  }
+}
+
+@media (max-width: 860px) {
+  .reel {
+    grid-template-columns: 1fr;
+  }
+
+  .reel-sub {
+    max-width: 34ch;
+  }
+}
+
+@media (max-width: 680px) {
+  .reel {
+    gap: 26px;
+    padding: 30px 18px 18px;
+    border-radius: 28px;
+  }
+
+  .reel-title {
+    font-size: clamp(30px, 8.6vw, 44px);
+  }
+
+  .reel-poster {
+    border-radius: 16px;
+  }
+
+  .reel-poster-play {
+    right: 12px;
+    bottom: 12px;
+    width: 44px;
+    height: 44px;
+  }
+}
+
+/* -------------------------------------------------------------------------- */
 /* Film player */
 /* -------------------------------------------------------------------------- */
-/* A template's narrated demo film plays here, streamed from its GitHub Release,
-   rather than downloading. It opens above the plate viewer, in a dark sheet
-   sized so the 16:9 picture always fits the window. */
+/* A narrated demo film (a template's, or the overview reel) plays here rather
+   than downloading: from the copy the Pages build mirrors onto the site, else
+   its GitHub Release. It opens above the plate viewer, in a dark sheet sized
+   so the 16:9 picture always fits the window. */
 .film[hidden] {
   display: none;
 }

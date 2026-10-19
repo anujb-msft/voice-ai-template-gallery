@@ -26,9 +26,9 @@ import { LOUDNESS, master, mix, prepareClip, ringBurst } from "./soundtrack.mjs"
 
 const here = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(here, "..");
-const HYPERFRAMES = join(ROOT, "node_modules", ".bin", "hyperframes");
-const GSAP = join(ROOT, "node_modules", "gsap", "dist", "gsap.min.js");
-const WORK = join(homedir(), "cvp-video-work");
+export const HYPERFRAMES = join(ROOT, "node_modules", ".bin", "hyperframes");
+export const GSAP = join(ROOT, "node_modules", "gsap", "dist", "gsap.min.js");
+export const WORK = join(homedir(), "cvp-video-work");
 
 /** Seconds. Each scene: narration starts `lead` in, holds `tail` after the last line, lasts at least `min`. */
 export const TIMING = {
@@ -53,10 +53,10 @@ const AFTER = ["hood", "yours", "close"];
  */
 export const ENCODE = { crf: 28, preset: "veryslow", x264: "aq-mode=3", audio: "128k" };
 
-const r3 = (n) => Math.round(n * 1000) / 1000;
-const sha = (value) => createHash("sha1").update(typeof value === "string" ? value : JSON.stringify(value)).digest("hex");
+export const r3 = (n) => Math.round(n * 1000) / 1000;
+export const sha = (value) => createHash("sha1").update(typeof value === "string" ? value : JSON.stringify(value)).digest("hex");
 
-function sh(cmd, args, { log = null, echo = false } = {}) {
+export function sh(cmd, args, { log = null, echo = false } = {}) {
   return new Promise((done, fail) => {
     // HyperFrames' default frame cache lives in os.tmpdir() and keeps each film's ~4–5 GB of extracted
     // footage for an hour, which fills a RAM-backed /tmp during batch renders. Uncached, the frames go
@@ -85,7 +85,7 @@ function sh(cmd, args, { log = null, echo = false } = {}) {
   });
 }
 
-const clock = (t, ms = true) => {
+export const clock = (t, ms = true) => {
   const total = Math.max(0, Math.round(t * 1000));
   const m = String(Math.floor(total / 60_000)).padStart(2, "0");
   const s = String(Math.floor(total / 1000) % 60).padStart(2, "0");

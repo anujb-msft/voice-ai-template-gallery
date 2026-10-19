@@ -11,6 +11,7 @@
     "capture": "node src/capture.mjs",
     "compose": "node src/compose.mjs",
     "publish": "node src/publish.mjs",
+    "reel": "node src/reel.mjs",
     "stage": "node src/stage.mjs",
     "voice": "node src/realtime.mjs"
   },

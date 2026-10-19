@@ -1,6 +1,7 @@
-// The film's soundtrack. Every voice clip is loudness-matched on its own, placed
+// The films' soundtrack. Every voice clip is loudness-matched on its own, placed
 // at its film time and mixed in Node at 48 kHz; the mix is then normalised to
-// broadcast-friendly loudness. No music bed: only the ring that opens the film.
+// broadcast-friendly loudness. The template films have no music bed, only the
+// ring that opens them; the overview reel (reel.mjs) adds its score (score.mjs).
 import { createHash } from "node:crypto";
 import { mkdir, readFile, writeFile, rename, stat, rm } from "node:fs/promises";
 import { existsSync } from "node:fs";
@@ -120,20 +121,46 @@ export function mix(clips, duration) {
   return track.subarray(0, Math.ceil(duration * RATE));
 }
 
-/** Write the mix as a loudness-normalised 48 kHz stereo WAV (two-pass loudnorm). */
-export async function master(track, file) {
+/**
+ * Write the mix as a loudness-normalised 48 kHz stereo WAV (two-pass loudnorm).
+ * `track` is one mono Float32Array, or `{ L, R }` for a stereo mix. With `limit`, a mix
+ * whose peaks sit too far over its loudness for one linear gain is first brought to the
+ * target and its peaks held 1.5 dB under the ceiling by a look-ahead limiter, so loudnorm
+ * stays linear instead of compressing the whole programme.
+ */
+export async function master(track, file, { limit = false } = {}) {
+  const stereo = !(track instanceof Float32Array);
+  let samples = track;
+  if (stereo) {
+    const n = Math.min(track.L.length, track.R.length);
+    samples = new Float32Array(n * 2);
+    for (let i = 0; i < n; i++) {
+      samples[2 * i] = track.L[i];
+      samples[2 * i + 1] = track.R[i];
+    }
+  }
   const raw = `${file}.f32`;
-  await writeFile(raw, Buffer.from(track.buffer, track.byteOffset, track.byteLength));
-  const input = ["-f", "f32le", "-ar", String(RATE), "-ac", "1", "-i", raw];
+  await writeFile(raw, Buffer.from(samples.buffer, samples.byteOffset, samples.byteLength));
+  const input = ["-f", "f32le", "-ar", String(RATE), "-ac", stereo ? "2" : "1", "-i", raw];
   const target = `I=${LOUDNESS.film}:TP=${LOUDNESS.peak}:LRA=11`;
-  const { stderr } = await ffmpeg([...input, "-af", `loudnorm=${target}:print_format=json`, "-f", "null", "-"]);
-  const m = loudnormJson(stderr);
+  const measure = async (pre) => loudnormJson((await ffmpeg([...input, "-af", `${pre}loudnorm=${target}:print_format=json`, "-f", "null", "-"])).stderr);
+  let m = await measure("");
+  const measured = { lufs: Number(m.input_i), truePeak: Number(m.input_tp), lra: Number(m.input_lra) };
+  let pre = "";
+  const gain = LOUDNESS.film - measured.lufs;
+  if (limit && measured.truePeak + gain > LOUDNESS.peak) {
+    const ceiling = 10 ** ((LOUDNESS.peak - 1.5) / 20);
+    pre = `volume=${gain.toFixed(2)}dB,alimiter=limit=${ceiling.toFixed(4)}:attack=5:release=80:level=false:latency=true,`;
+    m = await measure(pre);
+  }
   const second =
-    `loudnorm=${target}:measured_I=${m.input_i}:measured_TP=${m.input_tp}:measured_LRA=${m.input_lra}` +
-    `:measured_thresh=${m.input_thresh}:offset=${m.target_offset}:linear=true,aresample=${RATE}:resampler=soxr`;
-  await ffmpeg(["-y", ...input, "-af", second, "-ac", "2", "-c:a", "pcm_s24le", file]);
+    `${pre}loudnorm=${target}:measured_I=${m.input_i}:measured_TP=${m.input_tp}:measured_LRA=${m.input_lra}` +
+    `:measured_thresh=${m.input_thresh}:offset=${m.target_offset}:linear=true:print_format=json,aresample=${RATE}:resampler=soxr`;
+  const applied = await ffmpeg(["-y", ...input, "-af", second, "-ac", "2", "-c:a", "pcm_s24le", file]);
   const check = await ffmpeg(["-i", file, "-af", `loudnorm=${target}:print_format=json`, "-f", "null", "-"]);
   const final = loudnormJson(check.stderr);
   await rm(raw, { force: true });
-  return { lufs: Number(final.input_i), truePeak: Number(final.input_tp) };
+  // "dynamic" means loudnorm could not meet the targets with one linear gain and compressed instead.
+  const mode = loudnormJson(applied.stderr).normalization_type ?? "unknown";
+  return { lufs: Number(final.input_i), truePeak: Number(final.input_tp), mode, measured, limited: Boolean(pre) };
 }

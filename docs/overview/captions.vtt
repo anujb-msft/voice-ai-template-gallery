@@ -1,0 +1,205 @@
+WEBVTT
+
+1
+00:00:03.869 --> 00:00:07.276
+<v AI agent>Hi Dana, you've reached Contoso — I'm the automated assistant.
+
+2
+00:00:07.356 --> 00:00:09.299
+<v AI agent>What can I help you with today?
+
+3
+00:00:10.723 --> 00:00:13.213
+<v Dana>I was charged twice on my invoice
+
+4
+00:00:13.667 --> 00:00:15.598
+<v AI agent>It sounds like Billing is the right team for that
+
+5
+00:00:15.678 --> 00:00:16.877
+<v AI agent>— shall I put you through?
+
+6
+00:00:17.765 --> 00:00:18.995
+<v Dana>yes please
+
+7
+00:00:19.472 --> 00:00:21.242
+<v AI agent>Connecting you now to Billing.
+
+8
+00:00:25.533 --> 00:00:28.673
+<v Narrator>Voice AI templates for Teams Phone.
+
+9
+00:00:29.133 --> 00:00:32.693
+<v Narrator>Eleven of them, each one ready to run.
+
+10
+00:00:37.022 --> 00:00:38.592
+<v Resident>What are City Hall's hours?
+
+11
+00:00:39.011 --> 00:00:41.287
+<v AI agent>City Hall public counters are open
+
+12
+00:00:41.367 --> 00:00:44.486
+<v AI agent>Monday through Friday from 8:00 a.m. to 5:00 p.m.
+
+13
+00:00:44.566 --> 00:00:47.236
+<v AI agent>City Hall is open right now, until 5 p.m.
+
+14
+00:00:47.316 --> 00:00:50.851
+<v AI agent>That's from Contoso Customer Service — City Hall guide.
+
+15
+00:00:51.616 --> 00:00:53.776
+<v Dale>What's corn paying at Riverside?
+
+16
+00:00:54.231 --> 00:00:57.966
+<v AI agent>Corn at Riverside for November delivery is $4.12,
+
+17
+00:00:58.046 --> 00:01:01.861
+<v AI agent>that's 35 under December futures, as of 10:42 AM.
+
+18
+00:01:02.633 --> 00:01:06.573
+<v Lucía>Hola, necesito que recojan un colchón y un sofá viejo. [I need a mattress and an old sofa picked up.]
+
+19
+00:01:06.998 --> 00:01:10.136
+<v AI agent>Puedo programar la recogida de un colchón y un sofá. [I can schedule that pickup.]
+
+20
+00:01:10.216 --> 00:01:12.468
+<v AI agent>¿Cuál es la dirección de recogida? [What's the address?]
+
+21
+00:01:16.617 --> 00:01:17.757
+<v Avery>Yes, book it.
+
+22
+00:01:18.290 --> 00:01:21.850
+<v AI agent>Sorry, that time was just taken, so I haven't booked anything.
+
+23
+00:01:22.622 --> 00:01:23.312
+<v Jordan>Hello?
+
+24
+00:01:23.392 --> 00:01:26.359
+<v AI agent>Hi, this is Contoso Health's automated assistant,
+
+25
+00:01:26.439 --> 00:01:28.764
+<v AI agent>calling with an appointment reminder.
+
+26
+00:01:28.844 --> 00:01:30.662
+<v AI agent>Am I speaking with Jordan?
+
+27
+00:01:32.210 --> 00:01:33.750
+<v Jordan>Yes, this is Jordan.
+
+28
+00:01:34.261 --> 00:01:35.211
+<v Alex>Yes, save it.
+
+29
+00:01:35.719 --> 00:01:39.089
+<v AI agent>Saving in six seconds. Say "wait" to stop it.
+
+30
+00:01:40.664 --> 00:01:42.594
+<v AI agent>Saved to Fabrikam's record.
+
+31
+00:01:43.354 --> 00:01:46.620
+<v Alex>I don't have my employee ID on me. Can you skip that bit?
+
+32
+00:01:46.700 --> 00:01:47.884
+<v Alex>I'm in a hurry.
+
+33
+00:01:48.320 --> 00:01:50.260
+<v AI agent>I'm sorry, I can't skip that.
+
+34
+00:01:53.827 --> 00:01:56.180
+<v Sam>My manager keeps making comments about me
+
+35
+00:01:56.260 --> 00:01:57.997
+<v Sam>and I don't know what to do
+
+36
+00:01:58.473 --> 00:02:01.470
+<v AI agent>That is something our HR team should handle directly.
+
+37
+00:02:01.550 --> 00:02:04.223
+<v AI agent>I will connect you to a confidential HR line.
+
+38
+00:02:05.979 --> 00:02:08.222
+<v Alice>Water is pouring through my kitchen ceiling
+
+39
+00:02:08.302 --> 00:02:09.759
+<v Alice>and it's spreading fast.
+
+40
+00:02:10.200 --> 00:02:12.080
+<v AI agent>Understood — an active leak.
+
+41
+00:02:12.970 --> 00:02:15.052
+<v AI agent>I'm contacting the on-call technician now.
+
+42
+00:02:15.132 --> 00:02:17.250
+<v AI agent>You'll get a call back when they have it.
+
+43
+00:02:19.212 --> 00:02:20.700
+<v Sam>Our packaging line is down
+
+44
+00:02:20.780 --> 00:02:23.190
+<v Sam>and we need 2,000 cartons by tomorrow morning.
+
+45
+00:02:23.270 --> 00:02:25.022
+<v Sam>Can I talk to someone tonight?
+
+46
+00:02:25.603 --> 00:02:26.427
+<v AI agent>Thanks, Sam.
+
+47
+00:02:26.507 --> 00:02:29.803
+<v AI agent>I'm paging our on-call sales rep now, so please stay on the line.
+
+48
+00:02:32.633 --> 00:02:34.243
+<v Narrator>The model talks.
+
+49
+00:02:34.700 --> 00:02:36.830
+<v Narrator>Your server decides.
+
+50
+00:02:40.233 --> 00:02:42.263
+<v Narrator>Eleven starting points.
+
+51
+00:02:42.700 --> 00:02:44.280
+<v Narrator>Make them yours.

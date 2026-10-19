@@ -165,9 +165,11 @@
   }
 
   /**
-   * A film hosted on a GitHub Release plays right here. Opening the release
-   * download directly saves a file (it is served as an attachment), but a
-   * video element streams the same URL; the link stays for a local copy.
+   * A hosted film plays right here, from the first source that loads: the
+   * copy the Pages build mirrors beside this page, then the GitHub Release
+   * download. Opening the release download directly saves a file (it is
+   * served as an attachment), and Safari on iPhone may refuse to play it; the
+   * link stays for a local copy.
    */
   function filmDeliverable(url, isFilm) {
     var expected = template.assets.expected;
@@ -177,14 +179,19 @@
     var poster = expected.filter(function (asset) {
       return /\/poster\.webp$/i.test(asset.path) && asset.status === "ready";
     })[0];
+    var sources = (film ? [relativeToPage(film.path)] : []).concat(url);
     return (
       '<li class="tpl-deliverable">' +
       '<div class="tpl-deliverable-head"><strong>Video walkthrough</strong>' +
       '<span class="tpl-deliverable-status tpl-deliverable-status--ready">Available</span></div>' +
-      '<video class="tpl-film" controls playsinline preload="none" src="' + escapeHtml(url) + '"' +
+      '<video class="tpl-film" controls playsinline preload="none"' +
       (poster ? ' poster="' + escapeHtml(relativeToPage(poster.path)) + '"' : "") +
-      ' aria-label="' + escapeHtml("Narrated demo film: " + template.name) + '"></video>' +
-      '<p class="tpl-film-fallback" hidden>This browser can\u2019t stream the film from GitHub. Download it instead.</p>' +
+      ' aria-label="' + escapeHtml("Narrated demo film: " + template.name) + '">' +
+      sources.map(function (src) {
+        return '<source src="' + escapeHtml(src) + '" type="video/mp4">';
+      }).join("") +
+      "</video>" +
+      '<p class="tpl-film-fallback" hidden>This browser can\u2019t play the film here. Download it instead.</p>' +
       "<p>" + escapeHtml(film ? film.description : "A narrated demo film.") + "</p>" +
       '<a class="tpl-deliverable-link" href="' + escapeHtml(url) + '">Download the film (MP4)</a>' +
       "</li>"
@@ -270,9 +277,17 @@
 
     var film = mount.querySelector(".tpl-film");
     if (film) {
-      film.addEventListener("error", function () {
-        mount.querySelector(".tpl-film-fallback").hidden = false;
-      });
+      // A source that fails fires its error at itself, without bubbling, and
+      // the player tries the next one; only the last failing means nothing plays.
+      film.addEventListener(
+        "error",
+        function (event) {
+          if (event.target === film || event.target === film.lastElementChild) {
+            mount.querySelector(".tpl-film-fallback").hidden = false;
+          }
+        },
+        true
+      );
     }
   }
 

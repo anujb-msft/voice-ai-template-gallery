@@ -32,6 +32,13 @@ jobs:
         env:
           INCLUDE_REPOSITORY_METADATA: "1"
 
+      # Demo films live on the demo-films release, which serves them as
+      # attachments that Safari on iPhone may refuse to play. Copy them into
+      # the site so the players can use the same origin first. This runs after
+      # the generator, which rejects a hosted film that is also on disk.
+      - name: Mirror hosted films into the site
+        run: node scripts/mirror-hosted-films.js
+
       - name: Setup Pages
         uses: actions/configure-pages@v5
 
