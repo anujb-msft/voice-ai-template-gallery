@@ -57,7 +57,7 @@ review.
 | 7 | Call cap | 7 minutes, configurable, with a wrap-up at 6 minutes. Any hold is released when the cap is reached |
 | 8 | Realtime transport † | Local WebSocket only, with no SignalR dependency |
 | 9 | Default port † | `8100`, so it runs alongside the other gallery samples on `8090`–`8099` |
-| 10 | Gallery card † | Visual scene updated to depict verification, eligibility, the slot offer, and the booked appointment when the sample lands |
+| 10 | Gallery tile † | Poster frame of the demo film, or a title card until the film is published |
 
 ## Goal
 

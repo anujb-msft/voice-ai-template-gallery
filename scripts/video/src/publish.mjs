@@ -55,7 +55,7 @@ export const releaseUrl = (github, tag, id) => `https://github.com/${github}/rel
 export const RELEASE_NOTES = [
   "Demo films for the Voice AI template gallery. Each template has two:",
   "",
-  "- `<template-id>.mp4`, a short narrated film of the template at work. The template's **Video** button in the gallery plays it.",
+  "- `<template-id>.mp4`, a short narrated film of the template at work. Its tile in the gallery and its template page play it.",
   "- `<template-id>-walkthrough.mp4`, the template's full narrated walkthrough, where every scripted call plays out from start to finish.",
   "",
   "`overview.mp4` is the overview reel on the gallery's front page, cut from all of them.",

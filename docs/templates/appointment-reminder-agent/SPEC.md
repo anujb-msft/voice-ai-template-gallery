@@ -57,7 +57,7 @@ review.
 | 7 | Escalation † | Transfer to the clinic front desk during its hours when the patient asks for a person or the agent fails twice after the DTMF fallback. Outside hours, the agent gives the callback number |
 | 8 | Realtime transport † | Local WebSocket only, with no SignalR dependency |
 | 9 | Default port † | `8099`, so it runs alongside the other gallery samples on `8090`–`8098` |
-| 10 | Gallery card † | Visual scene updated to depict the outbound campaign, the right-party check, and confirm, cancel, or reschedule when the sample lands |
+| 10 | Gallery tile † | Poster frame of the demo film, or a title card until the film is published |
 
 ## Goal
 

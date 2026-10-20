@@ -3,7 +3,7 @@
 // floating device, kinetic type, and an original score under the voices. The overview
 // (reel/overview.mjs) runs across every template. A template's film is a reel named for
 // the template, with `film` set to it: that one template's story, and the film its
-// Video button plays (publish.mjs keeps the full walkthrough beside it).
+// tile and page play (publish.mjs keeps the full walkthrough beside it).
 //
 //   1. loads each clip's composed film (films/<id>/film.json and its edited footage)
 //      and finds its segments' lines, trimmed at the pauses between sentences;

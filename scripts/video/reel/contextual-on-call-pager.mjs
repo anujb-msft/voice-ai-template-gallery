@@ -1,4 +1,4 @@
-// Contextual On-Call Pager's film: the short one its Video button plays, cut from the
+// Contextual On-Call Pager's film: the short one its tile and page play, cut from the
 // console footage of its full walkthrough (films/contextual-on-call-pager.mjs). Built by
 // `npm run reel -- contextual-on-call-pager`; reel/overview.mjs documents the fields.
 const CALL = { x: 0, y: 246, w: 960 };

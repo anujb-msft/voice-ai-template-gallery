@@ -53,7 +53,7 @@ review.
 | 6 | DTMF † | `0` in hours transfers to the sales queue. After hours, `0` is acknowledged and the agent continues capture |
 | 7 | Realtime transport † | Local WebSocket only, with no SignalR dependency |
 | 8 | Default port † | `8093`, so it runs alongside the password-reset (`8090`), routing (`8091`), and general inquiry (`8092`) samples |
-| 9 | Gallery card † | Visual scene updated to depict the capture, score, and notify flow when the sample lands |
+| 9 | Gallery tile † | Poster frame of the demo film, or a title card until the film is published |
 | 10 | Transfer audio † | A spoken "connecting you with our sales team now", with no hold tone |
 
 ## Goal

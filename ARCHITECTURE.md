@@ -105,9 +105,9 @@ MAY commit `docs/data/repo.config.json` to override the metadata.
 - `docs/assets/*.js` is ES5: an IIFE with `"use strict"`, using only `var` and
   `function`. No `let`, `const`, arrow functions, template literals, modules, or
   bundler.
-- Render from the catalogue. Template copy, counts, and links come from
-  `VOICE_AI_TEMPLATES`. Per-template code is limited to the
-  [card scene registration](#gallery-card-scenes).
+- Render from the catalogue. Template copy, counts, links, and films come from
+  `VOICE_AI_TEMPLATES`, so a new template needs no gallery code
+  ([gallery tiles](#gallery-tiles)).
 - Escape every catalogue value placed in HTML with `escapeHtml()`, which is defined in
   both `gallery.js` and `template-page.js`.
 - Make no third-party requests: no CDNs, web fonts, analytics, or remote images.
@@ -117,8 +117,9 @@ MAY commit `docs/data/repo.config.json` to override the metadata.
 ### Template pages
 
 `docs/templates/<id>/index.html` is a fixed stub. `template-page.js` finds the catalogue
-entry named by `data-template-id` and renders the whole page, themed from the manifest.
-Copy the stub from the reference and change only that attribute:
+entry named by `data-template-id` and renders the whole page: a black hero with the
+template's film in a device, then its overview, business case, technical fit, and
+deliverables. Copy the stub from the reference and change only that attribute:
 
 ```html
 <body data-template-id="intent-based-call-routing">
@@ -128,36 +129,48 @@ Copy the stub from the reference and change only that attribute:
 </body>
 ```
 
-### Gallery card scenes
+### Gallery tiles
 
-Each gallery card shows an illustrated scene. Register one for every new template:
+Each template is a tile: its film's poster frame (the `video/poster.webp` asset), then
+its language, name, headline, and complexity. Until the poster is `ready`, the tile
+shows a title card in the films' style. Once the film is `ready`, the poster plays it,
+and its chip shows the runtime written in the film asset's `description`.
 
-| Registration | File | Notes |
-|---|---|---|
-| `VISUAL_SCENES["<id>"]` | `gallery.js` | The renderer reads `dataScene`, `ariaLabel`, `summary` (the card caption), and `content` (the viewer illustration). Existing entries also carry `outcomes` and `thumbnailContent`, which nothing reads yet; include them to match. Use the template id as both the key and the `dataScene` value. |
-| `THUMBNAIL_EMBLEMS["<dataScene>"]` | `gallery.js` | Required. An SVG string with `class="thumbnail-svg" viewBox="0 0 120 84" aria-hidden="true"`, drawn with the `thumb-*` classes. Without it the card shows the text "undefined". |
-| `/* 12. <dataScene> */` block | `gallery.css` | Rules scoped to `.visual-scene[data-scene="<dataScene>"]`, numbered after the last existing block. |
-| `SCENE_ICONS` entry | `gallery.js` | Optional. Reuse an existing icon when one fits. |
+A tile opens its template's sheet, and `#<id>` links straight to it. The sheet leads
+with the film, then the opening line, the business case and technical fit, links to
+the film and its one-slide PDF, and a black **Build this agent** band with the
+coding-agent prompt.
 
-Model all three on the `it-helpdesk-password-reset` entries: its `VISUAL_SCENES` entry,
-its emblem, and CSS block 11.
+Nothing is registered per template: a new template's tile appears when you regenerate
+the catalogue. The one place `docs/index.html` names templates is the chapter list
+under the overview film. It repeats that film's chapter cards
+(`scripts/video/reel/overview.mjs`), one `data-open="<id>"` line per template, and
+fills each name from the catalogue; a line whose template is missing hides itself.
+Update the list when the overview film is recut.
 
-- Style scenes with the shared `visual-*` classes and the `--visual-*` and `--t-*`
-  custom properties, so each scene follows its template's theme. Don't hard-code
-  colors.
-- `ariaLabel` and `summary` describe the scene in words. The SVG inside is decorative.
-- Check the scene at 600 px wide. If it overflows, add overrides inside the existing
-  `@media (max-width: 600px)` block.
-- Animation is decorative and CSS-only. The global `prefers-reduced-motion` block turns
-  it off. Don't add motion that carries meaning or that bypasses that block.
-- An unregistered template falls back to the routing scene. That keeps the gallery
-  working; it isn't a substitute for registration.
+Motion is decorative, and reduced motion turns it off. Each stylesheet's
+`prefers-reduced-motion: reduce` block stops transitions, animations, and the hover
+push-ins, and scripted motion (the scroll reveals, and the smooth scroll to the build
+band) checks `motionAllowed()` in `gallery.js`. Don't add motion that carries meaning or
+that ignores reduced motion.
 
 ### Theme and accessibility
 
-The manifest's `colors` (`bg`, `panel`, `accent`, `ink`), `onAccent`, `font`, and
-`radius` become the custom properties `--t-bg`, `--t-panel`, `--t-accent`, `--t-ink`,
-`--t-on-accent`, `--t-font`, and `--t-radius` on the template's card and page.
+The site has one palette, the films' own: white and `#f5f5f7` sections between black
+film bands, in system type. `gallery.css` and `template-page.css` mirror the tokens in
+`scripts/video/src/reel.mjs`. A template brings one color of its own, `colors.accent`,
+as two custom properties:
+
+- `--t-accent`, as written: the dot beside the template's language on its tile and
+  sheet.
+- `--glow`, the accent lifted toward white: light on black only, as in the films. It
+  lights a tile's poster from below, marks the overview chapters, and glows behind the
+  film on the template page. On white a glow tints the page, so the sheet's film casts
+  a shadow instead.
+
+`scripts/video` colors a template's films with `colors` and `onAccent`, and
+`scripts/slides` sets its slide in `colors` and rounds its corners by `radius`. Nothing
+renders `font` today. Every theme field is still required and validated.
 
 Colors MUST meet these WCAG contrast ratios:
 
@@ -179,7 +192,7 @@ no web fonts. `radius` is a CSS length such as `10px`.
 `docs/index.html` loads `assets/gallery.css`, `data/templates.js`, and
 `assets/gallery.js` with a `?v=YYYYMMDD-N` query. When you change one of those files,
 bump its version so returning visitors don't get a stale copy. Adding a template changes
-all three.
+only `data/templates.js`.
 
 ### Featured template and the Copilot prompt
 
@@ -251,7 +264,8 @@ The template id is a lowercase kebab-case slug that matches
 - `index.html`: `data-template-id`.
 - `code/package.json`: `name`.
 - `code/package-lock.json`: the top-level `name` and `packages[""].name`.
-- `gallery.js`: the `VISUAL_SCENES` key and its `dataScene`.
+- `docs/index.html`: the `data-open` of its overview chapter, if the overview film has
+  one.
 - The slide files `slides/<id>.pptx` and `slides/<id>.pdf`, and the slide's still in
   `scripts/slides/stills.json`.
 
@@ -273,8 +287,8 @@ template, change its `name`.
   that adds the file. The generator fails on a `ready` asset that is missing and on a
   `pending` asset that is present, so placeholders can't be committed.
 - A template's slide, `slides/<id>.pdf`, is its one-slide value proposition for
-  business decision-makers, and what the gallery's **PDF** button and the template
-  page open. It is generated, not drawn: `scripts/slides` sets the manifest's business
+  business decision-makers, and what the **PDF** link in its gallery sheet and the
+  template page open. It is generated, not drawn: `scripts/slides` sets the manifest's business
   and technical text in the template's colors, beside a still of its console cut from a
   demo film. Rebuild it after changing `template.json` (`npm run build` in
   `scripts/slides`) and commit it; CI fails while a committed slide is out of date. A
@@ -287,13 +301,13 @@ template, change its `name`.
   release download as an `application/octet-stream` attachment: opened as a link, it
   saves a file instead, and Safari on iPhone may refuse to play it. So the Pages build
   copies every hosted film to its `path` in the site (`scripts/mirror-hosted-films.js`),
-  and the gallery's Video button and the template page play that same-origin copy first
+  and the gallery's film player and the template page play that same-origin copy first
   and the `url` second, in a video element. The copy refreshes only when Pages deploys,
   so a re-published film reaches the site at the next deploy.
   The generator requires a hosted asset to be `ready`, its `url` to be a GitHub Release
   download of the same file type, and nothing to be committed at its `path`.
   `scripts/video` uploads the film and writes the entry; see its README.
-- A template's film is the short one its Video button plays, cut from the template's
+- A template's film is the short one its tile and page play, cut from the template's
   full narrated walkthrough. The walkthrough is on the same release as
   `<id>-walkthrough.mp4`, linked from `video/README.md`, with its transcript committed
   beside the film's as `video/walkthrough-transcript.md`. It is not an expected
@@ -775,4 +789,3 @@ templates. Fixes are welcome as separate pull requests.
 |---|---|
 | Password reset | `it-helpdesk-password-reset` predates the standard: it has no `SPEC.md` and no `config/`, and its modules are laid out differently. |
 | Campaign safety | `appointment-reminder-agent` treats an empty `ALLOWED_TEST_NUMBERS` as "no restriction". Set it before you turn off `CAMPAIGN_DRY_RUN`. |
-| Card scenes | Ten templates use older `VISUAL_SCENES` keys, mapped through `LEGACY_KEY_BY_ID` in `gallery.js`. New templates key scenes by id. |

@@ -1,4 +1,4 @@
-// IT Help Desk Password Reset's film: the short one its Video button plays, cut from the
+// IT Help Desk Password Reset's film: the short one its tile and page play, cut from the
 // console footage of its full walkthrough (films/it-helpdesk-password-reset.mjs). Built by
 // `npm run reel -- it-helpdesk-password-reset`; reel/overview.mjs documents the fields.
 export default {

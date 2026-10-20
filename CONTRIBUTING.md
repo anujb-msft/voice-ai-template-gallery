@@ -282,71 +282,7 @@ Adapt `code/` to your scenario, keeping the reference's architecture
   ([media and deliverables](ARCHITECTURE.md#media-and-deliverables)).
 - Add a row for your template to the [Ports](ARCHITECTURE.md#ports) table.
 
-### 6. Register the gallery card scene
-
-Each gallery card shows an animated scene and a thumbnail emblem, defined in
-`docs/assets/gallery.js` and styled in `docs/assets/gallery.css`
-([gallery card scenes](ARCHITECTURE.md#gallery-card-scenes)). A template without its
-own scene shows the routing scene. Model yours on the password-reset scene:
-
-1. In `gallery.js`, add a comma after the last entry in `VISUAL_SCENES` (today,
-   `"it-helpdesk-password-reset"`), then add yours before the closing `};`. Replace every
-   label and `data-step` name with your scenario's. Screen readers announce `ariaLabel`
-   in place of the scene, so make it one sentence that describes the whole flow.
-
-   ```js
-       "your-template-id": {
-         dataScene: "your-template-id",
-         ariaLabel: "A caller asks for help; the agent looks up the record, confirms the change, and the outcome is logged.",
-         outcomes: ["Outcome logged"],
-         summary: "Ask, look up, confirm, and log the outcome.",
-         thumbnailContent:
-           '<span class="visual-node" data-step="agent">' +
-           SCENE_ICONS.routing +
-           "Agent</span>" +
-           '<span class="visual-badge" data-response="confirmed">Confirmed</span>',
-         content:
-           '<span class="visual-card" data-step="ask"><strong>Caller asks</strong>Short detail</span>' +
-           '<span class="visual-node visual-node--focal" data-step="act">' +
-           SCENE_ICONS.routing +
-           "Agent acts<br><small>Short detail</small></span>" +
-           '<span class="visual-record" data-step="record"><strong>Record found</strong>Short detail</span>' +
-           '<span class="visual-badge-row" data-step="confirm">' +
-           '<span class="visual-badge" data-response="confirmed">Confirmed</span>' +
-           "</span>" +
-           '<span class="visual-card visual-card--focal" data-step="outcome"><strong>Outcome</strong>Short detail</span>' +
-           '<i class="visual-route" aria-hidden="true" style="left:50%;top:10%;height:72%"></i>'
-       }
-   ```
-
-2. Add a comma after the last entry in `THUMBNAIL_EMBLEMS` (today, `"password-reset"`),
-   then add an emblem whose key equals your `dataScene`. A missing emblem shows up on the
-   card as the text `undefined`. Draw a bold, wordless metaphor for the scenario on the
-   120 × 84 view box with the existing `thumb-*` classes:
-
-   ```js
-       "your-template-id":
-         '<svg class="thumbnail-svg" viewBox="0 0 120 84" aria-hidden="true">' +
-         '<rect class="thumb-panel" x="28" y="13" width="62" height="58" rx="12"/>' +
-         '<path class="thumb-line" d="M40 34h38M40 46h26"/>' +
-         '<circle class="thumb-accent" cx="86" cy="62" r="12"/><path class="thumb-cutout-line" d="m80 62 4 4 8-9"/>' +
-         "</svg>"
-   ```
-
-3. In `gallery.css`, add the next numbered block, for example
-   `/* 12. your-template-id */`, after the last numbered scene block and before the
-   `/* Independent thumbnail emblems` comment. Copy the three rules of the
-   `/* 11. password-reset */` block, changing the selector to
-   `.visual-scene[data-scene="your-template-id"]`. Put any narrow-screen fixes in the
-   existing `@media (max-width: 600px)` block, and animate only with CSS.
-4. Use an existing `SCENE_ICONS` icon (`routing`, `records`, `civic`, `inquiry`,
-   `reminder`, `leads`, `scheduling`, `helpdesk`, `pricing`, `pager`, or `reset`). Add a
-   new icon only if none fits.
-5. Bump all three `?v=` values in `docs/index.html` to today's date in `YYYYMMDD-N`
-   form, for example `?v=20261001-1`, so browsers fetch the new files
-   ([caching](ARCHITECTURE.md#caching)).
-
-### 7. Add the CI matrix entry and Dependabot directory
+### 6. Add the CI matrix entry and Dependabot directory
 
 One CI matrix runs every sample ([§6](ARCHITECTURE.md#6-continuous-integration)). In
 `.github/workflows/validate.yml`, add your id to the `sample` job's `template` list, in
@@ -376,7 +312,7 @@ Then add your `code/` folder to the `directories` list of the `npm` entry in
       - /docs/templates/your-template-id/code
 ```
 
-### 8. Verify and open the pull request
+### 7. Verify and open the pull request
 
 From the repository root:
 
@@ -387,7 +323,10 @@ git status --short docs/data
 
 Commit both files in `docs/data/`: CI regenerates them and fails if they differ from
 what you committed. Don't set `INCLUDE_REPOSITORY_METADATA` when you run the generator.
-CI doesn't set it, so data generated with it fails that check.
+CI doesn't set it, so data generated with it fails that check. Then bump the
+`data/templates.js?v=` key in `docs/index.html` to today's date in `YYYYMMDD-N` form,
+for example `?v=20261001-1`, so browsers fetch the new catalogue
+([caching](ARCHITECTURE.md#caching)).
 
 Then, in your template's `code/` folder:
 
@@ -408,10 +347,11 @@ start your sample with `npm start`, and present every beat in the console the wa
 room will see it. `npm run rehearse` proves where each beat lands, in any order and after
 **Reset demo**, but not that the room can follow it.
 
-Preview the gallery, and check your template's card, its **Build this agent** dialog,
-and its page three ways: at full width, at 600 px wide, and with reduced motion. To
-emulate reduced motion in Edge or Chrome, open DevTools, open the **Rendering** panel,
-and set **Emulate CSS media feature prefers-reduced-motion** to `reduce`.
+Preview the gallery, and check your template's tile, its sheet down to the
+**Build this agent** band, and its page three ways: at full width, at phone width
+(390 px), and with reduced motion. To emulate reduced motion in Edge or Chrome, open
+DevTools, open the **Rendering** panel, and set
+**Emulate CSS media feature prefers-reduced-motion** to `reduce`.
 
 Open the pull request, link the proposal issue, and complete the
 [Pull request checklist](#pull-request-checklist).
@@ -426,36 +366,38 @@ fields are errors everywhere except inside `paths`, and every value is plain tex
 no Markdown or HTML. Keep `"$schema": "../../schemas/template.schema.json"` as the first
 key, and never add a `source` field: the generator derives it.
 
-In the **Shown on** column, *card* is the gallery card, *dialog* is the
-**Build this agent** dialog, *page* is the template page, *prompt* is the GitHub Copilot
-prompt the gallery generates, *slide* is the template's one-slide value proposition
-(PDF), and *theme* means the `--t-*` custom properties that color the card and page.
+In the **Shown on** column, *tile* is the template's tile in the gallery, *sheet* is the
+sheet the tile opens, *page* is the template page, *prompt* is the GitHub Copilot prompt
+the gallery generates, *slide* is the template's one-slide value proposition (PDF), and
+*films* are the template's films, which `scripts/video` colors from the manifest
+([theme](ARCHITECTURE.md#theme-and-accessibility)). Fields marked *not shown* are still
+required and validated.
 
 | Field | Rule | Reference value | Shown on |
 |---|---|---|---|
 | `id` | Lowercase words of letters and digits, joined by hyphens. Equals the folder name, and is unique and permanent. | `intent-based-call-routing` | URLs and paths |
-| `name` | Title case. | `Intent-Based Call Routing` | Card, dialog, page, prompt, slide; sort order and search |
-| `language` | `Inbound · ` or `Outbound · `, then a category from the list below. | `Inbound · Voice Receptionist` | Card, dialog, page, prompt, slide; search |
-| `useCase` | A short noun phrase. | `Cross-industry intelligent reception` | Card, dialog, page, slide; search |
-| `assistant` | `Inbound` or `Outbound`, matching the first word of `language`. | `Inbound` | Card thumbnail, dialog, page |
-| `headline` | One or two short sentences, about 40–60 characters. | `Understand the reason. Route to the right team.` | Page headline, meta description |
-| `prompt` | The agent's opening line to the caller, about 35–65 characters. | `Tell me briefly what you are calling about.` | Dialog quote, page, prompt |
+| `name` | Title case. | `Intent-Based Call Routing` | Tile, sheet, page, prompt, slide; sort order and search |
+| `language` | `Inbound · ` or `Outbound · `, then a category from the list below. | `Inbound · Voice Receptionist` | Tile, sheet, page, prompt, slide; search |
+| `useCase` | A short noun phrase. | `Cross-industry intelligent reception` | Sheet, page, slide; search |
+| `assistant` | `Inbound` or `Outbound`, matching the first word of `language`. | `Inbound` | Not shown: `language` starts with it |
+| `headline` | One or two short sentences, about 40–60 characters. | `Understand the reason. Route to the right team.` | Tile, sheet, page headline, meta description |
+| `prompt` | The agent's opening line to the caller, about 35–65 characters. | `Tell me briefly what you are calling about.` | Sheet and page ("Opening line"), prompt |
 | `description` | Two sentences, about 180–215 characters. | `Classifies a caller's stated reason and routes the call to the appropriate team, queue, or self-service flow. The bounded routing policy makes it a practical starting point for evaluating voice automation.` | Page; search |
 | `tags` | Three tags: the industry or sector first, then two for the function or capability. | `Cross-industry`, `Call routing`, `Reception` | Page; search |
-| `colors` | `bg`, `panel`, `accent`, and `ink`, each a 6-digit hex color. | `#17140f`, `#29231a`, `#e0a63c`, `#f7f0e0` | Theme, slide |
-| `onAccent` | The 6-digit hex color of text on `accent`. | `#17140f` | Theme |
-| `font` | A system font stack that ends in a generic family. No web fonts. | `'Helvetica Neue', Helvetica, Arial, sans-serif` | Theme |
-| `radius` | A CSS length. | `10px` | Theme, slide |
+| `colors` | `bg`, `panel`, `accent`, and `ink`, each a 6-digit hex color. | `#17140f`, `#29231a`, `#e0a63c`, `#f7f0e0` | `accent`: tile, sheet, page; all four: films, slide |
+| `onAccent` | The 6-digit hex color of text on `accent`. | `#17140f` | Films |
+| `font` | A system font stack that ends in a generic family. No web fonts. | `'Helvetica Neue', Helvetica, Arial, sans-serif` | Not shown |
+| `radius` | A CSS length. | `10px` | Slide |
 | `readiness` | Starts with `Illustrative workflow;`, then says what to evaluate. | `Illustrative workflow; evaluate intent accuracy, transfer policy, business-hours behavior, and fallback with representative calls.` | Page |
 | `business.buyer` | The role that would sponsor the agent. | `Customer service and operations leaders` | Page, slide |
-| `business.application` | One sentence on what the agent does for the business. | `Understand why a caller is contacting the organization and route them to the correct team, queue, or self-service flow.` | Card, dialog, page, prompt, slide |
-| `business.roi` | One sentence of expected outcomes, with no percentages or amounts. | `Lower receptionist workload, fewer incorrect transfers, and better first-call resolution.` | Card ("Potential outcomes"), page, slide |
-| `business.metrics` | Three measures joined by ` · `. | `Transfer accuracy · First-call resolution · Receptionist hours saved` | Dialog, page ("Success measures"), slide |
-| `technical.complexity` | Exactly `Low`, `Medium`, or `High`. | `Low` | Card, dialog, page, slide |
-| `technical.systems` | Usually three systems the agent touches, joined by ` · `. | `Phone system · Employee directory · Routing rules` | Dialog, page, slide |
-| `technical.build` | One sentence listing what to build. | `Intent classification, routing policy, business-hours logic, fallback, and warm transfer.` | Dialog, page, prompt |
+| `business.application` | One sentence on what the agent does for the business. | `Understand why a caller is contacting the organization and route them to the correct team, queue, or self-service flow.` | Sheet, page, prompt, slide |
+| `business.roi` | One sentence of expected outcomes, with no percentages or amounts. | `Lower receptionist workload, fewer incorrect transfers, and better first-call resolution.` | Sheet, page ("Potential outcomes"), slide |
+| `business.metrics` | Three measures joined by ` · `. | `Transfer accuracy · First-call resolution · Receptionist hours saved` | Sheet, page ("Success measures"), slide |
+| `technical.complexity` | Exactly `Low`, `Medium`, or `High`. | `Low` | Tile, sheet, page, slide |
+| `technical.systems` | Usually three systems the agent touches, joined by ` · `. | `Phone system · Employee directory · Routing rules` | Sheet, page, slide |
+| `technical.build` | One sentence listing what to build. | `Intent classification, routing policy, business-hours logic, fallback, and warm transfer.` | Sheet, page, prompt |
 | `paths` | The reference's 11 keys, each relative to `docs/` and pointing at a file or folder that exists. | `"readme": "templates/intent-based-call-routing/README.md"` | Page links, prompt |
-| `assets.expected` | The reference's five deliverables, each with a `path` that starts with `templates/<id>/`, a `description`, and a `pending` or `ready` status. A demo film hosted on the `demo-films` GitHub Release also has a `url`. | `templates/<id>/` followed by `video/demo.mp4`, `video/poster.webp`, `slides/<id>.pptx`, `slides/<id>.pdf`, and `slides/preview.webp` | Page |
+| `assets.expected` | The reference's five deliverables, each with a `path` that starts with `templates/<id>/`, a `description`, and a `pending` or `ready` status. A demo film hosted on the `demo-films` GitHub Release also has a `url`. | `templates/<id>/` followed by `video/demo.mp4`, `video/poster.webp`, `slides/<id>.pptx`, `slides/<id>.pdf`, and `slides/preview.webp` | Tile (the poster and film), sheet, page |
 
 Notes:
 
@@ -467,7 +409,8 @@ Notes:
 - Separate list items inside a string with ` · `: a space, a middle dot (U+00B7), and a
   space.
 - The generator doesn't check the values of `assistant` and `complexity` yet, so a typo
-  passes validation and then shows up in the gallery. Copy them exactly.
+  passes validation, and a `complexity` typo then shows up in the gallery. Copy them
+  exactly.
 - Keep every `paths` key and all five expected assets, even while the files are drafts.
   Paths use `/`, never start with `/`, and never contain `..`.
 - Change an asset's status from `pending` to `ready` in the commit that adds the file.
@@ -480,7 +423,9 @@ Notes:
   the next Pages deploy. Don't add the `url` by hand:
   `scripts/video/src/publish.mjs` uploads the film, checks the download, and writes the
   entry. It also uploads the template's full walkthrough as `<id>-walkthrough.mp4`,
-  which `video/README.md` links; the walkthrough has no `assets.expected` entry.
+  which `video/README.md` links; the walkthrough has no `assets.expected` entry. The
+  film's `description` it writes carries the runtime, such as `(2:18)`, which the play
+  chips on the tile and page show.
 - `slides/<id>.pdf`, the template's slide, is generated from the fields marked *slide*
   by [`scripts/slides`](scripts/slides/README.md), which stops and names any field that
   doesn't fit. After you change a manifest that has a slide, run `npm run build` in
@@ -570,9 +515,9 @@ Copy this list into the pull request description, and check each item that appli
 - [ ] For a new template: the proposal issue confirmed the id and port, and I added a
       Ports row, a CI matrix entry, and a Dependabot directory.
 - [ ] I bumped the `?v=` value in `docs/index.html` for every file it references that I
-      changed. A new template changes all three.
-- [ ] I checked the card, the **Build this agent** dialog, and the page at full width,
-      at 600 px, and with reduced motion.
+      changed. A new template changes only `data/templates.js`.
+- [ ] I checked the tile, its sheet down to the **Build this agent** band, and the page
+      at full width, at 390 px, and with reduced motion.
 - [ ] All names, numbers, and data are fictional, and nothing contains a secret, tenant
       identifier, or tunnel URL.
 - [ ] If the change alters a standard or fixes a known deviation, I updated

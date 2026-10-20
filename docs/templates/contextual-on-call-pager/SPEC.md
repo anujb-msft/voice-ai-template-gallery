@@ -52,7 +52,7 @@ review.
 | 6 | Tech DTMF † | `1` accept, `2` decline, `3` bridge to tenant, `*` repeat the brief |
 | 7 | Realtime transport † | Local WebSocket only, with no SignalR dependency |
 | 8 | Default port † | `8095`, so it runs alongside the earlier samples on `8090`–`8094` |
-| 9 | Gallery card † | Visual scene updated to depict the intake, page, acknowledge, and escalate flow when the sample lands |
+| 9 | Gallery tile † | Poster frame of the demo film, or a title card until the film is published |
 | 10 | Tenant closing † | The agent tells urgent callers a technician is being contacted now, and routine callers that the office will follow up next business day |
 
 ## Goal

@@ -56,7 +56,7 @@ review.
 | 8 | DTMF † | One-time code entry for PSTN callers. `0` transfers to the IT service desk, or to HR shared services if the domain is HR. `*` repeats the last phrase |
 | 9 | Realtime transport † | Local WebSocket only, with no SignalR dependency |
 | 10 | Default port † | `8098`, so it runs alongside the other gallery samples on `8090`–`8097` |
-| 11 | Gallery card † | Visual scene updated to depict IT/HR triage, grounded answers, tickets, and the confidential HR path when the sample lands |
+| 11 | Gallery tile † | Poster frame of the demo film, or a title card until the film is published |
 
 ## Goal
 

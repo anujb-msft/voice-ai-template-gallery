@@ -34,26 +34,6 @@
     return typeof value === "string" && value.trim().length > 0;
   }
 
-  // Template folders use descriptive ids while the decorative scene library
-  // retains shorter legacy keys.
-  var LEGACY_KEY_BY_ID = {
-    "intent-based-call-routing": "intent-routing",
-    "customer-record-lookup-update": "crm-lookup-update",
-    "311-service-assistant": "311-assistant",
-    "general-inquiry-agent": "general-inquiry",
-    "appointment-reminder-agent": "appointment-reminder",
-    "after-hours-sales-lead-capture": "sales-lead-capture",
-    "appointment-scheduling-agent": "appointment-scheduling",
-    "it-hr-help-desk-triage": "help-desk-triage",
-    "bid-price-lookup-agent": "bid-price-lookup",
-    "contextual-on-call-pager": "on-call-pager",
-  };
-
-  function legacyKeyOf(template) {
-    var key = VISUAL_SCENES[template.id] ? template.id : (LEGACY_KEY_BY_ID[template.id] || template.id);
-    return VISUAL_SCENES[key] ? key : "intent-routing";
-  }
-
   function decisionBriefOf(template) {
     return {
       buyer: template.business.buyer,
@@ -205,40 +185,92 @@
     };
   }
 
-  function paletteStyle(template) {
+  /** The first ready asset matching `test`, or null. */
+  function readyAsset(template, test) {
+    var expected = template.assets && Array.isArray(template.assets.expected) ? template.assets.expected : [];
     return (
-      "--t-bg:" +
-      template.colors.bg +
-      ";--t-panel:" +
-      template.colors.panel +
-      ";--t-accent:" +
-      template.colors.accent +
-      ";--t-ink:" +
-      template.colors.ink +
-      ";--t-on-accent:" +
-      template.onAccent +
-      ";--t-font:" +
-      template.font +
-      ";--t-radius:" +
-      template.radius
+      expected.filter(function (asset) {
+        return test(asset) && asset.status === "ready";
+      })[0] || null
     );
   }
 
-  function seedOf(template) {
-    var total = 0;
-    for (var index = 0; index < template.id.length; index += 1) {
-      total += template.id.charCodeAt(index);
-    }
-    return (total % 17) / 7 + 0.4;
+  function isPoster(asset) {
+    return /\/poster\.webp$/i.test(asset.path);
   }
 
-  function waveBars(seed, count) {
-    var bars = "";
-    for (var index = 0; index < count; index += 1) {
-      var height = 20 + Math.abs(Math.sin((index + 1) * seed)) * 74;
-      bars += '<i style="--h:' + height.toFixed(0) + '%"></i>';
+  /** "#rgb" or "#rrggbb" as [r, g, b]; null for anything else. */
+  function hexRgb(value) {
+    var match = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(typeof value === "string" ? value.trim() : "");
+    if (!match) return null;
+    var hex = match[1];
+    if (hex.length === 3) {
+      hex = hex.charAt(0) + hex.charAt(0) + hex.charAt(1) + hex.charAt(1) + hex.charAt(2) + hex.charAt(2);
     }
-    return bars;
+    return [parseInt(hex.slice(0, 2), 16), parseInt(hex.slice(2, 4), 16), parseInt(hex.slice(4, 6), 16)];
+  }
+
+  /** WCAG relative luminance. */
+  function luminance(rgb) {
+    var linear = rgb.map(function (channel) {
+      var value = channel / 255;
+      return value <= 0.03928 ? value / 12.92 : Math.pow((value + 0.055) / 1.055, 2.4);
+    });
+    return 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2];
+  }
+
+  /** The accent, lifted toward white until it glows on black like the films' stage light. */
+  function brightRgb(rgb) {
+    var lifted = rgb.slice();
+    var step = 0;
+    while (luminance(lifted) < 0.2 && step < 10) {
+      step += 1;
+      for (var index = 0; index < 3; index += 1) {
+        lifted[index] = Math.round(rgb[index] + (255 - rgb[index]) * (step / 10));
+      }
+    }
+    return lifted;
+  }
+
+  /**
+   * A template's accent as custom properties: --t-accent as written, for dots
+   * on light surfaces, and --glow as an "r, g, b" triplet bright enough to read
+   * on black. Anything but a hex color keeps the neutral theme.
+   */
+  function themeStyle(template) {
+    var accent = template.colors && template.colors.accent;
+    var rgb = hexRgb(accent);
+    if (!rgb) return "";
+    return "--t-accent:" + accent.trim() + ";--glow:" + brightRgb(rgb).join(",");
+  }
+
+  /** The film's running time ("2:13"), read from its manifest description. */
+  function runtimeOf(film) {
+    var match = film && typeof film.description === "string" ? /\((\d+:\d{2})\)/.exec(film.description) : null;
+    return match ? match[1] : "";
+  }
+
+  function spokenRuntime(runtime) {
+    var parts = runtime.split(":");
+    var minutes = Number(parts[0]);
+    var seconds = Number(parts[1]);
+    var words = [];
+    if (minutes) words.push(minutes + (minutes === 1 ? " minute" : " minutes"));
+    if (seconds) words.push(seconds + (seconds === 1 ? " second" : " seconds"));
+    return words.join(" ");
+  }
+
+  function filmLabel(template, runtime) {
+    return "Watch the film: " + template.name + (runtime ? " (" + spokenRuntime(runtime) + ")" : "");
+  }
+
+  var COUNT_WORDS = [
+    "Zero", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten",
+    "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen", "Seventeen", "Eighteen", "Nineteen", "Twenty",
+  ];
+
+  function countWordOf(count) {
+    return COUNT_WORDS[count] || String(count);
   }
 
   /**
@@ -455,7 +487,8 @@
   }
 
   function referenceLinkMarkup(kind, ref, templateName) {
-    var labels = { repo: "GitHub", video: "Video", deck: "PDF" };
+    var labels = { repo: "GitHub", video: "Watch the film", deck: "PDF" };
+    var pendingLabels = { repo: "GitHub", video: "Film", deck: "PDF" };
     var titles = {
       repo: "Open the GitHub repository folder for ",
       video: "Watch the demo film for ",
@@ -464,13 +497,13 @@
     if (ref && ref.pending) {
       return (
         '<span class="reference-link reference-link--pending" title="' +
-        escapeHtml(labels[kind]) +
+        escapeHtml(pendingLabels[kind]) +
         " for " +
         escapeHtml(templateName) +
         " is not recorded yet" +
         '" aria-disabled="true">' +
         referenceIconMarkup(kind) +
-        escapeHtml(labels[kind]) +
+        escapeHtml(pendingLabels[kind]) +
         ' <span class="reference-pending-tag">Pending</span>' +
         "</span>"
       );
@@ -504,418 +537,6 @@
     );
   }
 
-  // Compact, decorative line-icon glyphs (24x24 viewBox) giving each scene a
-  // recognizable, at-a-glance symbol on top of its node/card labels. Purely
-  // decorative — the containing figure already carries the full text
-  // description via aria-label/aria-hidden, so every glyph is aria-hidden.
-  var SCENE_ICONS = {
-    routing:
-      '<svg class="visual-glyph" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="5" cy="12" r="3"/><circle cx="19" cy="5" r="2"/><circle cx="19" cy="12" r="2"/><circle cx="19" cy="19" r="2"/><path d="M8 12h4M12 12 17 5M12 12h5M12 12 17 19"/></svg>',
-    records:
-      '<svg class="visual-glyph" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2.2"/><path d="M5.5 17c.5-2.5 2.3-4 3.5-4s3 1.5 3.5 4"/><path d="M14 9h4M14 13h4"/></svg>',
-    civic:
-      '<svg class="visual-glyph" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 21V9l8-5 8 5v12"/><path d="M9 21v-6h6v6"/><path d="M4 21h16"/></svg>',
-    inquiry:
-      '<svg class="visual-glyph" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 5h16v11H9l-4 3v-3H4z"/><path d="M9.6 9.2c0-1.2 1-2 2.3-2 1.3 0 2.3.8 2.3 1.9 0 1-1.2 1.4-1.2 2.4"/><path d="M12.2 13.8h.01"/></svg>',
-    reminder:
-      '<svg class="visual-glyph" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 3.5c-3 0-4.5 2.3-4.5 5.5 0 4-1.5 5.5-1.5 5.5h12s-1.5-1.5-1.5-5.5c0-3.2-1.5-5.5-4.5-5.5z"/><path d="M10 17a2 2 0 0 0 4 0"/></svg>',
-    leads:
-      '<svg class="visual-glyph" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="9" cy="8" r="3"/><path d="M3.5 20c.5-3.5 2.8-5.5 5.5-5.5s5 2 5.5 5.5"/><path d="M18 8v6M15 11h6"/></svg>',
-    scheduling:
-      '<svg class="visual-glyph" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3.2 2"/></svg>',
-    helpdesk:
-      '<svg class="visual-glyph" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 13v-1a8 8 0 0 1 16 0v1"/><rect x="3" y="13" width="4" height="5" rx="1.3"/><rect x="17" y="13" width="4" height="5" rx="1.3"/><path d="M19 18v1a3 3 0 0 1-3 3h-2"/></svg>',
-    pricing:
-      '<svg class="visual-glyph" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12.6 3.5h6.4a1.5 1.5 0 0 1 1.5 1.5v6.4a1.5 1.5 0 0 1-.44 1.06l-8.6 8.6a1.5 1.5 0 0 1-2.12 0l-6.4-6.4a1.5 1.5 0 0 1 0-2.12l8.6-8.6c.28-.28.66-.44 1.06-.44z"/><circle cx="16.5" cy="7.5" r="1.4" fill="currentColor" stroke="none"/></svg>',
-    pager:
-      '<svg class="visual-glyph" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="4" y="7" width="16" height="12" rx="2"/><path d="M8 7V5a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2"/><rect x="7" y="10.5" width="10" height="3" rx="0.6"/><path d="M8 16.5h.01M12 16.5h.01M16 16.5h.01"/></svg>',
-    reset:
-      '<svg class="visual-glyph" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M7.6 4.5c-1.7 0-3.1 1.4-3.1 3.1 0 7.3 5.9 13.2 13.2 13.2 1.7 0 3.1-1.4 3.1-3.1v-2c0-.7-.5-1.3-1.1-1.5l-2.8-.8a1.7 1.7 0 0 0-1.7.4l-.9 1a11 11 0 0 1-5-5l1-.9a1.7 1.7 0 0 0 .4-1.7l-.8-2.8a1.6 1.6 0 0 0-1.5-1.1H7.6Z"/><path d="M15.2 4.8c1.9.4 3.4 1.9 3.8 3.8M17 2.7c3 .6 5.4 3 6 6" opacity="0.85"/></svg>'
-  };
-
-  // Each entry drives the "Agent Visual System" illustration in gallery.css
-  // (`.agent-visual` / `.visual-scene[data-scene]`). `dataScene` must match one
-  // of the data-scene selectors defined there; `content` is the literal markup
-  // rendered inside that scene's grid using its component vocabulary
-  // (.visual-node / .visual-card / .visual-badge / .visual-record / .visual-calendar).
-  var VISUAL_SCENES = {
-    "intent-routing": {
-      dataScene: "routing",
-      ariaLabel:
-        "A caller describes a need, an intent hub checks how confident it is before choosing, and the call branches to sales, support, or billing with the reason attached.",
-      outcomes: ["Sales", "Support", "Billing"],
-      summary: "Identify the reason and choose a team.",
-      thumbnailContent:
-        '<span class="visual-node" data-step="caller">Caller</span>' +
-        '<span class="visual-node" data-step="intent">' +
-        SCENE_ICONS.routing +
-        "Intent</span>" +
-        '<span class="visual-outcomes" data-step="routes">' +
-        '<span class="visual-badge">3 teams</span>' +
-        "</span>",
-      content:
-        '<span class="visual-node" data-step="caller">Caller<br><small>“I was charged twice.”</small></span>' +
-        '<span class="visual-node visual-node--focal" data-step="intent">' +
-        SCENE_ICONS.routing +
-        "Intent hub<br><small>Sure enough to route?</small></span>" +
-        '<span class="visual-outcomes" data-step="route-options">' +
-        '<span class="visual-badge" data-route="sales">Sales · new order</span>' +
-        '<span class="visual-badge" data-route="support">Support · delivery</span>' +
-        '<span class="visual-badge" data-response="confirmed" data-route="billing">Billing · reason attached</span>' +
-        "</span>" +
-        '<i class="visual-route visual-route--inbound" aria-hidden="true" style="left:28%;top:50%;width:12%"></i>' +
-        '<i class="visual-route visual-route--branch" aria-hidden="true" style="left:65%;top:27%;width:9%;height:46%;border-left:0"></i>'
-    },
-    "crm-lookup-update": {
-      dataScene: "records",
-      ariaLabel: "A caller is matched to a CRM identity, their account context is reviewed, and a confirmed call outcome is written back to the record.",
-      outcomes: ["CRM updated"],
-      summary: "Customer context becomes a current record.",
-      thumbnailContent:
-        '<span class="visual-record" data-step="identity">' +
-        SCENE_ICONS.records +
-        "<strong>Caller matched</strong>CRM identity</span>" +
-        '<span class="visual-record" data-step="writeback"><strong>Call outcome</strong>Write-back saved</span>',
-      content:
-        '<span class="visual-record" data-step="identity">' +
-        SCENE_ICONS.records +
-        "<strong>Jordan Lee</strong>Verified caller</span>" +
-        '<span class="visual-record" data-step="context"><strong>Gold account</strong>Open order · 2 cases</span>' +
-        '<span class="visual-record" data-step="outcome"><strong>Call outcome</strong>Delivery address changed</span>' +
-        '<span class="visual-record" data-step="writeback"><strong>CRM write-back</strong>Owner notified · saved</span>' +
-        '<i class="visual-route" aria-hidden="true" style="left:45%;top:50%;width:12%"></i>'
-    },
-    "311-assistant": {
-      dataScene: "civic",
-      ariaLabel: "A resident reports a pothole, the location is marked on a civic service map, and a street-maintenance request is created.",
-      outcomes: ["Service case"],
-      summary: "Turn a civic report into a tracked request.",
-      thumbnailContent:
-        '<span class="visual-node" data-step="report">' +
-        SCENE_ICONS.civic +
-        "311 report</span>" +
-        '<span class="visual-badge" data-step="case">Service case</span>',
-      content:
-        '<span class="visual-node" data-step="report">' +
-        SCENE_ICONS.civic +
-        "Resident report<br><small>Pothole on Pine St.</small></span>" +
-        '<span class="visual-card visual-map" data-step="locate" data-layer="request-map">' +
-        "<strong>Locate request</strong>Map tile · Pine &amp; 4th" +
-        '<span class="visual-calendar visual-map-tiles" aria-hidden="true">' +
-        '<span class="visual-calendar-cell"></span><span class="visual-calendar-cell"></span><span class="visual-calendar-cell visual-calendar-cell--marked"></span>' +
-        '<span class="visual-calendar-cell"></span><span class="visual-calendar-cell"></span><span class="visual-calendar-cell"></span>' +
-        "</span></span>" +
-        '<span class="visual-badge" data-step="case">Street maintenance · Case 311-204</span>'
-    },
-    "general-inquiry": {
-      dataScene: "inquiry",
-      ariaLabel: "A caller asks about office hours, the agent extracts the approved answer from the knowledge base, and responds with the source context.",
-      outcomes: ["Clear answer"],
-      summary: "Answer common questions without a queue.",
-      thumbnailContent:
-        '<span class="visual-card" data-step="question">' +
-        SCENE_ICONS.inquiry +
-        "Hours?</span>" +
-        '<span class="visual-badge" data-step="answer">Approved answer</span>',
-      content:
-        '<span class="visual-card" data-step="question">' +
-        SCENE_ICONS.inquiry +
-        "<strong>Caller asks</strong>&ldquo;What are your holiday hours?&rdquo;</span>" +
-        '<span class="visual-record" data-step="extract"><strong>Answer extracted</strong>Knowledge base · Holiday schedule</span>' +
-        '<span class="visual-card visual-card--answer" data-step="answer"><strong>Clear response</strong>“Open 9–3 on Monday.”</span>' +
-        '<span class="visual-badge" data-source="approved">Approved source</span>'
-    },
-    "appointment-reminder": {
-      dataScene: "reminder",
-      ariaLabel: "An outbound reminder reaches a patient, presents a Tuesday appointment, and records the patient's confirmation.",
-      outcomes: ["Confirm", "Change", "Cancel"],
-      summary: "Record the patient's appointment choice.",
-      thumbnailContent:
-        '<span class="visual-card" data-step="reminder">' +
-        SCENE_ICONS.reminder +
-        "Tue · 2 PM</span>" +
-        '<span class="visual-badge" data-response="confirmed">Confirmed</span>',
-      content:
-        '<span class="visual-card visual-card--reminder" data-step="reminder">' +
-        SCENE_ICONS.reminder +
-        "<strong>Upcoming visit</strong>Tue · 2:00 PM · Dr. Patel</span>" +
-        '<span class="visual-badge-row" data-step="response-options">' +
-        '<span class="visual-badge" data-response="confirmed">✓ Confirmed</span>' +
-        '<span class="visual-badge" data-response="change">Change time</span>' +
-        '<span class="visual-badge" data-response="cancel">Cancel</span>' +
-        "</span>" +
-        '<span class="visual-node visual-node--focal" data-step="recorded">Confirmation<br>recorded</span>'
-    },
-    "sales-lead-capture": {
-      dataScene: "leads",
-      ariaLabel: "An after-hours caller describes a quote need, the agent captures the contact and requirements, and a qualified lead is assigned for sales follow-up.",
-      outcomes: ["Sales follow-up"],
-      summary: "Capture the need and hand it to sales.",
-      thumbnailContent:
-        '<span class="visual-node" data-step="incoming">' +
-        SCENE_ICONS.leads +
-        "Night call</span>" +
-        '<span class="visual-record" data-step="capture"><strong>Lead</strong>Need captured</span>' +
-        '<span class="visual-badge" data-step="handoff">Sales</span>',
-      content:
-        '<span class="visual-node" data-step="incoming">' +
-        SCENE_ICONS.leads +
-        "After-hours call<br><small>“Need a bulk quote.”</small></span>" +
-        '<span class="visual-record" data-step="capture"><strong>Qualified lead</strong>Maya Chen · 500 units<br>Dallas delivery</span>' +
-        '<span class="visual-card visual-card--handoff" data-step="handoff"><strong>Sales follow-up</strong>CRM lead · Morning callback</span>' +
-        '<i class="visual-route" aria-hidden="true" style="left:29%;top:55%;width:42%"></i>'
-    },
-    "appointment-scheduling": {
-      dataScene: "scheduling",
-      ariaLabel: "A patient selects a Tuesday 10:30 appointment from available slots and receives a booked-visit confirmation.",
-      outcomes: ["Booked visit"],
-      summary: "Match the caller to an available appointment.",
-      thumbnailContent:
-        '<span class="visual-calendar" aria-hidden="true">' +
-        '<span class="visual-calendar-cell"></span><span class="visual-calendar-cell visual-calendar-cell--marked"></span><span class="visual-calendar-cell"></span>' +
-        "</span>" +
-        '<span class="visual-node" data-step="booked">' +
-        SCENE_ICONS.scheduling +
-        "Booked</span>",
-      content:
-        '<span class="visual-card visual-card--visit" data-step="need"><strong>Visit needed</strong>Annual checkup · New patient</span>' +
-        '<span class="visual-calendar" data-step="slot-selection" aria-label="Available appointment slots; Tuesday 10:30 is selected">' +
-        '<span class="visual-calendar-cell"></span>' +
-        '<span class="visual-calendar-cell"></span>' +
-        '<span class="visual-calendar-cell visual-calendar-cell--marked"></span>' +
-        '<span class="visual-calendar-cell"></span>' +
-        '<span class="visual-calendar-cell"></span>' +
-        '<span class="visual-calendar-cell"></span>' +
-        "</span>" +
-        '<span class="visual-node visual-node--focal" data-step="booked">' +
-        SCENE_ICONS.scheduling +
-        "Tue · 10:30<br><small>Visit booked</small></span>"
-    },
-    "help-desk-triage": {
-      dataScene: "helpdesk",
-      ariaLabel: "An employee request is understood, then triaged either to an IT access ticket or to HR benefits guidance.",
-      outcomes: ["IT ticket", "HR guidance"],
-      summary: "Separate technical requests from people support.",
-      thumbnailContent:
-        '<span class="visual-icon" aria-hidden="true">' +
-        SCENE_ICONS.helpdesk +
-        "</span>" +
-        '<span class="visual-outcomes" data-step="triage"><span class="visual-badge">IT or HR</span></span>',
-      content:
-        '<span class="visual-icon" aria-hidden="true">' +
-        SCENE_ICONS.helpdesk +
-        "</span>" +
-        '<span class="visual-outcomes" data-step="triage">' +
-        '<span class="visual-card visual-card--request"><strong>Employee request</strong>“I cannot access benefits.”</span>' +
-        '<span class="visual-badge" data-route="it">IT · Access ticket</span>' +
-        '<span class="visual-badge" data-route="hr">HR · Benefits guidance</span>' +
-        "</span>"
-    },
-    "bid-price-lookup": {
-      dataScene: "pricing",
-      ariaLabel: "A buyer requests a live corn bid for Omaha, the pricing feed is checked, and the current price quote is spoken back.",
-      outcomes: ["Bid / price"],
-      summary: "Return the current price for the requested market.",
-      thumbnailContent:
-        '<span class="visual-card" data-step="request">Corn · Omaha</span>' +
-        '<span class="visual-card visual-card--focal" data-step="quote">$4.82</span>' +
-        '<span class="visual-badge" data-freshness="live">Live</span>',
-      content:
-        '<span class="visual-card" data-step="request"><strong>Buyer asks</strong>Corn · Omaha terminal</span>' +
-        '<span class="visual-card visual-card--focal" data-step="quote">' +
-        SCENE_ICONS.pricing +
-        "<strong>Live bid</strong>$4.82 / bu</span>" +
-        '<span class="visual-card" data-step="source"><strong>Pricing feed</strong>Updated 10:42 AM</span>' +
-        '<i class="visual-route" aria-hidden="true" style="left:30%;top:52%;width:40%"></i>'
-    },
-    "on-call-pager": {
-      dataScene: "pager",
-      ariaLabel: "A water-pressure alert is summarized, sent to the primary on-call responder, and escalates to the backup responder if it is not acknowledged.",
-      outcomes: ["Pager call"],
-      summary: "Reach the right responder with the issue details.",
-      thumbnailContent:
-        '<span class="visual-node" data-step="alert">New alert</span>' +
-        '<span class="visual-card" data-step="page">' +
-        SCENE_ICONS.pager +
-        "Page on-call</span>",
-      content:
-        '<span class="visual-node" data-step="alert">Water pressure low<br><small>Voicemail summarized</small></span>' +
-        '<span class="visual-record" data-step="roster"><strong>Primary on-call</strong>Alex Morgan · Utilities</span>' +
-        '<span class="visual-card visual-card--pager" data-step="page">' +
-        SCENE_ICONS.pager +
-        "<strong>Pager call</strong>Issue context delivered</span>" +
-        '<span class="visual-badge" data-step="escalation">No acknowledgment → Page backup</span>' +
-        '<i class="visual-route" aria-hidden="true" style="left:50%;top:18%;height:64%"></i>'
-    },
-    "it-helpdesk-password-reset": {
-      dataScene: "password-reset",
-      ariaLabel: "An employee's forgot-password click triggers an immediate callback; voice and browser code verification and live policy coaching complete the reset, and the ticket closes as deflected.",
-      outcomes: ["Ticket deflected"],
-      summary: "Call back, verify, coach, and deflect the ticket.",
-      thumbnailContent:
-        '<span class="visual-node" data-step="callback">' +
-        SCENE_ICONS.reset +
-        "Callback</span>" +
-        '<span class="visual-badge" data-response="confirmed">Deflected</span>',
-      content:
-        '<span class="visual-card" data-step="trigger"><strong>Forgot password?</strong>Employee clicks reset</span>' +
-        '<span class="visual-node visual-node--focal" data-step="callback">' +
-        SCENE_ICONS.reset +
-        "Agent calls back<br><small>No queue, no ticket</small></span>" +
-        '<span class="visual-record" data-step="verify"><strong>Identity verified</strong>Spoken code · typed in browser</span>' +
-        '<span class="visual-badge-row" data-step="coaching">' +
-        '<span class="visual-badge" data-response="confirmed">Policy coached · passed</span>' +
-        "</span>" +
-        '<span class="visual-card visual-card--focal" data-step="deflected"><strong>Ticket deflected</strong>Auto-closed · cost avoided</span>' +
-        '<i class="visual-route" aria-hidden="true" style="left:50%;top:10%;height:72%"></i>'
-    }
-  };
-
-  var THUMBNAIL_EMBLEMS = {
-    routing:
-      '<svg class="thumbnail-svg" viewBox="0 0 120 84" aria-hidden="true">' +
-      '<circle class="thumb-soft" cx="22" cy="42" r="10"/>' +
-      '<path class="thumb-line" d="M32 42h22M54 42C67 42 67 18 82 18M54 42h28M54 42c13 0 13 24 28 24"/>' +
-      '<path class="thumb-accent" d="m82 12 12 6-12 6Z"/><path class="thumb-mark" d="m82 36 12 6-12 6ZM82 60l12 6-12 6Z"/>' +
-      "</svg>",
-    records:
-      '<svg class="thumbnail-svg" viewBox="0 0 120 84" aria-hidden="true">' +
-      '<rect class="thumb-panel" x="28" y="13" width="62" height="58" rx="12"/>' +
-      '<circle class="thumb-soft" cx="48" cy="34" r="8"/><path class="thumb-mark" d="M38 54c2-8 7-12 14-12s12 4 14 12"/>' +
-      '<path class="thumb-accent-line" d="M82 22c19 5 23 29 7 40"/><path class="thumb-accent" d="m82 58 8 4-2-9Z"/>' +
-      "</svg>",
-    civic:
-      '<svg class="thumbnail-svg" viewBox="0 0 120 84" aria-hidden="true">' +
-      '<path class="thumb-line thumb-dashed" d="M14 27h92M14 57h92M40 10v64M79 10v64"/>' +
-      '<path class="thumb-accent" d="M60 13c-12 0-21 9-21 21 0 16 21 37 21 37s21-21 21-37c0-12-9-21-21-21Z"/>' +
-      '<circle class="thumb-cutout" cx="60" cy="34" r="8"/>' +
-      "</svg>",
-    inquiry:
-      '<svg class="thumbnail-svg" viewBox="0 0 120 84" aria-hidden="true">' +
-      '<path class="thumb-panel" d="M15 14h66a12 12 0 0 1 12 12v20a12 12 0 0 1-12 12H43L27 70v-12a12 12 0 0 1-12-12V26a12 12 0 0 1 12-12Z"/>' +
-      '<text class="thumb-symbol" x="52" y="45">?</text>' +
-      '<path class="thumb-accent" d="M75 48h22a9 9 0 0 1 9 9v5a9 9 0 0 1-9 9H88l-8 7v-7h-5a9 9 0 0 1-9-9v-5a9 9 0 0 1 9-9Z"/>' +
-      "</svg>",
-    reminder:
-      '<svg class="thumbnail-svg" viewBox="0 0 120 84" aria-hidden="true">' +
-      '<path class="thumb-panel" d="M38 57h44c-6-7-8-15-8-25 0-10-6-17-14-17s-14 7-14 17c0 10-2 18-8 25Z"/>' +
-      '<path class="thumb-line" d="M51 64c2 6 16 6 18 0M34 21c-6 6-9 13-9 21M86 21c6 6 9 13 9 21"/>' +
-      '<circle class="thumb-accent" cx="84" cy="57" r="15"/><path class="thumb-cutout-line" d="m77 57 5 5 10-11"/>' +
-      "</svg>",
-    leads:
-      '<svg class="thumbnail-svg" viewBox="0 0 120 84" aria-hidden="true">' +
-      '<path class="thumb-panel" d="M39 9c-15 6-20 24-11 37 7 10 20 14 31 9-12-2-20-12-20-24 0-9 5-17 13-22-4-1-9-1-13 0Z"/>' +
-      '<path class="thumb-mark" d="M35 62h50l-7 13H42Z"/>' +
-      '<path class="thumb-accent" d="M62 34c8 10 11 15 11 21a11 11 0 0 1-22 0c0-6 3-11 11-21Z"/>' +
-      "</svg>",
-    scheduling:
-      '<svg class="thumbnail-svg" viewBox="0 0 120 84" aria-hidden="true">' +
-      '<rect class="thumb-panel" x="24" y="10" width="72" height="64" rx="10"/><path class="thumb-line" d="M24 28h72M42 10v12M78 10v12"/>' +
-      '<g class="thumb-grid"><rect x="34" y="37" width="12" height="10" rx="3"/><rect x="54" y="37" width="12" height="10" rx="3"/><rect x="74" y="37" width="12" height="10" rx="3"/><rect x="34" y="54" width="12" height="10" rx="3"/><rect x="74" y="54" width="12" height="10" rx="3"/></g>' +
-      '<rect class="thumb-accent" x="52" y="52" width="16" height="14" rx="4"/>' +
-      "</svg>",
-    helpdesk:
-      '<svg class="thumbnail-svg" viewBox="0 0 120 84" aria-hidden="true">' +
-      '<path class="thumb-line" d="M14 42h35M49 42c13 0 10-22 24-22h9M49 42c13 0 10 22 24 22h9"/><circle class="thumb-accent" cx="49" cy="42" r="7"/>' +
-      '<rect class="thumb-panel" x="81" y="8" width="28" height="28" rx="6"/><path class="thumb-mark" d="m88 29 14-14M91 15l11 11"/>' +
-      '<circle class="thumb-soft" cx="95" cy="64" r="15"/><circle class="thumb-cutout" cx="95" cy="59" r="5"/><path class="thumb-cutout" d="M86 72c2-6 5-9 9-9s7 3 9 9Z"/>' +
-      "</svg>",
-    pricing:
-      '<svg class="thumbnail-svg" viewBox="0 0 120 84" aria-hidden="true">' +
-      '<path class="thumb-panel" d="m29 18 43-8 27 27-43 37-36-36Z"/><circle class="thumb-cutout" cx="42" cy="30" r="6"/>' +
-      '<text class="thumb-symbol thumb-symbol--small" x="57" y="53">$</text>' +
-      '<path class="thumb-accent-line" d="m54 62 12-8 10 4 16-17"/><path class="thumb-accent" d="m87 40 7-2-2 8Z"/>' +
-      "</svg>",
-    pager:
-      '<svg class="thumbnail-svg" viewBox="0 0 120 84" aria-hidden="true">' +
-      '<path class="thumb-accent" d="m28 18 21 39H7Z"/><path class="thumb-cutout-line" d="M28 31v12M28 49h.01"/>' +
-      '<path class="thumb-line" d="M54 31c11 5 11 17 0 22M66 22c23 10 23 30 0 40"/><path class="thumb-line thumb-dashed" d="M80 14c33 15 33 41 0 56"/>' +
-      "</svg>",
-    "password-reset":
-      '<svg class="thumbnail-svg" viewBox="0 0 120 84" aria-hidden="true">' +
-      '<path class="thumb-soft" d="M20 20c-4 0-7 3-7 7 0 20 16 36 36 36 4 0 7-3 7-7v-5.7c0-2-1.3-3.7-3.2-4.2l-7.9-2.3a4.3 4.3 0 0 0-4.5 1.2l-2.4 2.8a28.6 28.6 0 0 1-13.4-13.4l2.8-2.4a4.3 4.3 0 0 0 1.2-4.5l-2.3-7.9A4.4 4.4 0 0 0 22 20Z"/>' +
-      '<path class="thumb-line thumb-dashed" d="M42 30c13 0 20 5 26 13"/>' +
-      '<rect class="thumb-panel" x="66" y="9" width="40" height="30" rx="6"/>' +
-      '<path class="thumb-line" d="M66 19h40"/>' +
-      '<path class="thumb-line" d="M81 30v-4a5 5 0 0 1 10 0v4"/>' +
-      '<rect class="thumb-mark" x="79" y="30" width="14" height="10" rx="2"/>' +
-      '<circle class="thumb-accent" cx="90" cy="63" r="15"/><path class="thumb-cutout-line" d="m83 63 5 5 10-11"/>' +
-      "</svg>"
-  };
-
-  function visualSceneMarkup(template, variant) {
-    var scene = VISUAL_SCENES[legacyKeyOf(template)];
-    if (variant === "thumbnail") {
-      return (
-        '<figure class="agent-visual agent-visual--thumbnail" aria-hidden="true">' +
-        '<div class="thumbnail-emblem" data-thumbnail="' +
-        scene.dataScene +
-        '">' +
-        THUMBNAIL_EMBLEMS[scene.dataScene] +
-        "</div></figure>"
-      );
-    }
-    var content =
-      scene.content;
-    var accessibility =
-      ' role="img" aria-label="' + escapeHtml(scene.ariaLabel) + '"';
-    return (
-      '<figure class="agent-visual agent-visual--' +
-      variant +
-      '"' +
-      accessibility +
-      '><div class="visual-scene" data-scene="' +
-      scene.dataScene +
-      '">' +
-      content +
-      "</div></figure>"
-    );
-  }
-
-  function thumbnail(template) {
-    var scene = VISUAL_SCENES[legacyKeyOf(template)];
-    return (
-      '<div class="plate-thumb" style="' +
-      paletteStyle(template) +
-      '" role="img" aria-label="Workflow miniature: ' +
-      escapeHtml(scene.ariaLabel) +
-      '">' +
-      '<div class="thumb-head"><span>' +
-      escapeHtml(template.assistant) +
-      '</span><span class="thumb-dot"></span></div>' +
-      '<div class="thumb-body">' +
-      visualSceneMarkup(template, "thumbnail") +
-      "</div>" +
-      '<div class="thumb-foot"><span>' +
-      escapeHtml(scene.summary) +
-      "</span></div>" +
-      "</div>"
-    );
-  }
-
-  function stage(template) {
-    return (
-      '<div class="stage" style="' +
-      paletteStyle(template) +
-      '">' +
-      '<div class="stage-header">' +
-      '<span class="stage-agent">' +
-      escapeHtml(template.assistant) +
-      " voice template" +
-      '</span><span class="stage-timing"><span>Implementation</span>' +
-      escapeHtml(template.technical.complexity) +
-      " complexity" +
-      "</span></div>" +
-      '<div class="stage-visual">' +
-      visualSceneMarkup(template, "stage") +
-      "</div>" +
-      '<blockquote class="stage-quote"><p>&ldquo;' +
-      escapeHtml(template.prompt) +
-      "&rdquo;</p></blockquote>" +
-      "</div>"
-    );
-  }
-
   function matchesQuery(template) {
     if (!state.query) return true;
     return (
@@ -941,60 +562,188 @@
     });
   }
 
-  function plateMarkup(template, position) {
-    var brief = decisionBriefOf(template);
+  function findTemplate(id) {
     return (
-      '<article class="plate" id="plate-' +
-      template.id +
-      '" data-open="' +
-      template.id +
-      '">' +
-      '<div class="plate-number"><strong>' +
-      (position + 1) +
-      "</strong></div>" +
-      '<figure class="plate-figure-cell">' +
-      thumbnail(template) +
-      "</figure>" +
-      '<div class="plate-content">' +
-      "<h3>" +
-      escapeHtml(template.name) +
-      "</h3>" +
-      '<p class="plate-language">' +
-      escapeHtml(template.language) +
-      " &middot; " +
-      escapeHtml(template.useCase) +
-      "</p>" +
-      '<p class="plate-description">' +
-      escapeHtml(brief.application) +
-      "</p>" +
-      '<div class="card-decision-facts">' +
-      '<div class="card-roi"><span>Potential outcomes</span><strong>' +
-      escapeHtml(brief.roi) +
-      "</strong></div>" +
-      '<div class="card-technical">' +
-      '<div class="complexity complexity--' +
-      brief.complexity.toLowerCase() +
-      '"><span>Complexity</span><strong>' +
-      brief.complexity +
-      "</strong></div>" +
-      '<div class="launch-effort"><span>Readiness</span><strong>Illustrative</strong>' +
-      '<small>Validate before use</small>' +
-      "</div></div></div>" +
-      '<div class="plate-actions">' +
-      '<button class="plate-open" type="button" data-open="' +
-      template.id +
-      '">Build this agent' +
-      "</button>" +
-      referenceMarkup(template) +
-      "</div>" +
-      "</div>" +
-      "</article>"
+      CATALOG.filter(function (item) {
+        return item.id === id;
+      })[0] || null
     );
   }
 
+  var PLAY_ICON =
+    '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">' +
+    '<path d="M7 5.3a1.3 1.3 0 0 1 2-1.1l10.4 6.7a1.3 1.3 0 0 1 0 2.2L9 19.8a1.3 1.3 0 0 1-2-1.1Z"/></svg>';
+
+  var METER_LEVELS = { low: 1, medium: 2, high: 3 };
+
+  function meterMarkup(complexity) {
+    return (
+      '<span class="meter" data-level="' +
+      (METER_LEVELS[String(complexity).toLowerCase()] || 0) +
+      '" aria-hidden="true"><i></i><i></i><i></i></span>'
+    );
+  }
+
+  /** The film's poster frame, or a title card in the films' style until there is one. */
+  function artMarkup(template, eager) {
+    var poster = readyAsset(template, isPoster);
+    if (poster) {
+      return (
+        '<img src="' +
+        escapeHtml(poster.path) +
+        '" width="1920" height="1080" alt=""' +
+        (eager ? "" : ' loading="lazy"') +
+        ' decoding="async" />'
+      );
+    }
+    return (
+      '<span class="title-card" aria-hidden="true"><span class="title-card-eyebrow">' +
+      escapeHtml(template.language) +
+      '</span><span class="title-card-name">' +
+      escapeHtml(template.name) +
+      "</span></span>"
+    );
+  }
+
+  /**
+   * The link that plays a template's film over the page (data-film) or, for a
+   * film committed beside the template, opens it in a new tab. Null while the
+   * film is pending or the template has no asset manifest.
+   */
+  function filmLinkAttributes(template) {
+    if (pendingAsset(template, isFilm) !== false) return null;
+    var video = videoReference(template);
+    var runtime = runtimeOf(readyAsset(template, isFilm));
+    return {
+      runtime: runtime,
+      html:
+        ' href="' +
+        escapeHtml(video.href) +
+        '"' +
+        (video.film ? ' data-film="' + escapeHtml(video.film) + '"' : ' target="_blank" rel="noreferrer"') +
+        ' aria-label="' +
+        escapeHtml(filmLabel(template, runtime)) +
+        '"',
+    };
+  }
+
+  function runtimeChipMarkup(runtime) {
+    return (
+      '<span class="tile-chip" aria-hidden="true">' + PLAY_ICON + "<span>" + escapeHtml(runtime || "Film") + "</span></span>"
+    );
+  }
+
+  function pendingChipMarkup(template) {
+    return pendingAsset(template, isFilm) ? '<span class="tile-chip tile-chip--pending">Film pending</span>' : "";
+  }
+
+  function tileMediaMarkup(template) {
+    var link = filmLinkAttributes(template);
+    if (!link) return '<div class="tile-media">' + artMarkup(template) + pendingChipMarkup(template) + "</div>";
+    return '<a class="tile-media"' + link.html + ">" + artMarkup(template) + runtimeChipMarkup(link.runtime) + "</a>";
+  }
+
+  function tileMarkup(template) {
+    var id = escapeHtml(template.id);
+    var complexity = template.technical.complexity;
+    return (
+      '<article class="tile" id="plate-' +
+      id +
+      '" data-open="' +
+      id +
+      '" style="' +
+      escapeHtml(themeStyle(template)) +
+      '">' +
+      tileMediaMarkup(template) +
+      '<div class="tile-body">' +
+      '<p class="tile-eyebrow"><span class="dot" aria-hidden="true"></span>' +
+      escapeHtml(template.language) +
+      "</p>" +
+      '<h3 class="tile-title"><button class="tile-open" type="button" data-open="' +
+      id +
+      '">' +
+      escapeHtml(template.name) +
+      "</button></h3>" +
+      '<p class="tile-tagline">' +
+      escapeHtml(template.headline) +
+      "</p>" +
+      '<p class="tile-meta">' +
+      meterMarkup(complexity) +
+      escapeHtml(complexity) +
+      " complexity</p>" +
+      '<div class="tile-actions">' +
+      '<button class="pill pill--small" type="button" data-open="' +
+      id +
+      '" data-open-section="build">Build this agent<span class="sr-only">: ' +
+      escapeHtml(template.name) +
+      "</span></button>" +
+      referenceMarkup(template, ["repo"]) +
+      "</div></div></article>"
+    );
+  }
+
+  var reducedMotion = window.matchMedia ? window.matchMedia("(prefers-reduced-motion: reduce)") : null;
+
+  function motionAllowed() {
+    return !(reducedMotion && reducedMotion.matches);
+  }
+
+  /**
+   * Sections and tiles arrive as they scroll into view, the way the films
+   * bring each card on. Tiles entering together cascade. Without
+   * IntersectionObserver, or with reduced motion, everything is simply shown.
+   */
+  var arrivals =
+    "IntersectionObserver" in window && motionAllowed()
+      ? new window.IntersectionObserver(
+          function (entries, observer) {
+            var cascade = 0;
+            entries.forEach(function (entry) {
+              if (!entry.isIntersecting) return;
+              observer.unobserve(entry.target);
+              if (entry.target.classList.contains("tile")) {
+                entry.target.style.setProperty("--delay", Math.min(cascade, 5) * 80 + "ms");
+                cascade += 1;
+              }
+              arrive(entry.target);
+            });
+          },
+          { rootMargin: "0px 0px -8% 0px" }
+        )
+      : null;
+
+  function arrive(element) {
+    element.classList.remove("is-pending");
+    element.classList.add("is-arriving");
+    element.addEventListener("animationend", function settle(event) {
+      if (event.target !== element) return;
+      element.removeEventListener("animationend", settle);
+      element.classList.remove("is-arriving");
+    });
+  }
+
+  function inView(element) {
+    var rect = element.getBoundingClientRect();
+    return rect.top < window.innerHeight && rect.bottom > 0;
+  }
+
+  /** Holds `element` back until it scrolls into view; content already on screen stays put. */
+  function awaitArrival(element, evenInView) {
+    if (!arrivals || (!evenInView && inView(element))) return;
+    element.classList.add("is-pending");
+    arrivals.observe(element);
+  }
+
+  var catalogueShown = false;
+
   function renderCatalogue() {
     var list = visible();
-    catalogueEl.innerHTML = list.map(plateMarkup).join("");
+    if (arrivals) {
+      Array.prototype.forEach.call(catalogueEl.children, function (tile) {
+        arrivals.unobserve(tile);
+      });
+    }
+    catalogueEl.innerHTML = list.map(tileMarkup).join("");
     var isEmpty = list.length === 0;
     emptyEl.hidden = !isEmpty;
     emptyEl.setAttribute("aria-hidden", String(!isEmpty));
@@ -1003,6 +752,13 @@
       (list.length === 1 ? " template shown" : " templates shown") +
       " of " +
       CATALOG.length;
+    // Only the first showing arrives; searching and sorting answer instantly.
+    if (!catalogueShown) {
+      catalogueShown = true;
+      Array.prototype.forEach.call(catalogueEl.children, function (tile) {
+        awaitArrival(tile, true);
+      });
+    }
   }
 
   function renderCommand() {
@@ -1036,12 +792,60 @@
     }
   }
 
-  function openPlate(id) {
-    var template = CATALOG.filter(function (item) {
-      return item.id === id;
-    })[0];
+  /** A headline in the films' type: the second sentence, or the turn after a dash, in the gradient. */
+  function headlineMarkup(text) {
+    var value = String(text || "").trim();
+    var split = /^(.+?[.?!])\s+(\S.*)$/.exec(value) || /^(.+?\u2014)(\S.*)$/.exec(value);
+    if (!split) return '<span class="gradient">' + escapeHtml(value) + "</span>";
+    return escapeHtml(split[1]) + '<br /><span class="gradient">' + escapeHtml(split[2]) + "</span>";
+  }
+
+  /** The template's film, framed like the device in the films. */
+  function stageMarkup(template) {
+    var link = filmLinkAttributes(template);
+    var screen = link
+      ? '<a class="device-play"' +
+        link.html +
+        ">" +
+        artMarkup(template, true) +
+        '<span class="glass-play glass-play--low" aria-hidden="true"></span>' +
+        (link.runtime ? runtimeChipMarkup(link.runtime) : "") +
+        "</a>"
+      : artMarkup(template, true) + pendingChipMarkup(template);
+    return '<div class="device"><div class="device-screen">' + screen + "</div></div>";
+  }
+
+  function detailRow(label, html) {
+    return "<div><dt>" + escapeHtml(label) + "</dt><dd>" + html + "</dd></div>";
+  }
+
+  /** Restarts a class-driven animation. */
+  function replay(element, className) {
+    element.classList.remove(className);
+    void element.offsetWidth;
+    element.classList.add(className);
+  }
+
+  /** Brings the sheet's build section into view and readies the copy button. */
+  function showBuild(smooth) {
+    var top = Math.max(0, sheetEl.offsetTop + $("#viewerBuild").offsetTop - 16);
+    if (smooth && motionAllowed() && typeof viewerEl.scrollTo === "function") {
+      viewerEl.scrollTo({ top: top, behavior: "smooth" });
+    } else {
+      viewerEl.scrollTop = top;
+    }
+    $("#copyCommand").focus({ preventScroll: true });
+  }
+
+  /**
+   * Opens a template's sheet, or swaps it in when the sheet is already open.
+   * `section` "build" lands on the build brief instead of the film.
+   */
+  function openPlate(id, section) {
+    var template = findTemplate(id);
     if (!template) return;
-    if (viewerEl.hidden) lastFocused = document.activeElement;
+    var stepping = !viewerEl.hidden;
+    if (!stepping) lastFocused = document.activeElement;
     active = template;
     syncHash(template.id);
     var brief = decisionBriefOf(template);
@@ -1055,33 +859,26 @@
         return item.id === template.id;
       });
     }
-    $("#viewerKicker").textContent =
-      "Voice AI template \u00b7 " + template.assistant;
+    sheetEl.setAttribute("style", themeStyle(template));
+    $("#viewerKicker").innerHTML = '<span class="dot" aria-hidden="true"></span>' + escapeHtml(template.language);
     $("#viewerTitle").textContent = template.name;
-    $("#viewerSub").textContent = template.language + " \u2014 " + template.useCase;
+    $("#viewerHeadline").innerHTML = headlineMarkup(template.headline);
+    $("#viewerSub").textContent = template.useCase;
     $("#viewerPosition").textContent = (position + 1) + " / " + pool.length;
-    $("#viewerStage").innerHTML = stage(template);
-    $("#viewerStage").setAttribute("style", paletteStyle(template));
-    $("#viewerCaption").textContent =
-      template.useCase;
+    $("#viewerStage").innerHTML = stageMarkup(template);
+    $("#viewerCaption").innerHTML = "<span>Opening line</span><q>" + escapeHtml(template.prompt) + "</q>";
     $("#businessCase").innerHTML =
-      '<div class="detail-row"><span>Application</span><strong>' +
-      escapeHtml(brief.application) +
-      '</strong></div><div class="detail-row"><span>Success measures</span><strong>' +
-      escapeHtml(brief.metrics) +
-      "</strong></div>";
+      detailRow("Application", escapeHtml(brief.application)) +
+      detailRow("Potential outcomes", escapeHtml(brief.roi)) +
+      detailRow("Success measures", escapeHtml(brief.metrics));
     $("#technicalFit").innerHTML =
-      '<div class="technical-summary"><div class="complexity complexity--' +
-      brief.complexity.toLowerCase() +
-      '"><span>Implementation complexity</span><strong>' +
-      brief.complexity +
-      '</strong></div><div class="launch-effort"><span>Readiness</span><strong>Illustrative</strong>' +
-      '<small>Validate before use</small>' +
-      '</div></div><div class="detail-row"><span>System touchpoints</span><strong>' +
-      escapeHtml(brief.systems) +
-      '</strong></div><div class="detail-row"><span>Initial build scope</span><strong>' +
-      escapeHtml(brief.build) +
-      "</strong></div>";
+      detailRow(
+        "Implementation complexity",
+        '<span class="detail-meter">' + meterMarkup(brief.complexity) + escapeHtml(brief.complexity) + "</span>"
+      ) +
+      detailRow("Readiness", 'Illustrative<span class="detail-note">Validate before use</span>') +
+      detailRow("System touchpoints", escapeHtml(brief.systems)) +
+      detailRow("Initial build scope", escapeHtml(brief.build));
     $("#repoAction").innerHTML = referenceMarkup(template, ["repo"]);
     $("#viewerLinks").innerHTML = referenceMarkup(template, ["video", "deck"]);
     $("#acceptanceList").innerHTML = acceptanceChecks(template)
@@ -1090,11 +887,23 @@
       })
       .join("");
     renderCommand();
+    // A fresh sheet takes its controls' tone at once; only scrolling fades between tones.
+    if (!stepping) controlsEl.classList.toggle("is-dark", section === "build");
     viewerEl.hidden = false;
     document.body.style.overflow = "hidden";
-    sheetEl.scrollTop = 0;
-    var close = viewerEl.querySelector("[data-close-viewer].close");
-    if (close) close.focus();
+    viewerEl.scrollTop = 0;
+    scheduleControls();
+    if (stepping) replay(sheetEl, "is-stepping");
+    else sheetEl.classList.remove("is-stepping");
+    if (section === "build") {
+      showBuild(stepping);
+      return;
+    }
+    // Stepping keeps focus on the stepper, unless the focused control was re-rendered away.
+    var close = sheetEl.querySelector(".close");
+    if (close && (!stepping || !document.activeElement || document.activeElement === document.body)) {
+      close.focus({ preventScroll: true });
+    }
   }
 
   function closePlate() {
@@ -1148,14 +957,10 @@
   }
 
   function openFilm(id, opener) {
-    var template = CATALOG.filter(function (item) {
-      return item.id === id;
-    })[0];
+    var template = findTemplate(id);
     var film = template && hostedAsset(template, isFilm);
     if (!film) return;
-    var poster = template.assets.expected.filter(function (asset) {
-      return /\/poster\.webp$/i.test(asset.path) && asset.status === "ready";
-    })[0];
+    var poster = readyAsset(template, isPoster);
     var page = template.paths && template.paths.page ? template.paths.page : "";
     playFilm(
       {
@@ -1173,10 +978,10 @@
   }
 
   /**
-   * The overview reel in the front page's hero. Its link points at the
+   * The overview reel in the front page's film band. Its links point at the
    * same-origin copy; the section carries the release download and the rest.
    */
-  function openReel() {
+  function openReel(link) {
     var reel = $("#reel");
     if (!reel) return;
     var play = $("#reelPlay");
@@ -1197,8 +1002,8 @@
         poster: reel.getAttribute("data-film-poster"),
         disclosure: reel.getAttribute("data-film-disclosure"),
       },
-      // The poster link is hidden from assistive tech, so focus returns to the button.
-      play
+      // The poster link is hidden from assistive tech, so its focus returns to the play button.
+      link && link.getAttribute("aria-hidden") !== "true" ? link : play
     );
   }
 
@@ -1264,6 +1069,11 @@
   }
 
   document.addEventListener("click", function (event) {
+    // The sheet scrolls inside the scrim, so a click in its gutter lands on the scrim itself.
+    if (event.target === viewerEl) {
+      closePlate();
+      return;
+    }
     // Modified clicks keep the link's own behavior: the film file itself.
     var modified = event.metaKey || event.ctrlKey || event.shiftKey || event.altKey;
     var filmLink = event.target.closest("a[data-film]");
@@ -1272,9 +1082,10 @@
       openFilm(filmLink.getAttribute("data-film"), filmLink);
       return;
     }
-    if (event.target.closest("a[data-reel]") && !modified) {
+    var reelLink = event.target.closest("a[data-reel]");
+    if (reelLink && !modified) {
       event.preventDefault();
-      openReel();
+      openReel(reelLink);
       return;
     }
     if (event.target.closest("a[href]")) return;
@@ -1282,9 +1093,16 @@
       closeFilm();
       return;
     }
+    var chip = event.target.closest("[data-agent]");
+    if (chip) {
+      chooseAgent(chip.getAttribute("data-agent"));
+      return;
+    }
     var opener = event.target.closest("[data-open]");
     if (opener) {
-      openPlate(opener.getAttribute("data-open"));
+      if (opener.getAttribute("data-open")) {
+        openPlate(opener.getAttribute("data-open"), opener.getAttribute("data-open-section"));
+      }
       return;
     }
     if (event.target.closest("[data-close-viewer]")) {
@@ -1312,7 +1130,26 @@
   searchInput.addEventListener("search", updateSearch);
   sortSelect.addEventListener("change", updateSort);
 
-  agentSelect.addEventListener("change", renderCommand);
+  /**
+   * One coding-agent choice drives both the front page's preview and the
+   * sheet's build command. The preview replays its typing on each pick.
+   */
+  function chooseAgent(key, quiet) {
+    var agent = AGENTS[key];
+    if (!agent) return;
+    Array.prototype.forEach.call(document.querySelectorAll("[data-agent]"), function (chip) {
+      chip.setAttribute("aria-pressed", String(chip.getAttribute("data-agent") === key));
+    });
+    $("#agentDemoLabel").textContent = agent.label;
+    $("#agentDemoCommand").textContent = agent.build("").replace(/\s*""$/, "");
+    agentSelect.value = key;
+    if (!quiet) replay($("#agentDemoBody"), "is-typing");
+    renderCommand();
+  }
+
+  agentSelect.addEventListener("change", function () {
+    chooseAgent(agentSelect.value, true);
+  });
 
   $("#copyCommand").addEventListener("click", function () {
     copyText($("#commandText").textContent)
@@ -1373,19 +1210,117 @@
   // and closing a plate goes through syncHash()'s replaceState, which does
   // not fire "hashchange" itself, so this listener only ever reacts to
   // changes this script did not just make — no open/close feedback loop.
+  // Section anchors (#templates, #reel, #how) close any open sheet.
   window.addEventListener("hashchange", function () {
     var id = window.location.hash.slice(1);
-    if (!id) {
+    if (!findTemplate(id)) {
       closePlate();
       return;
     }
     if (!active || active.id !== id) openPlate(id);
   });
 
-  renderCatalogue();
+  /** Counts and names on the page follow the catalogue, not the copy. */
+  function fillFromCatalogue() {
+    Array.prototype.forEach.call(document.querySelectorAll("[data-template-count]"), function (element) {
+      element.textContent = countWordOf(CATALOG.length);
+    });
+    var runnable = CATALOG.filter(function (template) {
+      return template.source && template.source.runnable;
+    }).length;
+    var runnableEl = $("[data-runnable]");
+    if (runnableEl && !runnable) runnableEl.hidden = true;
+    else if (runnableEl && runnable < CATALOG.length) runnableEl.textContent = countWordOf(runnable) + " ready to run.";
 
-  // Deep-link support: open the requested plate once the catalogue has
-  // rendered, so `#<template-id>` links open their interstitial on load.
+    // The film's chapters: each line takes its template's light and name.
+    Array.prototype.forEach.call(document.querySelectorAll(".chapter-item[data-open]"), function (button) {
+      var template = findTemplate(button.getAttribute("data-open"));
+      var item = button.closest("li");
+      if (!template) {
+        if (item) item.hidden = true;
+        return;
+      }
+      button.setAttribute("style", themeStyle(template));
+      var name = button.querySelector("[data-template-name]");
+      if (name) name.textContent = template.name;
+    });
+    Array.prototype.forEach.call(document.querySelectorAll(".chapter"), function (chapter) {
+      var shown = Array.prototype.filter.call(chapter.querySelectorAll(".chapter-list > li"), function (item) {
+        return !item.hidden;
+      });
+      if (!shown.length) chapter.hidden = true;
+    });
+
+    // The build-brief preview, written from the featured template's own brief.
+    var featured = findTemplate(FEATURED_TEMPLATE_ID) || CATALOG[0];
+    if (!featured) return;
+    var lines = implementationBrief(featured).split("\n");
+    $("#agentDemoPrompt").textContent = lines[0];
+    $("#agentDemoGoal").textContent =
+      lines.filter(function (line) {
+        return line.indexOf("Goal: ") === 0;
+      })[0] || "";
+    $("#agentDemoOpen").setAttribute("data-open", featured.id);
+    $("#agentDemo").hidden = false;
+    chooseAgent(AGENTS[agentSelect.value] ? agentSelect.value : "copilot", true);
+  }
+
+  /** The bar turns dark over the black bands, as it does on apple.com. */
+  var navEl = $("#nav");
+  var themeColorEl = document.querySelector('meta[name="theme-color"]');
+  var darkBands = document.querySelectorAll("[data-nav-dark]");
+  var navFrame = 0;
+
+  function updateNav() {
+    navFrame = 0;
+    var probe = navEl.offsetHeight / 2;
+    var dark = Array.prototype.some.call(darkBands, function (band) {
+      var rect = band.getBoundingClientRect();
+      return rect.top <= probe && rect.bottom >= probe;
+    });
+    if (navEl.classList.contains("is-dark") === dark) return;
+    navEl.classList.toggle("is-dark", dark);
+    if (themeColorEl) themeColorEl.setAttribute("content", dark ? "#161617" : "#ffffff");
+  }
+
+  function scheduleNav() {
+    if (!navFrame) navFrame = window.requestAnimationFrame(updateNav);
+  }
+
+  /** The sheet's floating controls turn dark too, over its black build band. */
+  var controlsEl = sheetEl.querySelector(".viewer-controls");
+  var buildEl = $("#viewerBuild");
+  var controlsFrame = 0;
+
+  function updateControls() {
+    controlsFrame = 0;
+    if (viewerEl.hidden) return;
+    var bar = controlsEl.getBoundingClientRect();
+    var probe = bar.top + bar.height / 2;
+    var band = buildEl.getBoundingClientRect();
+    controlsEl.classList.toggle("is-dark", band.top <= probe && band.bottom >= probe);
+  }
+
+  function scheduleControls() {
+    if (!controlsFrame) controlsFrame = window.requestAnimationFrame(updateControls);
+  }
+
+  viewerEl.addEventListener("scroll", scheduleControls, { passive: true });
+  window.addEventListener("resize", scheduleControls);
+
+  fillFromCatalogue();
+  renderCatalogue();
+  Array.prototype.forEach.call(document.querySelectorAll("[data-reveal]"), function (element) {
+    awaitArrival(element, false);
+  });
+  if (navEl) {
+    window.addEventListener("scroll", scheduleNav, { passive: true });
+    window.addEventListener("resize", scheduleNav);
+    updateNav();
+  }
+
+  // Deep-link support: open the requested sheet once the catalogue has
+  // rendered, so `#<template-id>` links open it on load.
   var initialHash = window.location.hash.slice(1);
-  if (initialHash) openPlate(initialHash);
+  if (findTemplate(initialHash)) openPlate(initialHash);
 })();

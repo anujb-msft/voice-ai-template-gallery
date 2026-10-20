@@ -1,4 +1,4 @@
-// General Inquiry Agent's film: the short one its Video button plays, cut from the
+// General Inquiry Agent's film: the short one its tile and page play, cut from the
 // console footage of its full walkthrough (films/general-inquiry-agent.mjs). Built by
 // `npm run reel -- general-inquiry-agent`; reel/overview.mjs documents the fields.
 export default {

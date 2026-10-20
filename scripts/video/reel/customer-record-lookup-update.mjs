@@ -1,4 +1,4 @@
-// Customer Record Lookup & Update's film: the short one its Video button plays, cut from the
+// Customer Record Lookup & Update's film: the short one its tile and page play, cut from the
 // console footage of its full walkthrough (films/customer-record-lookup-update.mjs). Built by
 // `npm run reel -- customer-record-lookup-update`; reel/overview.mjs documents the fields.
 const CALL = { x: 0, y: 246, w: 960 };

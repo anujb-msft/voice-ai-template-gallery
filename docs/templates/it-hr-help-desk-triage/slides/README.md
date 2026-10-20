@@ -4,7 +4,7 @@
 - `it-hr-help-desk-triage.pptx` — editable deck, pending
 - `preview.webp` — slide preview image, pending
 
-The gallery card's **PDF** button and the template page open the slide. It leads with
+The gallery sheet's **PDF** link and the template page open the slide. It leads with
 the potential outcomes, then says what the agent does, who it's for, how success is
 measured, the systems it touches, and how complex it is to build, beside a still of the
 template's console.

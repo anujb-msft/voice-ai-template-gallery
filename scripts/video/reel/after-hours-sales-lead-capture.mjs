@@ -1,4 +1,4 @@
-// After-Hours Sales Lead Capture's film: the short one its Video button plays, cut from the
+// After-Hours Sales Lead Capture's film: the short one its tile and page play, cut from the
 // console footage of its full walkthrough (films/after-hours-sales-lead-capture.mjs). Built by
 // `npm run reel -- after-hours-sales-lead-capture`; reel/overview.mjs documents the fields.
 const CALL = { x: 0, y: 246, w: 960 };

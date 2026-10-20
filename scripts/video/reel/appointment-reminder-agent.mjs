@@ -1,4 +1,4 @@
-// Appointment Reminder Agent's film: the short one its Video button plays, cut from the
+// Appointment Reminder Agent's film: the short one its tile and page play, cut from the
 // console footage of its full walkthrough (films/appointment-reminder-agent.mjs). Built by
 // `npm run reel -- appointment-reminder-agent`; reel/overview.mjs documents the fields.
 export default {

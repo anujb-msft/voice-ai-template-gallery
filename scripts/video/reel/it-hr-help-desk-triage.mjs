@@ -1,4 +1,4 @@
-// IT / HR Help Desk Triage's film: the short one its Video button plays, cut from the
+// IT / HR Help Desk Triage's film: the short one its tile and page play, cut from the
 // console footage of its full walkthrough (films/it-hr-help-desk-triage.mjs). Built by
 // `npm run reel -- it-hr-help-desk-triage`; reel/overview.mjs documents the fields.
 export default {

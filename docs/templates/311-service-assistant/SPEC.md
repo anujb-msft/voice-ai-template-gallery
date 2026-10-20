@@ -57,7 +57,7 @@ review.
 | 9 | DTMF † | `0` transfers to the 311 live-agent queue in business hours. `*` repeats the last phrase |
 | 10 | Realtime transport † | Local WebSocket only, with no SignalR dependency |
 | 11 | Default port † | `8096`, so it runs alongside the other gallery samples on `8090`–`8095` |
-| 12 | Gallery card † | Visual scene updated to depict the report, location, and case-number flow when the sample lands |
+| 12 | Gallery tile † | Poster frame of the demo film, or a title card until the film is published |
 
 ## Goal
 

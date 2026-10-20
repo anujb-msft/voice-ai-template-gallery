@@ -1,11 +1,11 @@
 # Template demo films
 
-Builds the demo films published under each template's **Video** button, and the
-[overview film](#the-overview-film) at the top of the gallery. Each template has two:
+Builds each template's demo films, and the [overview film](#the-overview-film) at the
+top of the gallery. Each template has two:
 
-- **Its film**, which the **Video** button plays: two to three minutes, styled like
-  a product film. It opens cold on a call, then shows the template's console at the
-  moments that say what it does. See [Short films](#short-films).
+- **Its film**, which its gallery tile and template page play: two to three minutes,
+  styled like a product film. It opens cold on a call, then shows the template's
+  console at the moments that say what it does. See [Short films](#short-films).
 - **Its walkthrough**, which the film is cut from: the full narrated demo, five to six
   and a half minutes, where every scripted call plays out from start to finish.
 
@@ -14,8 +14,8 @@ Films are too large to commit, so each is an asset on the repository's
 GitHub Release: `<id>.mp4` and `<id>-walkthrough.mp4`.
 The Pages build copies the film into the site
 ([`scripts/mirror-hosted-films.js`](../mirror-hosted-films.js)), and the gallery
-plays that same-origin copy first and the release second: the **Video** button
-opens an in-page player, and the template page plays it inline. The film's
+plays that same-origin copy first and the release second: the template's tile and
+sheet open an in-page player, and the template page plays it inline. The film's
 `poster.webp`, `captions.vtt`, `transcript.md` and `README.md` are committed in
 `docs/templates/<id>/video/`, with the walkthrough's transcript beside them as
 `walkthrough-transcript.md`. The film's `README.md` links the walkthrough.
@@ -120,11 +120,11 @@ and voice lines the walkthroughs recorded, so compose those first
 (`npm run compose -- <id> --no-render` is enough). The fields are documented at the
 top of [`reel/overview.mjs`](reel/overview.mjs).
 
-Beside `<id>.mp4`, `reel` writes `poster.webp` (the title card, which the player
-shows before it starts), `share.jpg` (a 1200×675 link preview), `captions.vtt`,
-`transcript.md`, `README.md` and `reel.json`. The picture renders only when the page
-or its takes change; a new mix or score reuses the render. `--no-music` drops the
-score.
+Beside `<id>.mp4`, `reel` writes `poster.webp` (the title card, which a template's
+tile and the player show before it starts), `share.jpg` (a 1200×675 link preview),
+`captions.vtt`, `transcript.md`, `README.md` and `reel.json`. The picture renders only
+when the page or its takes change; a new mix or score reuses the render. `--no-music`
+drops the score.
 
 ### A template's film
 
@@ -167,8 +167,9 @@ the end of the open (`hero.before` in the reel script). `docs/index.html` names
 companions into `docs/overview/`. `docs/index.html` and
 `scripts/mirror-hosted-films.js` already name these files and the release download,
 so a new cut needs no code change. Update the runtime written in `docs/index.html`
-if the cut changes length. Then push, or redeploy Pages if there's nothing to push,
-as described above.
+if the cut changes length, and the chapter list under the film there (one
+`data-open="<id>"` line per template) if its chapter cards change. Then push, or
+redeploy Pages if there's nothing to push, as described above.
 
 ## How it works
 

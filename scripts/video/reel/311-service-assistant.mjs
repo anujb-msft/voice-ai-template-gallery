@@ -1,4 +1,4 @@
-// 311 Service Assistant's film: the short one its Video button plays, cut from the
+// 311 Service Assistant's film: the short one its tile and page play, cut from the
 // console footage of its full walkthrough (films/311-service-assistant.mjs). Built by
 // `npm run reel -- 311-service-assistant`; reel/overview.mjs documents the fields.
 const CALL = { x: 0, y: 280, w: 960 };

@@ -51,7 +51,7 @@ review.
 | 6 | DTMF † | `0` transfers to the last-mentioned location's merchandiser in hours. `*` repeats the last quote |
 | 7 | Realtime transport † | Local WebSocket only, with no SignalR dependency |
 | 8 | Default port † | `8094`, so it runs alongside the password-reset (`8090`), routing (`8091`), general inquiry (`8092`), and after-hours lead capture (`8093`) samples |
-| 9 | Gallery card † | Visual scene updated to depict the location, commodity, and quote flow when the sample lands |
+| 9 | Gallery tile † | Poster frame of the demo film, or a title card until the film is published |
 | 10 | Transfer audio † | A spoken "connecting you with the Riverside merchandiser now", with no hold tone |
 
 ## Goal

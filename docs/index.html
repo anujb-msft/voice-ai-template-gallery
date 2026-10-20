@@ -7,7 +7,7 @@
       name="description"
       content="Illustrative voice AI agent templates organized around business outcomes, system touchpoints, and implementation complexity."
     />
-    <meta name="theme-color" content="#17140f" />
+    <meta name="theme-color" content="#ffffff" />
     <meta property="og:title" content="Voice AI Agent Template Gallery" />
     <meta
       property="og:description"
@@ -26,110 +26,358 @@
     <meta name="twitter:card" content="summary_large_image" />
     <title>Voice AI Agent Template Gallery</title>
     <link rel="icon" href="favicon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="assets/gallery.css?v=20261019-1" />
+    <link rel="stylesheet" href="assets/gallery.css?v=20261020-2" />
   </head>
   <body>
-    <a class="skip-link" href="#catalogue">Skip to the catalogue</a>
+    <!-- The films' gradient, shared by every stroked icon on the page. Kept
+         rendered (zero-sized, not display:none) so the references resolve. -->
+    <svg class="svg-defs" width="0" height="0" aria-hidden="true" focusable="false">
+      <defs>
+        <linearGradient id="iconGradient" gradientUnits="userSpaceOnUse" x1="2" y1="0" x2="22" y2="0">
+          <stop offset="0" stop-color="#4f8bff" />
+          <stop offset="0.4" stop-color="#8a6cff" />
+          <stop offset="0.7" stop-color="#d16ce0" />
+          <stop offset="1" stop-color="#ff8a65" />
+        </linearGradient>
+        <linearGradient id="markGradient" gradientUnits="userSpaceOnUse" x1="12" y1="0" x2="52" y2="0">
+          <stop offset="0" stop-color="#4f8bff" />
+          <stop offset="0.4" stop-color="#8a6cff" />
+          <stop offset="0.7" stop-color="#d16ce0" />
+          <stop offset="1" stop-color="#ff8a65" />
+        </linearGradient>
+      </defs>
+    </svg>
 
-    <header class="masthead">
-      <h1 class="masthead-title">Voice AI<br />Agent Templates</h1>
+    <a class="skip-link" href="#templates">Skip to the templates</a>
+
+    <header class="nav" id="nav">
+      <div class="nav-inner">
+        <a class="nav-brand" href="#top">
+          <svg class="nav-mark" viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+            <rect width="64" height="64" rx="14" fill="#000" />
+            <path
+              d="M15 27v10M26 19v26M38 12v40M49 23v18"
+              fill="none"
+              stroke="url(#markGradient)"
+              stroke-width="6"
+              stroke-linecap="round"
+            />
+          </svg>
+          <span class="nav-title">Voice AI Templates</span>
+        </a>
+        <nav class="nav-links" aria-label="Sections">
+          <a href="#reel">The film</a>
+          <a href="#how">How it works</a>
+        </nav>
+        <a class="pill pill--small nav-cta" href="#templates">Browse templates</a>
+      </div>
     </header>
 
-    <!-- The overview reel (docs/overview/). The Pages build mirrors the film
-         from the release to overview/overview.mp4; see scripts/mirror-hosted-films.js. -->
-    <section
-      class="reel"
-      id="reel"
-      aria-labelledby="reelTitle"
-      data-film-title="Voice AI templates for Teams Phone"
-      data-film-release="https://github.com/anujb-msft/voice-ai-template-gallery/releases/download/demo-films/overview.mp4"
-      data-film-poster="overview/poster.webp"
-      data-film-disclosure="Every voice is synthetic, performed by Azure OpenAI GPT Realtime. Callers and companies are fictional, each console runs in simulation mode, and its Teams panel is simulated."
-    >
-      <div class="reel-copy">
-        <p class="reel-kicker">The film</p>
-        <h2 class="reel-title" id="reelTitle">
-          Eleven agents.<br /><span class="reel-gradient">Under three minutes.</span>
-        </h2>
-        <p class="reel-sub">
-          Watch each one answer, act and hand off, right in the console it
-          ships with.
+    <main id="main">
+      <section class="hero" aria-labelledby="heroTitle">
+        <div class="voice-mark" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+        <h1 class="hero-title" id="heroTitle">
+          Voice AI templates<br /><span class="gradient">for Teams Phone.</span>
+        </h1>
+        <p class="hero-sub">
+          <span data-template-count>Eleven</span> of them.
+          <span data-runnable>Each one ready to run.</span>
         </p>
-        <a class="reel-play" id="reelPlay" href="overview/overview.mp4" data-reel>
-          <span class="reel-play-icon" aria-hidden="true"></span>
-          <span>Play the film</span>
-          <span class="reel-runtime" aria-hidden="true">2:52</span>
-          <span class="sr-only">(2 minutes 52 seconds)</span>
-        </a>
-        <p class="reel-fine">
-          Simulation mode · Synthetic voices · Fictional callers · Teams panel
-          simulated
-        </p>
-      </div>
-      <a
-        class="reel-poster"
-        href="overview/overview.mp4"
-        data-reel
-        tabindex="-1"
-        aria-hidden="true"
+        <div class="hero-ctas">
+          <a class="pill pill--large" href="#templates">Explore the templates</a>
+          <a class="link link--large" href="overview/overview.mp4" data-reel>
+            Watch the film
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="1.5" />
+              <path d="M10 8.4v7.2a.6.6 0 0 0 .9.5l5.6-3.6a.6.6 0 0 0 0-1L10.9 7.9a.6.6 0 0 0-.9.5Z" fill="currentColor" />
+            </svg>
+          </a>
+        </div>
+      </section>
+
+      <!-- The overview reel (docs/overview/). The Pages build mirrors the film
+           from the release to overview/overview.mp4; see scripts/mirror-hosted-films.js. -->
+      <section
+        class="band band--black reel"
+        id="reel"
+        aria-labelledby="reelTitle"
+        data-nav-dark
+        data-film-title="Voice AI templates for Teams Phone"
+        data-film-release="https://github.com/anujb-msft/voice-ai-template-gallery/releases/download/demo-films/overview.mp4"
+        data-film-poster="overview/poster.webp"
+        data-film-disclosure="Every voice is synthetic, performed by Azure OpenAI GPT Realtime. Callers and companies are fictional, each console runs in simulation mode, and its Teams panel is simulated."
       >
-        <img
-          src="overview/hero.webp"
-          width="1600"
-          height="900"
-          alt=""
-          decoding="async"
-          fetchpriority="high"
-        />
-        <span class="reel-poster-play"></span>
-      </a>
-    </section>
+        <div class="band-head" data-reveal>
+          <p class="eyebrow">The film</p>
+          <h2 class="band-title" id="reelTitle">
+            Eleven agents.<br /><span class="gradient">Under three minutes.</span>
+          </h2>
+          <p class="band-lede">
+            Watch each one answer, act and hand off, right in the console it
+            ships with.
+          </p>
+        </div>
 
-    <nav class="index-bar" aria-label="Catalogue filters">
-      <label class="search-field">
-        <span class="sr-only">Search the catalogue</span>
-        <input
-          id="searchInput"
-          type="search"
-          placeholder="Search agent, category, industry, or application"
-        />
-      </label>
-      <label class="sort-field">
-        <span>Order</span>
-        <select id="sortSelect">
-          <option value="name">Intent first · A–Z</option>
-          <option value="name-desc">Intent first · Z–A</option>
-        </select>
-      </label>
-    </nav>
+        <div class="reel-stage" data-reveal="rise">
+          <a
+            class="reel-poster"
+            href="overview/overview.mp4"
+            data-reel
+            tabindex="-1"
+            aria-hidden="true"
+          >
+            <img
+              src="overview/hero.webp"
+              width="1600"
+              height="900"
+              alt=""
+              decoding="async"
+              fetchpriority="high"
+            />
+            <span class="glass-play glass-play--large"></span>
+          </a>
+        </div>
 
-    <main
-      class="plates"
-      id="catalogue"
-      aria-label="Voice AI agent templates"
-    ></main>
+        <div class="reel-actions">
+          <a class="pill pill--large pill--white" id="reelPlay" href="overview/overview.mp4" data-reel>
+            <svg class="pill-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path d="M7 5.3a1.3 1.3 0 0 1 2-1.1l10.4 6.7a1.3 1.3 0 0 1 0 2.2L9 19.8a1.3 1.3 0 0 1-2-1.1Z" />
+            </svg>
+            <span>Play the film</span>
+            <span class="runtime" aria-hidden="true">2:52</span>
+            <span class="sr-only">(2 minutes 52 seconds)</span>
+          </a>
+          <p class="fine-print">
+            Simulation mode · Synthetic voices · Fictional callers · Teams panel
+            simulated
+          </p>
+        </div>
 
-    <p
-      class="sr-only"
-      id="catalogueStatus"
-      role="status"
-      aria-live="polite"
-    ></p>
+        <!-- The film's own chapters. Each line opens that template's sheet. -->
+        <div class="chapters">
+          <div class="chapter chapter--open" data-reveal>
+            <ul class="chapter-list">
+              <li>
+                <button class="chapter-item" type="button" data-open="intent-based-call-routing">
+                  <span class="chapter-line">No menu. Just say what you need.</span>
+                  <span class="chapter-name" data-template-name>Intent-Based Call Routing</span>
+                </button>
+              </li>
+            </ul>
+          </div>
+          <div class="chapter" data-reveal style="--delay: 0ms">
+            <h3 class="chapter-title" id="chapterAnswers">It answers.</h3>
+            <ul class="chapter-list">
+              <li>
+                <button class="chapter-item" type="button" data-open="general-inquiry-agent">
+                  <span class="chapter-line">Answers from your content. And names the source.</span>
+                  <span class="chapter-name" data-template-name>General Inquiry Agent</span>
+                </button>
+              </li>
+              <li>
+                <button class="chapter-item" type="button" data-open="bid-price-lookup-agent">
+                  <span class="chapter-line">Your prices, read word for word.</span>
+                  <span class="chapter-name" data-template-name>Bid / Price Lookup Agent</span>
+                </button>
+              </li>
+              <li>
+                <button class="chapter-item" type="button" data-open="311-service-assistant">
+                  <span class="chapter-line">Hears Spanish. Answers in Spanish.</span>
+                  <span class="chapter-name" data-template-name>311 Service Assistant</span>
+                </button>
+              </li>
+            </ul>
+          </div>
+          <div class="chapter" data-reveal style="--delay: 80ms">
+            <h3 class="chapter-title" id="chapterActs">It acts.</h3>
+            <ul class="chapter-list">
+              <li>
+                <button class="chapter-item" type="button" data-open="appointment-scheduling-agent">
+                  <span class="chapter-line">Slot just taken? It never double-books.</span>
+                  <span class="chapter-name" data-template-name>Appointment Scheduling Agent</span>
+                </button>
+              </li>
+              <li>
+                <button class="chapter-item" type="button" data-open="appointment-reminder-agent">
+                  <span class="chapter-line">Calls patients before their visit.</span>
+                  <span class="chapter-name" data-template-name>Appointment Reminder Agent</span>
+                </button>
+              </li>
+              <li>
+                <button class="chapter-item" type="button" data-open="customer-record-lookup-update">
+                  <span class="chapter-line">Updates the record. Only after a yes.</span>
+                  <span class="chapter-name" data-template-name>Customer Record Lookup &amp; Update</span>
+                </button>
+              </li>
+              <li>
+                <button class="chapter-item" type="button" data-open="it-helpdesk-password-reset">
+                  <span class="chapter-line">Won't skip security. However urgent.</span>
+                  <span class="chapter-name" data-template-name>IT Help Desk Password Reset</span>
+                </button>
+              </li>
+            </ul>
+          </div>
+          <div class="chapter" data-reveal style="--delay: 160ms">
+            <h3 class="chapter-title" id="chapterHandsOff">It hands off.</h3>
+            <ul class="chapter-list">
+              <li>
+                <button class="chapter-item" type="button" data-open="it-hr-help-desk-triage">
+                  <span class="chapter-line">Sensitive calls go straight to a person.</span>
+                  <span class="chapter-name" data-template-name>IT / HR Help Desk Triage</span>
+                </button>
+              </li>
+              <li>
+                <button class="chapter-item" type="button" data-open="contextual-on-call-pager">
+                  <span class="chapter-line">Spots the emergency. Pages the on-call tech.</span>
+                  <span class="chapter-name" data-template-name>Contextual On-Call Pager</span>
+                </button>
+              </li>
+              <li>
+                <button class="chapter-item" type="button" data-open="after-hours-sales-lead-capture">
+                  <span class="chapter-line">Hot lead after hours? It pages your rep.</span>
+                  <span class="chapter-name" data-template-name>After-Hours Sales Lead Capture</span>
+                </button>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </section>
 
-    <div class="empty-notice" id="emptyNotice" hidden>
-      <strong>No templates match this search.</strong>
-      <span>Adjust the search term or return to the full catalogue.</span>
-    </div>
+      <section class="band band--mist catalogue" id="templates" aria-labelledby="catalogueTitle">
+        <div class="catalogue-head">
+          <h2 class="catalogue-title" id="catalogueTitle">Explore the templates.</h2>
+          <div class="tools" role="search">
+            <label class="search">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <circle cx="10.5" cy="10.5" r="6.5" />
+                <path d="m15.5 15.5 5 5" />
+              </svg>
+              <span class="sr-only">Search the catalogue</span>
+              <input
+                id="searchInput"
+                type="search"
+                placeholder="Search agent, category, industry, or application"
+              />
+            </label>
+            <label class="sort">
+              <span class="sort-label">Order</span>
+              <select id="sortSelect">
+                <option value="name">Intent first · A–Z</option>
+                <option value="name-desc">Intent first · Z–A</option>
+              </select>
+            </label>
+          </div>
+        </div>
+
+        <div class="tiles" id="catalogue" aria-label="Voice AI agent templates"></div>
+
+        <p
+          class="sr-only"
+          id="catalogueStatus"
+          role="status"
+          aria-live="polite"
+        ></p>
+
+        <div class="empty-notice" id="emptyNotice" hidden>
+          <strong>No templates match this search.</strong>
+          <span>Adjust the search term or return to the full catalogue.</span>
+        </div>
+      </section>
+
+      <section class="band band--black trust" id="how" aria-labelledby="trustTitle" data-nav-dark>
+        <div class="band-head" data-reveal>
+          <p class="eyebrow">How it works</p>
+          <h2 class="band-title" id="trustTitle">
+            The model talks.<br /><span class="gradient">Your server decides.</span>
+          </h2>
+        </div>
+        <ul class="trust-grid">
+          <li class="trust-card" data-reveal style="--delay: 0ms">
+            <svg class="trust-icon" viewBox="0 0 24 24" fill="none" stroke="url(#iconGradient)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+              <ellipse cx="12" cy="5.5" rx="7.5" ry="2.75" />
+              <path d="M4.5 5.5v13c0 1.52 3.36 2.75 7.5 2.75s7.5-1.23 7.5-2.75v-13" />
+              <path d="M4.5 12c0 1.52 3.36 2.75 7.5 2.75s7.5-1.23 7.5-2.75" />
+            </svg>
+            <p class="trust-text">Facts from your systems</p>
+          </li>
+          <li class="trust-card" data-reveal style="--delay: 80ms">
+            <svg class="trust-icon" viewBox="0 0 24 24" fill="none" stroke="url(#iconGradient)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+              <path d="m8 7-5 5 5 5" />
+              <path d="m16 7 5 5-5 5" />
+              <path d="m13.5 4.5-3 15" />
+            </svg>
+            <p class="trust-text">Rules in your code</p>
+          </li>
+          <li class="trust-card" data-reveal style="--delay: 160ms">
+            <svg class="trust-icon" viewBox="0 0 24 24" fill="none" stroke="url(#iconGradient)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+              <path d="M14 2.75H7A2.25 2.25 0 0 0 4.75 5v14A2.25 2.25 0 0 0 7 21.25h10A2.25 2.25 0 0 0 19.25 19V8Z" />
+              <path d="M14 2.75V8h5.25" />
+              <path d="m8.75 14.25 2.25 2.25 4.25-4.5" />
+            </svg>
+            <p class="trust-text">An audit trail for every call</p>
+          </li>
+        </ul>
+      </section>
+
+      <section class="band yours" aria-labelledby="yoursTitle">
+        <div class="band-head" data-reveal>
+          <h2 class="band-title" id="yoursTitle">
+            <span data-template-count>Eleven</span> starting points.<br /><span class="gradient">Make them yours.</span>
+          </h2>
+          <p class="band-lede">
+            Choose your coding agent and copy a complete implementation brief
+            for any template.
+          </p>
+          <p class="stack-line">
+            Teams Phone extensibility · Azure AI Voice Live · Azure OpenAI GPT Realtime
+          </p>
+        </div>
+
+        <!-- A preview of the build brief; it fills in from the catalogue. -->
+        <div class="agent-demo" id="agentDemo" data-reveal="rise" hidden>
+          <div class="agent-chips" role="group" aria-label="Coding agent">
+            <button class="chip" type="button" data-agent="copilot" aria-pressed="true">GitHub Copilot</button>
+            <button class="chip" type="button" data-agent="claude" aria-pressed="false">Claude Code</button>
+            <button class="chip" type="button" data-agent="codex" aria-pressed="false">Codex CLI</button>
+            <button class="chip" type="button" data-agent="cursor" aria-pressed="false">Cursor Agent</button>
+            <button class="chip" type="button" data-agent="gemini" aria-pressed="false">Gemini CLI</button>
+          </div>
+          <div class="agent-window">
+            <div class="agent-bar" aria-hidden="true">
+              <span class="agent-dots"><i></i><i></i><i></i></span>
+              <span class="agent-label" id="agentDemoLabel">GitHub Copilot</span>
+            </div>
+            <div class="agent-body" id="agentDemoBody">
+              <p class="agent-line agent-command">
+                <span class="agent-caret" aria-hidden="true">›</span>
+                <span id="agentDemoCommand">copilot -p</span>
+              </p>
+              <p class="agent-line agent-prompt" id="agentDemoPrompt"></p>
+              <p class="agent-line agent-goal">
+                <span id="agentDemoGoal"></span><span class="cursor" aria-hidden="true"></span>
+              </p>
+            </div>
+          </div>
+          <p class="agent-more">
+            <button class="link" type="button" id="agentDemoOpen" data-open="" data-open-section="build">
+              See the full brief <span aria-hidden="true">›</span>
+            </button>
+          </p>
+        </div>
+      </section>
+    </main>
 
     <footer class="colophon">
-      <p>
-        Illustrative reference scenarios only. No customer deployments,
-        endorsements, or performance commitments are represented.
-      </p>
-      <p>
-        Review security, privacy, accessibility, responsible AI, and compliance
-        requirements before using a template with real people or data.
-      </p>
+      <div class="colophon-inner">
+        <p>
+          Illustrative reference scenarios only. No customer deployments,
+          endorsements, or performance commitments are represented.
+        </p>
+        <p>
+          Review security, privacy, accessibility, responsible AI, and compliance
+          requirements before using a template with real people or data.
+        </p>
+      </div>
     </footer>
 
     <div class="viewer" id="viewer" hidden>
@@ -141,132 +389,108 @@
         aria-labelledby="viewerTitle"
         id="viewerSheet"
       >
-        <header class="viewer-head">
-          <div>
-            <p class="viewer-kicker" id="viewerKicker">Agent 01</p>
-            <h2 class="viewer-title" id="viewerTitle">Agent template</h2>
-            <p class="viewer-sub" id="viewerSub"></p>
-          </div>
+        <div class="viewer-bar">
           <div class="viewer-controls">
-            <button
-              class="rule-button"
-              type="button"
-              data-step="-1"
-              title="Previous plate"
-            >
-              <span aria-hidden="true">&larr;</span
-              ><span class="sr-only">Previous plate</span>
-            </button>
-            <span class="viewer-position" id="viewerPosition">1 / 11</span>
-            <button
-              class="rule-button"
-              type="button"
-              data-step="1"
-              title="Next plate"
-            >
-              <span aria-hidden="true">&rarr;</span
-              ><span class="sr-only">Next plate</span>
-            </button>
-            <button
-              class="rule-button close"
-              type="button"
-              data-close-viewer
-              title="Close plate (Esc)"
-            >
-              <span aria-hidden="true">&times;</span
-              ><span class="sr-only">Close plate</span>
+            <div class="capsule">
+              <button class="round-button" type="button" data-step="-1" title="Previous template">
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m14.5 6-6 6 6 6" /></svg>
+                <span class="sr-only">Previous template</span>
+              </button>
+              <span class="viewer-position" id="viewerPosition">1 / 11</span>
+              <button class="round-button" type="button" data-step="1" title="Next template">
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m9.5 6 6 6-6 6" /></svg>
+                <span class="sr-only">Next template</span>
+              </button>
+            </div>
+            <button class="round-button close" type="button" data-close-viewer title="Close (Esc)">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M7 7l10 10M17 7 7 17" /></svg>
+              <span class="sr-only">Close</span>
             </button>
           </div>
+        </div>
+
+        <header class="viewer-hero">
+          <p class="viewer-kicker" id="viewerKicker"></p>
+          <h2 class="viewer-title" id="viewerTitle">Agent template</h2>
+          <p class="display viewer-headline" id="viewerHeadline"></p>
+          <p class="viewer-sub" id="viewerSub"></p>
         </header>
 
-        <div class="viewer-body">
-          <section class="viewer-section overview-card" aria-label="Agent overview">
-            <div class="viewer-overview">
-              <figure class="plate-figure">
-                <div class="plate-stage" id="viewerStage"></div>
-                <figcaption id="viewerCaption"></figcaption>
-              </figure>
+        <figure class="viewer-film">
+          <div class="viewer-stage" id="viewerStage"></div>
+          <figcaption class="viewer-caption" id="viewerCaption"></figcaption>
+        </figure>
 
-              <div class="viewer-context">
-                <div class="overview-block">
-                  <h3>Business case</h3>
-                  <div class="decision-detail" id="businessCase"></div>
-                </div>
-
-                <div class="overview-block">
-                  <h3>Technical fit</h3>
-                  <div class="decision-detail" id="technicalFit"></div>
-                </div>
-
-                <div class="overview-block">
-                  <h3>Explore resources</h3>
-                  <div class="viewer-links" id="viewerLinks"></div>
-                </div>
-              </div>
-            </div>
+        <div class="viewer-cards">
+          <section class="card" aria-labelledby="businessHeading">
+            <h3 class="card-title" id="businessHeading">Business case</h3>
+            <dl class="detail-list" id="businessCase"></dl>
           </section>
-
-          <section
-            class="viewer-section implementation-card"
-            aria-labelledby="implementationHeading"
-          >
-            <div class="implementation-layout">
-              <div class="implementation-config">
-                <p class="implementation-eyebrow">Ready to configure</p>
-                <h3 id="implementationHeading">Build this agent</h3>
-                <p class="section-lead">
-                  Choose your coding agent and copy a complete implementation
-                  brief for this use case.
-                </p>
-                <div class="implementation-resource">
-                  <p class="implementation-resource-label">
-                    Implementation resource
-                  </p>
-                  <div class="repo-action" id="repoAction"></div>
-                </div>
-              </div>
-              <div class="implementation-checklist">
-                <p class="checklist-title">First pilot checklist</p>
-                <ul class="acceptance" id="acceptanceList"></ul>
-              </div>
-              <div class="implementation-build">
-                <label class="agent-field">
-                  <span>Coding agent</span>
-                  <select id="agentSelect">
-                    <option value="copilot" selected>GitHub Copilot</option>
-                    <option value="claude">Claude Code</option>
-                    <option value="codex">Codex CLI</option>
-                    <option value="cursor">Cursor Agent</option>
-                    <option value="gemini">Gemini CLI</option>
-                  </select>
-                </label>
-                <div class="command-block">
-                  <div class="command-head">
-                    <span id="commandLabel">GitHub Copilot</span>
-                    <button class="copy-button" id="copyCommand" type="button">
-                      Copy build prompt
-                    </button>
-                  </div>
-                  <pre><code id="commandText"></code></pre>
-                </div>
-                <a
-                  class="copilot-app-button"
-                  id="openCopilotApp"
-                  href="ghapp://"
-                  target="_blank"
-                  rel="noopener"
-                >
-                  Open in GitHub Copilot app
-                </a>
-                <p class="command-note">
-                  Commands request the change only — no permission-bypass flags
-                  are included. The Copilot app starts in plan mode and asks
-                  you to confirm before creating the session.
-                </p>
-              </div>
-            </div>
+          <section class="card" aria-labelledby="technicalHeading">
+            <h3 class="card-title" id="technicalHeading">Technical fit</h3>
+            <dl class="detail-list" id="technicalFit"></dl>
           </section>
         </div>
+
+        <section class="viewer-resources" aria-labelledby="resourcesHeading">
+          <h3 class="resources-title" id="resourcesHeading">Explore resources</h3>
+          <div class="viewer-links" id="viewerLinks"></div>
+        </section>
+
+        <section class="viewer-build" id="viewerBuild" aria-labelledby="implementationHeading">
+          <p class="eyebrow">Ready to configure</p>
+          <h3 class="build-title" id="implementationHeading">
+            Build <span class="gradient">this agent.</span>
+          </h3>
+          <p class="build-lede">
+            Choose your coding agent and copy a complete implementation brief
+            for this use case.
+          </p>
+          <div class="build-grid">
+            <div class="build-main">
+              <label class="agent-field">
+                <span>Coding agent</span>
+                <select id="agentSelect">
+                  <option value="copilot" selected>GitHub Copilot</option>
+                  <option value="claude">Claude Code</option>
+                  <option value="codex">Codex CLI</option>
+                  <option value="cursor">Cursor Agent</option>
+                  <option value="gemini">Gemini CLI</option>
+                </select>
+              </label>
+              <div class="command-block">
+                <div class="command-head">
+                  <span class="agent-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+                  <span class="command-label" id="commandLabel">GitHub Copilot</span>
+                  <button class="pill pill--small" id="copyCommand" type="button">
+                    Copy build prompt
+                  </button>
+                </div>
+                <pre class="command-text" tabindex="0" aria-label="Build prompt"><code id="commandText"></code></pre>
+              </div>
+              <a
+                class="pill"
+                id="openCopilotApp"
+                href="ghapp://"
+                target="_blank"
+                rel="noopener"
+              >
+                Open in GitHub Copilot app
+              </a>
+              <p class="command-note">
+                Commands request the change only — no permission-bypass flags
+                are included. The Copilot app starts in plan mode and asks
+                you to confirm before creating the session.
+              </p>
+            </div>
+            <div class="build-aside">
+              <h4 class="aside-title">First pilot checklist</h4>
+              <ul class="acceptance" id="acceptanceList"></ul>
+              <h4 class="aside-title">Implementation resource</h4>
+              <div class="repo-action" id="repoAction"></div>
+            </div>
+          </div>
+        </section>
       </article>
     </div>
 
@@ -287,14 +511,14 @@
             <h2 class="film-title" id="filmTitle">Template</h2>
           </div>
           <button
-            class="rule-button"
+            class="round-button round-button--dark"
             type="button"
             id="filmClose"
             data-close-film
             title="Close film (Esc)"
           >
-            <span aria-hidden="true">&times;</span
-            ><span class="sr-only">Close film</span>
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M7 7l10 10M17 7 7 17" /></svg>
+            <span class="sr-only">Close film</span>
           </button>
         </header>
         <video
@@ -332,6 +556,6 @@
 
     <!-- Generated folder-owned template data (window.VOICE_AI_TEMPLATES). -->
     <script src="data/templates.js?v=20261020-1"></script>
-    <script src="assets/gallery.js?v=20261020-1"></script>
+    <script src="assets/gallery.js?v=20261020-2"></script>
   </body>
 </html>

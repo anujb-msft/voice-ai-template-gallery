@@ -50,7 +50,7 @@ review.
 | 6 | Accessibility | Spoken "repeat that" and "slower" are honored, alongside DTMF `0` and short answers |
 | 7 | Realtime transport † | Local WebSocket only, with no SignalR dependency |
 | 8 | Default port † | `8092`, so it runs alongside the password-reset (`8090`) and routing (`8091`) samples |
-| 9 | Gallery card † | Visual scene updated to depict the grounded-answer flow when the sample lands |
+| 9 | Gallery tile † | Poster frame of the demo film, or a title card until the film is published |
 | 10 | Transfer audio † | A spoken "connecting you now", with no hold tone |
 
 ## Goal

@@ -57,7 +57,7 @@ A third round covering conversation edges and demo ergonomics.
 | 6 | Time budget | 90 seconds to a confirmed route, configurable, then automatic reception fallback |
 | 7 | Realtime transport | Local WebSocket only; no SignalR dependency |
 | 8 | Default port | `8091`, so it runs alongside the password-reset sample on `8090` |
-| 9 | Gallery card | Visual scene updated to depict the routing flow when the sample lands |
+| 9 | Gallery tile | Poster frame of the demo film, or a title card until the film is published |
 | 10 | Transfer audio | A spoken “connecting you now”, no hold tone |
 
 ## Goal
@@ -224,8 +224,8 @@ transfer are stubbed.
 
 Shipped alongside `src/`: a README, a `DEMO-SCRIPT.md` walkthrough, a PowerShell snippet
 for `Set-CsOnlineApplicationInstance` and the Teams Phone extensibility assignment, and
-the checked-in call fixtures. When the sample lands, this template’s gallery card gets a
-visual scene depicting the routing flow, replacing the current placeholder artwork.
+the checked-in call fixtures. In the gallery, this template’s tile shows the poster
+frame of its demo film.
 
 ## Acceptance criteria
 

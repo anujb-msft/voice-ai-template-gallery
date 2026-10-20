@@ -54,7 +54,7 @@ review.
 | 7 | DTMF † | PIN entry for PSTN callers. `0` transfers to sales operations. `*` repeats the last phrase |
 | 8 | Realtime transport † | Local WebSocket only, with no SignalR dependency |
 | 9 | Default port † | `8097`, so it runs alongside the other gallery samples on `8090`–`8096` |
-| 10 | Gallery card † | Visual scene updated to depict the briefing, dictation, and confirmed write-back flow when the sample lands |
+| 10 | Gallery tile † | Poster frame of the demo film, or a title card until the film is published |
 
 ## Goal
 

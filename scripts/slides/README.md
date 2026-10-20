@@ -1,7 +1,7 @@
 # Template value slides
 
 Builds each template's one-slide value proposition, `docs/templates/<id>/slides/<id>.pdf`:
-the file the gallery card's **PDF** button and the template page's **Open the slide
+the file the gallery sheet's **PDF** link and the template page's **Open the slide
 (PDF)** link open. The slide is for business decision-makers evaluating Microsoft voice
 AI. It leads with the potential outcomes, then says what the agent does, who it's for,
 how success is measured, the systems it touches, and how complex it is to build, beside
@@ -116,8 +116,8 @@ rebuilds the slides, and checks both.
 
 A new template has no slide at first. `npm run build` and `npm run check` skip a
 template that has no still in `stills.json`, and its manifest keeps the
-`slides/<id>.pdf` asset `pending`, so its **PDF** button shows *Pending*. A slide that
-is committed without a still fails the check.
+`slides/<id>.pdf` asset `pending`, so the **PDF** link in its gallery sheet shows
+*Pending*. A slide that is committed without a still fails the check.
 
 Once the template's demo film is published:
 

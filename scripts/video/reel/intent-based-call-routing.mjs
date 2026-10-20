@@ -1,4 +1,4 @@
-// Intent-Based Call Routing's film: the short one its Video button plays, cut from the
+// Intent-Based Call Routing's film: the short one its tile and page play, cut from the
 // console footage of its full walkthrough (films/intent-based-call-routing.mjs). Built by
 // `npm run reel -- intent-based-call-routing`; reel/overview.mjs documents the fields.
 const CALL = { x: 0, y: 246, w: 960 };

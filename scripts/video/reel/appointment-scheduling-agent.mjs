@@ -1,4 +1,4 @@
-// Appointment Scheduling Agent's film: the short one its Video button plays, cut from the
+// Appointment Scheduling Agent's film: the short one its tile and page play, cut from the
 // console footage of its full walkthrough (films/appointment-scheduling-agent.mjs). Built by
 // `npm run reel -- appointment-scheduling-agent`; reel/overview.mjs documents the fields.
 const CALL = { x: 0, y: 246, w: 960 };
