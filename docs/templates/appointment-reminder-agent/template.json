@@ -67,8 +67,8 @@
       },
       {
         "path": "templates/appointment-reminder-agent/slides/appointment-reminder-agent.pdf",
-        "status": "pending",
-        "description": "Presentation export (PDF)."
+        "status": "ready",
+        "description": "One-slide value proposition for business decision-makers, built from this manifest by scripts/slides (PDF)."
       },
       {
         "path": "templates/appointment-reminder-agent/slides/preview.webp",

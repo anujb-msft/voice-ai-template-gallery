@@ -67,8 +67,8 @@
       },
       {
         "path": "templates/contextual-on-call-pager/slides/contextual-on-call-pager.pdf",
-        "status": "pending",
-        "description": "Presentation export (PDF)."
+        "status": "ready",
+        "description": "One-slide value proposition for business decision-makers, built from this manifest by scripts/slides (PDF)."
       },
       {
         "path": "templates/contextual-on-call-pager/slides/preview.webp",

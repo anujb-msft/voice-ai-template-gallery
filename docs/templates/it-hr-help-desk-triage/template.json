@@ -67,8 +67,8 @@
       },
       {
         "path": "templates/it-hr-help-desk-triage/slides/it-hr-help-desk-triage.pdf",
-        "status": "pending",
-        "description": "Presentation export (PDF)."
+        "status": "ready",
+        "description": "One-slide value proposition for business decision-makers, built from this manifest by scripts/slides (PDF)."
       },
       {
         "path": "templates/it-hr-help-desk-triage/slides/preview.webp",

@@ -187,13 +187,14 @@
     return { href: (template.paths && template.paths.page ? template.paths.page : "") + "video/demo.mp4" };
   }
 
+  /** The template's one-slide value proposition, a PDF built by scripts/slides. */
   function deckReference(template) {
     var pending = pendingAsset(template, function (asset) {
-      return /\.pptx$/i.test(asset.path);
+      return /\/slides\/[^/]+\.pdf$/i.test(asset.path);
     });
     if (pending === null) return { href: discoverySearchLinks(template).deck };
     if (pending) return { pending: true };
-    return { href: (template.paths && template.paths.page ? template.paths.page : "") + "slides/" + template.id + ".pptx" };
+    return { href: (template.paths && template.paths.page ? template.paths.page : "") + "slides/" + template.id + ".pdf" };
   }
 
   function references(template) {
@@ -454,11 +455,11 @@
   }
 
   function referenceLinkMarkup(kind, ref, templateName) {
-    var labels = { repo: "GitHub", video: "Video", deck: "PPTX" };
+    var labels = { repo: "GitHub", video: "Video", deck: "PDF" };
     var titles = {
       repo: "Open the GitHub repository folder for ",
       video: "Watch the demo film for ",
-      deck: "Open the presentation slides for ",
+      deck: "Open the one-slide overview (PDF) for ",
     };
     if (ref && ref.pending) {
       return (

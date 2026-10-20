@@ -1,9 +1,26 @@
 # Slide deliverables
 
-Required production filenames:
+- [`311-service-assistant.pdf`](./311-service-assistant.pdf) — one-slide value proposition, for business decision-makers
+- `311-service-assistant.pptx` — editable deck, pending
+- `preview.webp` — slide preview image, pending
 
-- `311-service-assistant.pptx` — editable presentation
-- `311-service-assistant.pdf` — exported presentation
-- `preview.webp` — slide preview image
+The gallery card's **PDF** button and the template page open the slide. It leads with
+the potential outcomes, then says what the agent does, who it's for, how success is
+measured, the systems it touches, and how complex it is to build, beside a still of the
+template's console.
 
-All three assets are pending. Do not substitute empty or fabricated binary files; update `template.json` after reviewed assets are available.
+## Production details
+
+- **Text and colors:** generated from [`template.json`](../template.json) by
+  [`scripts/slides`](../../../../scripts/slides/). Edit the manifest, not the PDF, then
+  run `npm run build -- --only=311-service-assistant` there and commit the slide. CI fails while
+  it is out of date.
+- **Picture:** the console in simulation mode at 1:09 in the
+  [overview film](https://github.com/anujb-msft/voice-ai-template-gallery/releases/download/demo-films/overview.mp4),
+  cut at the moment and crop in `scripts/slides/stills.json`.
+- **Format:** a tagged 16:9 PDF, with alternate text for the picture and sanitized
+  document metadata.
+
+The editable deck and preview image are pending. Don't substitute empty or fabricated
+files: add only reviewed, template-specific materials with sanitized document metadata,
+and update the matching statuses in `template.json`.

@@ -45,6 +45,33 @@ jobs:
       - name: Check the vendored presenter kit copies
         run: node scripts/sync-presenter-kit.js --check
 
+  # Each template's value slide (docs/templates/<id>/slides/<id>.pdf, behind
+  # the gallery's PDF button) is generated from its template.json and console
+  # still by scripts/slides. The build is byte-for-byte reproducible, so this
+  # rebuilds every slide in memory and fails when a committed one differs:
+  # a manifest edit that didn't rebuild its slide.
+  slides:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: scripts/slides
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: scripts/slides/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check the slides are current
+        run: npm run check
+
   sample:
     name: sample (${{ matrix.template }})
     runs-on: ubuntu-latest

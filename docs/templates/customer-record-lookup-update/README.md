@@ -22,8 +22,8 @@ Operations, context attached, when a request isn't the agent's to handle.
   handoff contract, acceptance criteria, and production gates.
 - [`video/`](./video/) — recording, poster, caption, and transcript delivery scaffolding.
   No media binary is included yet.
-- [`slides/`](./slides/) — presentation delivery scaffolding. No presentation binary is
-  included yet.
+- [`slides/`](./slides/) — the one-slide value proposition (PDF), generated from
+  `template.json`. The editable deck and its preview image are not included yet.
 - [`media/`](./media/) — gallery thumbnail and conceptual architecture illustration.
 - [`template.json`](./template.json) — business and technical metadata, GitHub
   Pages-safe relative paths, and expected asset status.

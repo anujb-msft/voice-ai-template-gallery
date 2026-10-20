@@ -67,8 +67,8 @@
       },
       {
         "path": "templates/bid-price-lookup-agent/slides/bid-price-lookup-agent.pdf",
-        "status": "pending",
-        "description": "Presentation export (PDF)."
+        "status": "ready",
+        "description": "One-slide value proposition for business decision-makers, built from this manifest by scripts/slides (PDF)."
       },
       {
         "path": "templates/bid-price-lookup-agent/slides/preview.webp",

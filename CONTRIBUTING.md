@@ -154,10 +154,13 @@ From the repository root, on a branch that is up to date with `main`:
 ID=your-template-id
 mkdir -p docs/templates/$ID
 git archive HEAD:docs/templates/intent-based-call-routing | tar -x -C docs/templates/$ID
+rm docs/templates/$ID/video/poster.webp docs/templates/$ID/slides/intent-based-call-routing.pdf
 ```
 
 `git archive` copies only tracked files, so no `node_modules/`, `data/`, or `.env`
-comes along. Then replace the reference's identity everywhere it appears:
+comes along. The `rm` deletes the reference's poster and slide: they show the
+reference, and the `grep` at the end of this step skips binary files, so it wouldn't
+find them. Then replace the reference's identity everywhere it appears:
 
 | Replace | With | Where |
 |---|---|---|
@@ -399,9 +402,10 @@ npm run rehearse
 On Windows, run these in WSL: `npm run check` is a POSIX shell loop, and npm runs
 scripts with `cmd.exe` there.
 
-Run `node scripts/sync-presenter-kit.js --check` from the repository root. Then start
-your sample with `npm start`, and present every beat in the console the way the room
-will see it. `npm run rehearse` proves where each beat lands, in any order and after
+Run `node scripts/sync-presenter-kit.js --check` from the repository root. If your
+template has a slide, also run `npm ci` and `npm run check` in `scripts/slides`. Then
+start your sample with `npm start`, and present every beat in the console the way the
+room will see it. `npm run rehearse` proves where each beat lands, in any order and after
 **Reset demo**, but not that the room can follow it.
 
 Preview the gallery, and check your template's card, its **Build this agent** dialog,
@@ -424,31 +428,31 @@ key, and never add a `source` field: the generator derives it.
 
 In the **Shown on** column, *card* is the gallery card, *dialog* is the
 **Build this agent** dialog, *page* is the template page, *prompt* is the GitHub Copilot
-prompt the gallery generates, and *theme* means the `--t-*` custom properties that color
-the card and page.
+prompt the gallery generates, *slide* is the template's one-slide value proposition
+(PDF), and *theme* means the `--t-*` custom properties that color the card and page.
 
 | Field | Rule | Reference value | Shown on |
 |---|---|---|---|
 | `id` | Lowercase words of letters and digits, joined by hyphens. Equals the folder name, and is unique and permanent. | `intent-based-call-routing` | URLs and paths |
-| `name` | Title case. | `Intent-Based Call Routing` | Card, dialog, page, prompt; sort order and search |
-| `language` | `Inbound · ` or `Outbound · `, then a category from the list below. | `Inbound · Voice Receptionist` | Card, dialog, page, prompt; search |
-| `useCase` | A short noun phrase. | `Cross-industry intelligent reception` | Card, dialog, page; search |
+| `name` | Title case. | `Intent-Based Call Routing` | Card, dialog, page, prompt, slide; sort order and search |
+| `language` | `Inbound · ` or `Outbound · `, then a category from the list below. | `Inbound · Voice Receptionist` | Card, dialog, page, prompt, slide; search |
+| `useCase` | A short noun phrase. | `Cross-industry intelligent reception` | Card, dialog, page, slide; search |
 | `assistant` | `Inbound` or `Outbound`, matching the first word of `language`. | `Inbound` | Card thumbnail, dialog, page |
 | `headline` | One or two short sentences, about 40–60 characters. | `Understand the reason. Route to the right team.` | Page headline, meta description |
 | `prompt` | The agent's opening line to the caller, about 35–65 characters. | `Tell me briefly what you are calling about.` | Dialog quote, page, prompt |
 | `description` | Two sentences, about 180–215 characters. | `Classifies a caller's stated reason and routes the call to the appropriate team, queue, or self-service flow. The bounded routing policy makes it a practical starting point for evaluating voice automation.` | Page; search |
 | `tags` | Three tags: the industry or sector first, then two for the function or capability. | `Cross-industry`, `Call routing`, `Reception` | Page; search |
-| `colors` | `bg`, `panel`, `accent`, and `ink`, each a 6-digit hex color. | `#17140f`, `#29231a`, `#e0a63c`, `#f7f0e0` | Theme |
+| `colors` | `bg`, `panel`, `accent`, and `ink`, each a 6-digit hex color. | `#17140f`, `#29231a`, `#e0a63c`, `#f7f0e0` | Theme, slide |
 | `onAccent` | The 6-digit hex color of text on `accent`. | `#17140f` | Theme |
 | `font` | A system font stack that ends in a generic family. No web fonts. | `'Helvetica Neue', Helvetica, Arial, sans-serif` | Theme |
-| `radius` | A CSS length. | `10px` | Theme |
+| `radius` | A CSS length. | `10px` | Theme, slide |
 | `readiness` | Starts with `Illustrative workflow;`, then says what to evaluate. | `Illustrative workflow; evaluate intent accuracy, transfer policy, business-hours behavior, and fallback with representative calls.` | Page |
-| `business.buyer` | The role that would sponsor the agent. | `Customer service and operations leaders` | Page |
-| `business.application` | One sentence on what the agent does for the business. | `Understand why a caller is contacting the organization and route them to the correct team, queue, or self-service flow.` | Card, dialog, page, prompt |
-| `business.roi` | One sentence of expected outcomes, with no percentages or amounts. | `Lower receptionist workload, fewer incorrect transfers, and better first-call resolution.` | Card ("Potential outcomes"), page |
-| `business.metrics` | Three measures joined by ` · `. | `Transfer accuracy · First-call resolution · Receptionist hours saved` | Dialog, page ("Success measures") |
-| `technical.complexity` | Exactly `Low`, `Medium`, or `High`. | `Low` | Card, dialog, page |
-| `technical.systems` | Usually three systems the agent touches, joined by ` · `. | `Phone system · Employee directory · Routing rules` | Dialog, page |
+| `business.buyer` | The role that would sponsor the agent. | `Customer service and operations leaders` | Page, slide |
+| `business.application` | One sentence on what the agent does for the business. | `Understand why a caller is contacting the organization and route them to the correct team, queue, or self-service flow.` | Card, dialog, page, prompt, slide |
+| `business.roi` | One sentence of expected outcomes, with no percentages or amounts. | `Lower receptionist workload, fewer incorrect transfers, and better first-call resolution.` | Card ("Potential outcomes"), page, slide |
+| `business.metrics` | Three measures joined by ` · `. | `Transfer accuracy · First-call resolution · Receptionist hours saved` | Dialog, page ("Success measures"), slide |
+| `technical.complexity` | Exactly `Low`, `Medium`, or `High`. | `Low` | Card, dialog, page, slide |
+| `technical.systems` | Usually three systems the agent touches, joined by ` · `. | `Phone system · Employee directory · Routing rules` | Dialog, page, slide |
 | `technical.build` | One sentence listing what to build. | `Intent classification, routing policy, business-hours logic, fallback, and warm transfer.` | Dialog, page, prompt |
 | `paths` | The reference's 11 keys, each relative to `docs/` and pointing at a file or folder that exists. | `"readme": "templates/intent-based-call-routing/README.md"` | Page links, prompt |
 | `assets.expected` | The reference's five deliverables, each with a `path` that starts with `templates/<id>/`, a `description`, and a `pending` or `ready` status. A demo film hosted on the `demo-films` GitHub Release also has a `url`. | `templates/<id>/` followed by `video/demo.mp4`, `video/poster.webp`, `slides/<id>.pptx`, `slides/<id>.pdf`, and `slides/preview.webp` | Page |
@@ -477,6 +481,14 @@ Notes:
   `scripts/video/src/publish.mjs` uploads the film, checks the download, and writes the
   entry. It also uploads the template's full walkthrough as `<id>-walkthrough.mp4`,
   which `video/README.md` links; the walkthrough has no `assets.expected` entry.
+- `slides/<id>.pdf`, the template's slide, is generated from the fields marked *slide*
+  by [`scripts/slides`](scripts/slides/README.md), which stops and names any field that
+  doesn't fit. After you change a manifest that has a slide, run `npm run build` in
+  `scripts/slides`, and commit the slide: CI fails while it is out of date. A new
+  template gets its slide once its demo film is published
+  ([adding a template's slide](scripts/slides/README.md#adding-a-templates-slide)).
+  Until then, keep the asset `pending`, and mark `<id>.pdf` pending in
+  `slides/README.md`.
 
 ### Common generator errors
 
@@ -545,6 +557,8 @@ Copy this list into the pull request description, and check each item that appli
 - [ ] The change is focused, and the description links its issue.
 - [ ] I ran `node scripts/generate-template-index.js` and committed any changes in
       `docs/data/`.
+- [ ] If I changed `scripts/slides/` or the manifest of a template that has a slide, I
+      ran `npm run build` in `scripts/slides` and committed the slides it rebuilt.
 - [ ] `npm test`, `npm run check`, `npm run smoke`, and `npm run rehearse` pass in every
       `code/` folder I changed.
 - [ ] Every beat in `code/public/beats.js` runs cleanly in the console, and
@@ -601,7 +615,9 @@ repository, in addition to the rest of this guide.
    against `code/DEMO-SCRIPT.md` before you paste it over the pins. If they disagree,
    fix the demo or the script, never only the pins.
 4. Never edit `docs/data/` by hand. Run `node scripts/generate-template-index.js`, and
-   commit its output. Never edit a template's `code/public/presenter-kit.*` or
+   commit its output. After changing the manifest of a template that has a slide, run
+   `npm run build` in `scripts/slides`, and commit the rebuilt `slides/<id>.pdf`. Never
+   edit a template's `code/public/presenter-kit.*` or
    `code/scripts/presenter-kit-rehearsal.mjs` either: change `scripts/presenter-kit/`,
    then run `node scripts/sync-presenter-kit.js`.
 5. Write gallery site code as ES5 (`var` and `function`, no build step), and pass every

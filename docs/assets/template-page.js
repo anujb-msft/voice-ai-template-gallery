@@ -198,19 +198,20 @@
     );
   }
 
+  /** The one-slide value proposition, a PDF built by scripts/slides. */
   function slidesDeliverable() {
     var pending = pendingAsset(function (asset) {
-      return /\.pptx$/i.test(asset.path);
+      return /\/slides\/[^/]+\.pdf$/i.test(asset.path);
     });
     return deliverableRow({
-      title: "Presentation slides",
+      title: "Value proposition slide",
       pending: pending !== false,
       planHref: relativeToPage(template.paths.slidesReadme),
-      href: relativeToPage(template.paths.page) + "slides/" + template.id + ".pptx",
-      actionLabel: "Open the slides",
+      href: relativeToPage(template.paths.page) + "slides/" + template.id + ".pdf",
+      actionLabel: "Open the slide (PDF)",
       note: pending === false
-        ? "An editable presentation deck is available."
-        : "The editable deck, PDF export, and preview image are planned but not yet produced.",
+        ? "One slide for business decision-makers: the potential outcomes, who it\u2019s for, success measures, system touchpoints, and build complexity."
+        : "The one-slide overview (PDF), editable deck, and preview image are planned but not yet produced.",
     });
   }
 

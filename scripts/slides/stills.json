@@ -1,0 +1,86 @@
+{
+  "$comment": "One console still per template value slide, cut from a demo film at the template's key moment: the overview reel (scripts/video/reel/overview.mjs) named by `source`, unless a still names its own `film` (a GitHub Release download, such as the template's own demo film) and that film's `sha256`. `at` is seconds into the film, `crop` is [x, y, width, height] in its 1920x1080 frame, around the console, `teamsCard` marks a still showing the console's mock Teams card (the slide captions it as simulated), and `alt` describes the still for screen readers. `npm run stills` re-cuts stills/<id>.jpg and refuses a film whose sha256 differs. A template with no still here has no slide yet.",
+  "source": {
+    "film": "https://github.com/anujb-msft/voice-ai-template-gallery/releases/download/demo-films/overview.mp4",
+    "sha256": "d6a960a8e8ad705ec86e379fdfa19a3e3634d6bf6a918e3289f88b6a728c7df8"
+  },
+  "stills": [
+    {
+      "id": "intent-based-call-routing",
+      "at": 22.5,
+      "crop": [327, 192, 1294, 728],
+      "teamsCard": true,
+      "alt": "Demo console: the routing decision reads \"Handed to Contoso Billing\". A 0.95 confidence score cleared the 0.75 gate, the agent offered Billing and the caller said yes. Beside it, a mock Teams incoming-call card for Contoso Billing carries the caller's reason: \"I was charged twice on my invoice.\""
+    },
+    {
+      "id": "general-inquiry-agent",
+      "at": 45,
+      "crop": [314, 198, 1266, 712],
+      "teamsCard": false,
+      "alt": "Demo console: a caller asks \"What are City Hall's hours?\" and the grounding decision reads \"Answered from City Hall hours\". The answer matched approved content that is within its review date, and the source is named."
+    },
+    {
+      "id": "bid-price-lookup-agent",
+      "at": 57,
+      "crop": [305, 196, 1280, 720],
+      "teamsCard": false,
+      "alt": "Demo console: a caller asks what corn is paying at Riverside, and the quote panel reads \"Live price, quoted as current\": $4.12 per bushel for November delivery, with futures 3 minutes old, inside the 20-minute window."
+    },
+    {
+      "id": "311-service-assistant",
+      "at": 69.5,
+      "crop": [298, 192, 1294, 728],
+      "teamsCard": false,
+      "alt": "Demo console: a caller asks in Spanish for a mattress and an old sofa to be picked up, and the server's decision reads \"Caller switched to Spanish\". The rules on the call stay enforced in code: the emergency rule, a verified location, approved content only, texts only with consent and a person whenever asked."
+    },
+    {
+      "id": "appointment-scheduling-agent",
+      "at": 80,
+      "crop": [316, 199, 1264, 711],
+      "teamsCard": false,
+      "alt": "Demo console: the caller says \"Yes, book it\", but the front desk booked that time first. The booking decision reads \"Taken mid-call, fresh pick, fresh yes\" and \"nothing written\": the server refused the write, and the caller picks again."
+    },
+    {
+      "id": "appointment-reminder-agent",
+      "at": 88,
+      "crop": [312, 199, 1268, 713],
+      "teamsCard": false,
+      "alt": "Demo console: an outbound reminder call is answered with \"Hello?\" and the reminder decision reads \"Asking for Jordan\". Under a minimum-necessary rule, the agent says who is calling and holds back the appointment details until identity is verified."
+    },
+    {
+      "id": "customer-record-lookup-update",
+      "at": 101.5,
+      "crop": [328, 193, 1290, 726],
+      "teamsCard": false,
+      "alt": "Demo console: the record decision reads \"Written to Fabrikam's record\". Six changes were committed after a read-back, an explicit yes and the undo window, with audit rows. The write-back panel lists each change, such as the stage moving from Negotiation to Closed Won."
+    },
+    {
+      "id": "it-helpdesk-password-reset",
+      "at": 108.5,
+      "crop": [326, 191, 1296, 729],
+      "teamsCard": false,
+      "alt": "Demo console: the reset decision reads \"Verification can't be skipped\", marked Refused. The server has no path past verification, whatever the caller says. The reset page beside it waits on the Verify identity step."
+    },
+    {
+      "id": "it-hr-help-desk-triage",
+      "at": 122,
+      "crop": [336, 202, 1254, 705],
+      "teamsCard": true,
+      "alt": "Demo console: the triage decision reads \"Routed privately to Confidential HR\"; the agent asked nothing and filed nothing. A mock Teams incoming-call card shows only \"Confidential HR\", with no topic and no summary."
+    },
+    {
+      "id": "contextual-on-call-pager",
+      "at": 136,
+      "crop": [331, 194, 1284, 722],
+      "teamsCard": true,
+      "alt": "Demo console: the paging decision reads \"Paging Morgan Lee\" for an active leak reported after hours. A mock Teams page shows the technician the tenant's words, the unit, permission to enter and a masked callback number."
+    },
+    {
+      "id": "after-hours-sales-lead-capture",
+      "at": 149,
+      "crop": [326, 192, 1296, 729],
+      "teamsCard": true,
+      "alt": "Demo console: the lead decision reads \"Paging Ben Ortiz\" for a hot, urgent lead scored 8 of 8, while the caller stays on the line. A mock Teams card shows the on-call sales rep the order, 2,000 cartons for Tailwind Traders, and a confirmed callback number."
+    }
+  ]
+}

@@ -69,8 +69,8 @@ window.VOICE_AI_TEMPLATES = [
         },
         {
           "path": "templates/311-service-assistant/slides/311-service-assistant.pdf",
-          "status": "pending",
-          "description": "Presentation export (PDF)."
+          "status": "ready",
+          "description": "One-slide value proposition for business decision-makers, built from this manifest by scripts/slides (PDF)."
         },
         {
           "path": "templates/311-service-assistant/slides/preview.webp",
@@ -160,8 +160,8 @@ window.VOICE_AI_TEMPLATES = [
         },
         {
           "path": "templates/after-hours-sales-lead-capture/slides/after-hours-sales-lead-capture.pdf",
-          "status": "pending",
-          "description": "Presentation export (PDF)."
+          "status": "ready",
+          "description": "One-slide value proposition for business decision-makers, built from this manifest by scripts/slides (PDF)."
         },
         {
           "path": "templates/after-hours-sales-lead-capture/slides/preview.webp",
@@ -251,8 +251,8 @@ window.VOICE_AI_TEMPLATES = [
         },
         {
           "path": "templates/appointment-reminder-agent/slides/appointment-reminder-agent.pdf",
-          "status": "pending",
-          "description": "Presentation export (PDF)."
+          "status": "ready",
+          "description": "One-slide value proposition for business decision-makers, built from this manifest by scripts/slides (PDF)."
         },
         {
           "path": "templates/appointment-reminder-agent/slides/preview.webp",
@@ -342,8 +342,8 @@ window.VOICE_AI_TEMPLATES = [
         },
         {
           "path": "templates/appointment-scheduling-agent/slides/appointment-scheduling-agent.pdf",
-          "status": "pending",
-          "description": "Presentation export (PDF)."
+          "status": "ready",
+          "description": "One-slide value proposition for business decision-makers, built from this manifest by scripts/slides (PDF)."
         },
         {
           "path": "templates/appointment-scheduling-agent/slides/preview.webp",
@@ -433,8 +433,8 @@ window.VOICE_AI_TEMPLATES = [
         },
         {
           "path": "templates/bid-price-lookup-agent/slides/bid-price-lookup-agent.pdf",
-          "status": "pending",
-          "description": "Presentation export (PDF)."
+          "status": "ready",
+          "description": "One-slide value proposition for business decision-makers, built from this manifest by scripts/slides (PDF)."
         },
         {
           "path": "templates/bid-price-lookup-agent/slides/preview.webp",
@@ -524,8 +524,8 @@ window.VOICE_AI_TEMPLATES = [
         },
         {
           "path": "templates/contextual-on-call-pager/slides/contextual-on-call-pager.pdf",
-          "status": "pending",
-          "description": "Presentation export (PDF)."
+          "status": "ready",
+          "description": "One-slide value proposition for business decision-makers, built from this manifest by scripts/slides (PDF)."
         },
         {
           "path": "templates/contextual-on-call-pager/slides/preview.webp",
@@ -615,8 +615,8 @@ window.VOICE_AI_TEMPLATES = [
         },
         {
           "path": "templates/customer-record-lookup-update/slides/customer-record-lookup-update.pdf",
-          "status": "pending",
-          "description": "Presentation export (PDF)."
+          "status": "ready",
+          "description": "One-slide value proposition for business decision-makers, built from this manifest by scripts/slides (PDF)."
         },
         {
           "path": "templates/customer-record-lookup-update/slides/preview.webp",
@@ -706,8 +706,8 @@ window.VOICE_AI_TEMPLATES = [
         },
         {
           "path": "templates/general-inquiry-agent/slides/general-inquiry-agent.pdf",
-          "status": "pending",
-          "description": "Presentation export (PDF)."
+          "status": "ready",
+          "description": "One-slide value proposition for business decision-makers, built from this manifest by scripts/slides (PDF)."
         },
         {
           "path": "templates/general-inquiry-agent/slides/preview.webp",
@@ -797,8 +797,8 @@ window.VOICE_AI_TEMPLATES = [
         },
         {
           "path": "templates/intent-based-call-routing/slides/intent-based-call-routing.pdf",
-          "status": "pending",
-          "description": "Presentation export (PDF)."
+          "status": "ready",
+          "description": "One-slide value proposition for business decision-makers, built from this manifest by scripts/slides (PDF)."
         },
         {
           "path": "templates/intent-based-call-routing/slides/preview.webp",
@@ -888,8 +888,8 @@ window.VOICE_AI_TEMPLATES = [
         },
         {
           "path": "templates/it-hr-help-desk-triage/slides/it-hr-help-desk-triage.pdf",
-          "status": "pending",
-          "description": "Presentation export (PDF)."
+          "status": "ready",
+          "description": "One-slide value proposition for business decision-makers, built from this manifest by scripts/slides (PDF)."
         },
         {
           "path": "templates/it-hr-help-desk-triage/slides/preview.webp",
@@ -980,8 +980,8 @@ window.VOICE_AI_TEMPLATES = [
         },
         {
           "path": "templates/it-helpdesk-password-reset/slides/it-helpdesk-password-reset.pdf",
-          "status": "pending",
-          "description": "Presentation export (PDF)."
+          "status": "ready",
+          "description": "One-slide value proposition for business decision-makers, built from this manifest by scripts/slides (PDF)."
         },
         {
           "path": "templates/it-helpdesk-password-reset/slides/preview.webp",

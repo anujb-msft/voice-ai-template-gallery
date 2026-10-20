@@ -67,8 +67,8 @@
       },
       {
         "path": "templates/appointment-scheduling-agent/slides/appointment-scheduling-agent.pdf",
-        "status": "pending",
-        "description": "Presentation export (PDF)."
+        "status": "ready",
+        "description": "One-slide value proposition for business decision-makers, built from this manifest by scripts/slides (PDF)."
       },
       {
         "path": "templates/appointment-scheduling-agent/slides/preview.webp",

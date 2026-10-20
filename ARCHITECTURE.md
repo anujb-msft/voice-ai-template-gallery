@@ -232,7 +232,8 @@ docs/templates/<id>/
     architecture.svg
     thumbnail.svg
   slides/
-    README.md            Plus <id>.pptx, <id>.pdf, and preview.webp when ready
+    README.md            Plus <id>.pdf (built by scripts/slides), <id>.pptx, and
+                         preview.webp when ready
   video/
     README.md
     captions.vtt
@@ -251,7 +252,8 @@ The template id is a lowercase kebab-case slug that matches
 - `code/package.json`: `name`.
 - `code/package-lock.json`: the top-level `name` and `packages[""].name`.
 - `gallery.js`: the `VISUAL_SCENES` key and its `dataScene`.
-- The slide files `slides/<id>.pptx` and `slides/<id>.pdf`.
+- The slide files `slides/<id>.pptx` and `slides/<id>.pdf`, and the slide's still in
+  `scripts/slides/stills.json`.
 
 An id is permanent once merged, because `templates/<id>/` is a public URL. To rename a
 template, change its `name`.
@@ -270,6 +272,14 @@ template, change its `name`.
   `status: "pending"` until the real file exists. Change it to `"ready"` in the commit
   that adds the file. The generator fails on a `ready` asset that is missing and on a
   `pending` asset that is present, so placeholders can't be committed.
+- A template's slide, `slides/<id>.pdf`, is its one-slide value proposition for
+  business decision-makers, and what the gallery's **PDF** button and the template
+  page open. It is generated, not drawn: `scripts/slides` sets the manifest's business
+  and technical text in the template's colors, beside a still of its console cut from a
+  demo film. Rebuild it after changing `template.json` (`npm run build` in
+  `scripts/slides`) and commit it; CI fails while a committed slide is out of date. A
+  template has no slide until its still is picked, and keeps the asset `pending` until
+  then. See [its README](scripts/slides/README.md).
 - GitHub rejects files over 100 MB and warns above 50 MB. Compress video for the web.
 - Demo films are not committed. Each one is an asset (`<id>.mp4`) on the repository's
   `demo-films` GitHub Release, and its `assets.expected` entry adds a `url` pointing at
@@ -303,7 +313,7 @@ template, change its `name`.
 | `code/DEMO-SCRIPT.md` | Presenters | The running order and narration for the console's scripted beats in simulation mode, then how to take a real call. |
 | `code/.env.example` | Developers | Every variable `config.mjs` reads, grouped by concern, with placeholders or safe defaults and comments for anything that isn't obvious. No real values. |
 | `video/README.md`, `captions.vtt`, `transcript.md` | Viewers | Video notes, WebVTT captions, and a transcript of the demo. |
-| `slides/README.md` | Presenters | Slide notes and the required filenames. |
+| `slides/README.md` | Presenters | What the slide shows, how it is built, and the required filenames. |
 
 `SPEC.md` starts with `# <Name> — Sample Specification` and a `**Status:**` line, then
 uses these `##` sections in this order:
@@ -738,6 +748,9 @@ with read-only `contents` permission:
 - `presenter-kit` runs `node scripts/sync-presenter-kit.js --check`, which fails when a
   template's vendored copy of the kit or the rehearsal engine differs from
   `scripts/presenter-kit/`.
+- `slides` runs `npm ci` and `npm run check` in `scripts/slides`. The check rebuilds
+  every template's slide in memory and fails when a committed `slides/<id>.pdf`
+  differs, so a manifest edit can't leave a stale slide behind.
 - `sample` is a matrix with one entry per template. Each entry runs `npm test` before
   `npm ci`, which proves the policy core needs no dependencies, then `npm ci`,
   `npm test` again, `npm run check`, `npm run smoke`, and `npm run rehearse`. A test

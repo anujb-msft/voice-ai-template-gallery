@@ -1,10 +1,26 @@
 # Slide deliverables
 
-Planned production filenames:
+- [`it-helpdesk-password-reset.pdf`](./it-helpdesk-password-reset.pdf) — one-slide value proposition, for business decision-makers
+- `it-helpdesk-password-reset.pptx` — editable deck, pending
+- `preview.webp` — slide preview image, pending
 
-- `it-helpdesk-password-reset.pptx` — editable presentation deck
-- `it-helpdesk-password-reset.pdf` — presentation export
-- `preview.webp` — presentation preview image
+The gallery card's **PDF** button and the template page open the slide. It leads with
+the potential outcomes, then says what the agent does, who it's for, how success is
+measured, the systems it touches, and how complex it is to build, beside a still of the
+template's console.
 
-These assets are pending. Add only reviewed, template-specific materials with sanitized
-document metadata and update the matching statuses in `template.json`.
+## Production details
+
+- **Text and colors:** generated from [`template.json`](../template.json) by
+  [`scripts/slides`](../../../../scripts/slides/). Edit the manifest, not the PDF, then
+  run `npm run build -- --only=it-helpdesk-password-reset` there and commit the slide. CI fails while
+  it is out of date.
+- **Picture:** the console in simulation mode at 1:48 in the
+  [overview film](https://github.com/anujb-msft/voice-ai-template-gallery/releases/download/demo-films/overview.mp4),
+  cut at the moment and crop in `scripts/slides/stills.json`.
+- **Format:** a tagged 16:9 PDF, with alternate text for the picture and sanitized
+  document metadata.
+
+The editable deck and preview image are pending. Don't substitute empty or fabricated
+files: add only reviewed, template-specific materials with sanitized document metadata,
+and update the matching statuses in `template.json`.
