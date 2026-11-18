@@ -20,10 +20,10 @@
   "dependencies": {
     "@azure/communication-call-automation": "^1.6.0",
     "@microsoft/signalr": "^8.0.7",
-    "better-sqlite3": "^13.0.3",
+    "better-sqlite3": "^13.2.0",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
     "jsonwebtoken": "^9.0.2",
-    "ws": "^8.18.0"
+    "ws": "^8.23.0"
   }
 }
